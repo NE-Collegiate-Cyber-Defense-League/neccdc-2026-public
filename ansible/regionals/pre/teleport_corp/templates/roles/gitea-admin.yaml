@@ -1,0 +1,29 @@
+kind: role
+version: v7
+metadata:
+  name: gitea-admin
+  description: Gitea administrator
+spec:
+  options:
+    max_session_ttl: 4h
+  allow:
+    app_labels:
+      app: gitea
+    logins:
+      - admin
+      - ec2-user
+      - '{{internal.logins}}'
+    node_labels:
+      service: gitea
+    db_names:
+      - '*'
+    db_service_labels:
+      '*': '*'
+    db_users:
+      - '{{internal.db_users}}'
+      - '*'
+    impersonate:
+      users:
+        - "Db"
+      roles:
+        - "Db"

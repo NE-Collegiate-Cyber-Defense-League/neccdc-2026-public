@@ -1,0 +1,27 @@
+{
+  "name": "HTTP_wordpress",
+  "type": "http",
+  "score_weight": 2,
+  "definition": {
+    "requests": [
+      {
+        "host": "{{.Host}}",
+        "path": "/",
+        "https": true,
+        "port": 443,
+        "method": "GET",
+        "matchcode": true,
+        "code": 200,
+        "matchcontent": false,
+        "headers": {
+          "Host": "{{.Host}}"
+        }
+      }
+    ]
+  },
+  "attributes": {
+    "admin": {
+      "Host": "{{.TeamNumber}}.chefops.tech"
+    }
+  }
+}

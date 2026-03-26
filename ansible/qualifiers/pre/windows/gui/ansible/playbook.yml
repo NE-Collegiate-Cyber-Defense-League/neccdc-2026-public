@@ -1,0 +1,50 @@
+---
+- hosts: all
+  gather_facts: false
+  vars_files:
+    - vars/main.yaml
+  tasks:
+    - ansible.builtin.import_tasks: tasks/chocolatey.yml
+      tags: ['choco']
+
+    - name: Install Feature RSAT Tools
+      ansible.windows.win_feature:
+        name:
+          - RSAT-Role-Tools
+          - RSAT-AD-Tools
+          - RSAT-DNS-Server
+          - RSAT-ADCS
+          - GPMC
+        state: present
+        include_sub_features: true
+        include_management_tools: true
+
+    - name: Add shortcuts to public desktop
+      ansible.windows.win_powershell:
+        script: "{{ lookup('ansible.builtin.file', 'files/desktop.ps1') }}"
+
+    - name: Install Windows Search Service
+      ansible.windows.win_feature:
+        name: "Search-Service"
+        state: present
+    
+    - name: Ensure Windows Search Service is enabled
+      ansible.windows.win_service:
+        name: "WSearch"
+        start_mode: delayed
+
+    - name: Install powershell modules
+      community.windows.win_psmodule:
+        name: ADCSTemplate
+        accept_license: true
+        state: present
+    
+    - name: Install powershell modules
+      community.windows.win_psmodule:
+        name: PSPKI
+        accept_license: true
+        state: present
+
+    - name: Include bginfo role
+      ansible.builtin.include_role:
+        name: roles/bginfo.local

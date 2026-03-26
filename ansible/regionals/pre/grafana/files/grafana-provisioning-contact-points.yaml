@@ -1,0 +1,50 @@
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: Discord Alerts
+    receivers:
+      - uid: discord-webhook
+        type: webhook
+        settings:
+          url: DISCORD_WEBHOOK_URL
+          httpMethod: POST
+          maxAlerts: 0
+          body: |
+            {
+              "username": "Grafana",
+              "avatar_url": "https://storage.cf.neccdl.org/grafana-icon.webp",
+              "embeds": [
+                {
+                  "title": "{{ .CommonLabels.alertname }}",
+                  "description": "{{ .CommonAnnotations.summary }}",
+                  "color": {{ if eq .Status "firing" }}16711680{{ else }}65280{{ end }},
+                  "fields": [
+                    {
+                      "name": "Status",
+                      "value": "{{ .Status }}",
+                      "inline": true
+                    },
+                    {
+                      "name": "Instance",
+                      "value": "{{ .CommonLabels.instance }}",
+                      "inline": true
+                    },
+                    {
+                      "name": "Severity",
+                      "value": "{{ .CommonLabels.severity }}",
+                      "inline": true
+                    },
+                    {
+                      "name": "Description",
+                      "value": "{{ range .Alerts }}{{ .Annotations.description }}\n{{ end }}",
+                      "inline": false
+                    }
+                  ],
+                  "footer": {
+                    "text": "Grafana Alerting"
+                  },
+                  "timestamp": "{{ .EndsAt }}"
+                }
+              ]
+            }

@@ -1,0 +1,148 @@
+packer:
+  hosts:
+    10.0.0.1: {}
+  vars:
+    ansible_user: ec2-user
+    ansible_private_key_file: ../../../../documents/black_team/id_rsa
+
+wireguard:
+  hosts:
+    vpn.chefops.tech: {}
+  vars:
+    ansible_user: ubuntu
+    ansible_private_key_file: ../documents/black_team/id_rsa
+
+scorestack:
+  hosts:
+    score.chefops.tech: {}
+  vars:
+    ansible_user: ubuntu
+    ansible_private_key_file: ../documents/black_team/id_rsa
+
+falco:
+  vars:
+    discord_webhook_url:
+      0: "https://discord.com/api/webhooks/0123456789/qwertyuiop"
+      1: "https://discord.com/api/webhooks/0123456789/qwertyuiop"
+
+
+semaphore:
+  vars:
+    ansible_python_interpreter: /usr/bin/python3.11
+
+teleport:
+  vars:
+    ansible_python_interpreter: /usr/local/bin/python3.9
+    teleport_server_override: falco-kmod
+
+falco_clients:
+  children:
+    grafana:
+    kiosk:
+    semaphore:
+    teleport:
+    wordpress:
+
+grafana_clients:
+  children:
+    falco:
+    kiosk:
+
+teleport_clients:
+  children:
+    falco:
+    grafana:
+    semaphore:
+    wordpress:
+
+firewall:
+  vars:
+    ansible_user: admin
+    ansible_private_key_file: ../../../../documents/black_team/id_rsa
+    ansible_port: 22
+
+windows:
+  children:
+    windows_ad:
+    windows_adfs:
+    windows_pos:
+  vars:
+    ansible_user: Administrator
+    ansible_password: Admin@123
+    ansible_connection: winrm
+    ansible_winrm_transport: ntlm
+    ansible_winrm_server_cert_validation: ignore
+    ntp_servers: "0.pool.ntp.org 1.pool.ntp.org 2.pool.ntp.org"
+    netbios: "CHEFOPS"
+
+windows_clients:
+  children:
+    windows_adfs:
+    windows_pos:
+
+linux:
+  children:
+    falco:
+    grafana:
+    kiosk:
+    semaphore:
+    teleport:
+    wordpress:
+  vars:
+    ansible_user: black-team
+    ansible_private_key_file: ../../../../documents/black_team/id_rsa
+    ansible_port: 22
+
+all:
+  vars:
+    domain: chefops.tech
+    adserver_domain: chefops.local
+    black_team_password: kfaCu7iym9aQ7hyUb8b8qpa8YsJAjvE3
+
+    ad:
+      domain: chefops.local
+      netbios: CHEFOPS
+
+    team_domain: "{{ team }}.{{ domain }}"
+
+    # Handles IPv6 formatting for single digit teams
+    team_ipv6_hex: "{{ '%02x' | format(team | int) }}"
+
+    team_address:
+      firewall_public:
+        ipv4: "10.0.{{ team }}.254"
+        ipv6: "2600:1f26:1d:8c{{ team_ipv6_hex }}:ffff:ffff:ffff:fffe"
+      firewall_private:
+        ipv4: "10.0.{{ team }}.126"
+        ipv6: "2600:1f26:1d:8b{{ team_ipv6_hex }}:ffff:ffff:ffff:fffe"
+      firewall_screened:
+        ipv4: "10.0.{{ team }}.190"
+      firewall_branch:
+        ipv6: "2600:1f26:1d:8a{{ team_ipv6_hex }}:ffff:ffff:ffff:fffe"
+      firewall_vip:
+        ipv4: "10.0.{{ team }}.125"
+      teleport:
+        ipv4: "10.0.{{ team }}.148"
+      wordpress:
+        ipv4: "10.0.{{ team }}.188"
+      kiosk_1:
+        ipv6: "2600:1f26:001d:8a{{ team_ipv6_hex }}::100:1"
+      kiosk_2:
+        ipv6: "2600:1f26:001d:8a{{ team_ipv6_hex }}::100:2"
+      windows_pos:
+        ipv6: "2600:1f26:001d:8a{{ team_ipv6_hex }}::cafe:0"
+      windows_adfs:
+        ipv4: "10.0.{{ team }}.110"
+        ipv6: "2600:1f26:001d:8b{{ team_ipv6_hex }}::adf5:0"
+      windows_ad:
+        ipv4: "10.0.{{ team }}.120"
+        ipv6: "2600:1f26:001d:8b{{ team_ipv6_hex }}:ab57:8ef2:ce6:42c1"
+      grafana:
+        ipv4: "10.0.{{ team }}.32"
+        ipv6: "2600:1f26:001d:8b{{ team_ipv6_hex }}::beef:0"
+      semaphore:
+        ipv4: "10.0.{{ team }}.48"
+        ipv6: "2600:1f26:001d:8b{{ team_ipv6_hex }}::dead:0"
+      falco:
+        ipv4: "10.0.{{ team }}.100"
+        ipv6: "2600:1f26:001d:8b{{ team_ipv6_hex }}::fa1c:0"

@@ -1,0 +1,27 @@
+---
+- name: Gather facts
+  ansible.builtin.setup: {}
+
+- name: Include install tasks
+  include_tasks: install.yml
+  when: wordpress_action != 'uninstall'
+
+- name: Configure MariaDB/MySQL
+  include_tasks: mysql.yml
+  when: wordpress_action != 'uninstall'
+
+- name: Configure Apache web server
+  include_tasks: apache.yml
+  when: wordpress_action != 'uninstall'
+
+- name: Patch WordPress files from artifacts
+  include_tasks: patch.yml
+  when: wordpress_action != 'uninstall'
+
+- name: Configure WordPress (install, users, plugins, etc.)
+  include_tasks: wordpress.yml
+  when: wordpress_action != 'uninstall'
+
+- name: Include uninstall tasks
+  include_tasks: uninstall.yml
+  when: wordpress_action == 'uninstall'

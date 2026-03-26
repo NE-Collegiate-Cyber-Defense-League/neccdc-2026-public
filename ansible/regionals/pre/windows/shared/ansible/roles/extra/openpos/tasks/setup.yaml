@@ -1,0 +1,21 @@
+- name: Copy OSPOS release artifact
+  ansible.windows.win_copy:
+    src: files/opensourcepos-build.zip
+    dest: C:\xampp\htdocs\ospos.zip
+
+- name: Unzip OSPOS
+  ansible.builtin.win_unzip:
+    src: C:\xampp\htdocs\ospos.zip
+    dest: C:\xampp\htdocs\ospos
+    creates: C:\xampp\htdocs\ospos\README.md
+
+- name: Remove OSPOS archive
+  ansible.windows.win_file:
+    path: C:\xampp\htdocs\ospos.zip
+    state: absent
+
+# Prebuilt in .env file
+# - name: Template .env file for OSPOS
+#   ansible.builtin.win_template:
+#     src: .env.j2
+#     dest: C:\xampp\htdocs\ospos\.env

@@ -1,0 +1,286 @@
+- name: Setup Kiosk
+  hosts: packer
+  become: true
+  vars:
+    server_name: "kiosk"
+    ock_users_data: "{{ lookup('file', '../../../../documents/employees/ock_employees.yaml') | from_yaml }}"
+    chefops_users_data: "{{ lookup('file', '../../../../documents/employees/employees.yaml') | from_yaml }}"
+    full_provision_bool: "{{ full_provision | default(true) | bool }}"
+  tasks:
+    - name: Install required apt packages
+      ansible.builtin.apt:
+        name:
+          - ca-certificates
+          - curl
+          - dnsutils
+          - gnupg2
+          - lsb-release
+          - sudo
+          - unzip
+          - wget
+        state: present
+        update_cache: true
+
+    - name: Install Falco
+      ansible.builtin.include_tasks:
+        file: "../../shared/falco_client/main.yaml"
+      when: full_provision_bool
+      tags:
+        - falco
+
+    - name: Install Teleport client
+      ansible.builtin.include_tasks:
+        file: "../../../shared/teleport_client/main.yaml"
+      vars:
+        teleport_node_name: "{{ server_name }}"
+        teleport_join_token: v38ukw8st6e4e5nkj7ds2v9w2jva7v61
+        teleport_node_label:
+          service: kiosk
+          os: linux
+        teleport_app_service_enabled: "no"
+        teleport_major_version_override: v16
+      when: full_provision_bool
+      tags:
+        - teleport
+
+    # https://github.com/takaosgb3/falco-plugin-nginx
+    - name: Setup Falco Nginx Plugin
+      ansible.builtin.include_tasks:
+        file: "tasks/falco.yaml"
+      when: full_provision_bool
+      tags:
+        - falco
+
+    - name: Weaken SSH
+      ansible.builtin.include_tasks:
+        file: "../../../shared/weaken_ssh/main.yaml"
+      vars:
+        ssh_config_path: /etc/ssh/sshd_config
+      tags:
+        - ssh
+
+    - name: Set Ansible user
+      ansible.builtin.include_tasks:
+        file: "../../shared/semaphore_ansible/main.yaml"
+      tags:
+        - ansible
+
+    - name: Download and install amazon-ssm-agent deb package
+      ansible.builtin.apt:
+        deb: "https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/debian_arm64/amazon-ssm-agent.deb"
+
+    - name: Enable Amazon SSM Agent service
+      ansible.builtin.service:
+        enabled: true
+        state: started
+        name: "amazon-ssm-agent"
+
+    - name: Setup black team task
+      ansible.builtin.include_tasks:
+        file: "../../../shared/black_team/main.yaml"
+      tags:
+        - black-team
+
+    - name: Create Kiosk User
+      ansible.builtin.user:
+        name: kiosk
+        comment: "Kiosk User"
+        shell: /bin/sh
+        groups: sudo
+        append: true
+        password: "{{ 'kioskpassword' | password_hash('sha512') }}"
+
+    - name: Create Support User
+      ansible.builtin.user:
+        name: support
+        comment: "ChefOps Support User"
+        shell: /bin/bash
+        groups: sudo
+        append: true
+      when: full_provision_bool
+
+    - name: Add Grafana APT repo
+      ansible.builtin.deb822_repository:
+        name: grafana
+        types: [deb]
+        uris: "https://apt.grafana.com"
+        signed_by: "https://packages.grafana.com/gpg.key"
+        suites: [stable]
+        components: [main]
+        state: present
+        enabled: true
+      when: full_provision_bool
+      tags:
+        - alloy
+
+    - name: Setup Alloy
+      ansible.builtin.include_tasks:
+        file: "../../../shared/alloy/main.yaml"
+      vars:
+        mode: "pre"
+        include_docker: false
+        extra_config: |
+          prometheus.scrape "nginx" {
+            targets = [
+              {
+                __address__ = "127.0.0.1:9152",
+                instance    = constants.hostname,
+                job         = "nginx",
+              },
+            ]
+            forward_to      = [prometheus.remote_write.remote.receiver]
+            scrape_interval = "30s"
+          }
+
+          prometheus.scrape "falco" {
+            targets = [
+              {
+                __address__ = "127.0.0.1:8765",
+                instance    = constants.hostname,
+                job         = "falco",
+              },
+            ]
+            forward_to      = [prometheus.remote_write.remote.receiver]
+            scrape_interval = "10m"
+          }
+
+          loki.source.file "falco_alerts" {
+            targets = [
+              {
+                __path__ = "/var/log/falco_alerts.log",
+                job      = "falco-alerts",
+                instance = constants.hostname,
+              },
+            ]
+            forward_to = [loki.process.falco_alerts.receiver]
+          }
+
+          loki.process "falco_alerts" {
+            forward_to = [loki.write.remote.receiver]
+
+            stage.json {
+              expressions = {
+                priority  = "priority",
+                rule      = "rule",
+                source    = "source",
+                hostname  = "hostname",
+                output    = "output",
+              }
+            }
+
+            stage.labels {
+              values = {
+                priority = "",
+                rule     = "",
+                source   = "",
+              }
+            }
+          }
+      tags:
+        - alloy
+      when: full_provision_bool
+
+    - name: Add Nginx Repository
+      ansible.builtin.deb822_repository:
+        name: nginx
+        types: [deb]
+        uris: "https://nginx.org/packages/{{ ansible_facts['distribution'] | lower }}"
+        signed_by: "https://nginx.org/keys/nginx_signing.key"
+        suites: ["{{ ansible_facts['distribution_release'] | lower }}"]
+        components: [stable]
+        state: present
+        enabled: true
+
+    - name: Install Added Packages
+      ansible.builtin.apt:
+        name: nginx
+        state: present
+        update_cache: true
+
+    - name: Backup default nginx config
+      community.general.archive:
+        path:
+          - /etc/nginx/nginx.conf
+          - /etc/nginx/conf.d
+          - /etc/nginx/sites-enabled
+          - /etc/nginx/sites-available
+        format: gz
+        dest: /etc/nginx/nginx.conf.bak.gz
+        owner: root
+        group: root
+        mode: "0644"
+      when: full_provision_bool
+
+    - name: Remove Nginx default site
+      ansible.builtin.file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+      when: full_provision_bool
+
+    - name: Get Nginx Config
+      ansible.builtin.copy:
+        src: files/{{ item.src }}
+        dest: "{{ item.dest }}"
+        owner: root
+        group: root
+        mode: "0644"
+      with_items:
+        - { src: "site.conf", dest: "/etc/nginx/sites-enabled/site.conf" }
+        - { src: "nginx.conf", dest: "/etc/nginx/nginx.conf" }
+        - { src: "nginx-metrics.conf", dest: "/etc/nginx/conf.d/nginx-metrics.conf" }
+        - { src: "dhparam.pem", dest: "/etc/nginx/dhparam.pem" }
+        - { src: "kiosk_site.zip", dest: "/tmp/kiosk_site.zip" }
+      when: full_provision_bool
+
+    - name: Create Public directory
+      ansible.builtin.file:
+        path: /var/www/kiosk/public
+        state: directory
+      when: full_provision_bool
+
+    - name: Extract Site Files
+      ansible.builtin.unarchive:
+        src: "/tmp/kiosk_site.zip"
+        dest: /var/www/kiosk/public
+        remote_src: yes
+        owner: root
+        group: root
+        mode: "0755"
+      when: full_provision_bool
+
+    - name: Tricks
+      ansible.builtin.include_tasks:
+        file: "tasks/tricks.yaml"
+      tags:
+        - tricks
+
+    - name: Create IT Linux Groups
+      ansible.builtin.group:
+        name: it
+        state: present
+      when: full_provision_bool
+      tags:
+        - users
+
+    - name: Allow IT staff to run commands with sudo
+      community.general.sudoers:
+        name: it-kiosk-management
+        state: present
+        group: it
+        commands: ALL
+      when: full_provision_bool
+      tags:
+        - users
+
+    - name: Create OCK IT Users
+      ansible.builtin.user:
+        name: "{{ item.username | regex_replace(' ', '.') | lower }}"
+        password: "{{ item.password | password_hash('sha512') }}"
+        append: true
+        groups: "it,sudo"
+        shell: "/bin/bash"
+        state: present
+      when: item.department == "IT" and full_provision_bool
+      with_items: "{{ ock_users_data.users }}"
+      tags:
+        - users

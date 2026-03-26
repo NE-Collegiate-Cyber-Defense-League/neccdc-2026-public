@@ -1,0 +1,23 @@
+---
+- name: Normalize UPN suffix list
+  set_fact:
+    upn_suffixes_list: >-
+      {{
+        upn_suffixes
+        if (upn_suffixes is iterable and upn_suffixes is not string)
+        else [upn_suffixes]
+      }}
+  when: upn_suffixes is defined
+
+- name: Add UPN suffixes
+  microsoft.ad.object:
+    identity: "CN=Partitions,CN=Configuration,DC={{ domain | replace('.', ',DC=') }}"
+    type: crossRefContainer
+    attributes:
+      add:
+        uPNSuffixes: "{{ upn_suffixes_list }}"
+    state: present
+  when:
+    - domain is defined
+    - upn_suffixes_list is defined
+    - upn_suffixes_list | length > 0

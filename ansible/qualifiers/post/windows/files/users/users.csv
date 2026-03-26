@@ -1,0 +1,18 @@
+first_name,last_name,username,email,password,totp_secret,department,position,user_uuid
+Malou,Jensen,mjensen,mjensen@chefops.tech,password123,XWKWHXDUONDKIQNVMHVWVTGVLZQOFJG6,Executive,CEO,139fa680-b4f0-40f9-87d2-c9c2324df8b2
+Meghan,Nichols,mnichols,mnichols@chefops.tech,chuckie,ZA3A43SB65LM4HNAW7P7OKBSVRITFYNL,Executive,CISO,c041ca26-7e77-4e4d-83ba-227161150965
+Leeroy,Jenkins,ljenkins,ljenkins@chefops.tech,classical,RXW22QESSBYXZ6AM53PUTH56TXOKEOH6,Executive,CFO,63f88c83-67c6-448a-b91e-5f4ccd7220ab
+Nicklas,Andersen,nandersen,nandersen@chefops.tech,qwerty,KAOYVM2B5EAPYMADPYBL7TQZYWL5YGHL,Executive,COO,c03c7fb5-9209-46ad-858f-67ec0a536f70
+Addison,Hawkins,ahawkins,ahawkins@chefops.tech,1qazxsw2,TDGGU4PNSIMKVTA7JGIWKJ44PXSNH7UB,Support,Help Desk,8f67d600-6805-4146-a26a-e16ed15dc740
+Frida,Kristensen,fkristensen,fkristensen@chefops.tech,asdfghjkl,N472RQABL53DSYQGRKUKBVRTUT2GIJMR,Support,Repair Technician,bdc4dc93-4d08-4e3b-88b3-3abd65d22be5
+Angela,Hernandez,ahernandez,ahernandez@chefops.tech,000000,EX62T2OJKY5LL3RSMTC3LP43DFOQNTKZ,Support,Customer Ops,5233d16f-d9fb-461e-944e-4e7fe2a420c6
+Alicia,Clement,aclement,aclement@chefops.tech,torres,UEFES4PD4J3ZAHGXSOXQEH7E7GP5EJJA,Support,Customer Ops,366b2b0c-60d2-4b70-8be4-59e00d19cfe0
+Martha,Harvey,mharvey,mharvey@chefops.tech,3N3wJ8czQDYY,VKKOUJXQQN6BMUNLXREGVOTOFXJ3DES2,Finance,Accounting,9fa2787b-4669-481a-9584-d618a270fd89
+Donna,Mitchelle,dmitchelle,dmitchelle@chefops.tech,BnC2d4ET1IYX,QDLLEX6GJNBD3SXGBUB7YJOWQF6AGUEF,Security,Security Specialist,716fa803-6810-4d2e-8c0b-06f350d568e4
+Roger,Stevens,rstevens,rstevens@chefops.tech,clippy,X4GJM7RPLC735BAHHROPHFGSM7PS7ELC,Facilities,Cheif Cleanliness Officer,88aa96fc-acc0-4c72-940b-2f61a260f1c8
+Susie,Taylor,staylor,staylor@chefops.tech,Oe86sV1OqK7W,URHXOWX5QLVO4HIE65DDT5PE2YOCRG3I,Engineering,Network Technician,d8d575e3-0d70-4b7e-a099-bd82133228f6
+Josefine,Thomsen,jthomsen,jthomsen@chefops.tech,abc1989,M2DQP25FBPRVWUDJ4X6MUWKAKE5M7FQ6,Engineering,System Admin,d56e88ca-7c94-4056-a25b-fb65aec63c9a
+Alyssa,Reed,areed,areed@chefops.tech,R6m4knh8tSDB,EPOMGRMLIGFTWFLSMJ7S4WBDLL5A75NY,Engineering,System Admin,043b2c5f-b0ca-4a6f-a857-a902409bb950
+Ross,Beck,rbeck,rbeck@chefops.tech,KKF9F5YUYDL9,ZVX56NSCCIICEW746R6BGXYSULHQQSH7,Engineering,System Engineering,e719d3d6-fcfa-4040-b567-05cb1c506d68
+Dan,Webb,dwebb,dwebb@chefops.tech,61mx086nyzql,V73M2WGS7YERT2JNMQJLZHGVTOMBBAS7,Sales,Director of Sales,095396b5-4601-4314-b242-1f95e48917f3
+Valdemar,Nielsen,vnielsen,vnielsen@chefops.tech,1234567,V5VQLRR7CSWAHQ43HMFN4L2LR2OALQOS,Sales,Sales Representative,1aa467e3-fca2-46bc-bc2f-fb349ba03e6b

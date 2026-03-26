@@ -1,0 +1,75 @@
+# Do not use this configuration in production.
+# It is for demonstration purposes only.
+auth_enabled: false
+server:
+  http_listen_port: 3100
+
+common:
+  replication_factor: 1
+  path_prefix: /loki
+  storage:
+    s3:
+      endpoint: storage:9001
+      access_key_id: storageuser
+      secret_access_key: storagepassword
+      bucketnames: loki
+      insecure: true
+      s3forcepathstyle: true
+  ring:
+    kvstore:
+      store: inmemory
+
+memberlist:
+  join_members: [loki-1, loki-2, loki-3]
+
+schema_config:
+  configs:
+    - from: 2020-10-24
+      index:
+        period: 24h
+        prefix: index_
+      object_store: s3
+      schema: v13
+      store: tsdb
+
+query_range:
+  index_stats_results_cache:
+    cache:
+      embedded_cache:
+        enabled: true
+        max_size_mb: 100
+  results_cache:
+    cache:
+      embedded_cache:
+        enabled: true
+        max_size_mb: 100
+
+storage_config:
+  boltdb_shipper:
+    active_index_directory: /loki/index
+    cache_location: /loki/index_cache
+  tsdb_shipper:
+    active_index_directory: /loki/index
+    cache_location: /loki/cache
+    cache_ttl: 2h
+
+ruler:
+  remote_write:
+    enabled: true
+    clients:
+      local:
+        url: http://load-balancer:9008/api/v1/push
+
+compactor:
+  working_directory: /loki/compactor
+  compaction_interval: 5m
+  compactor_ring:
+    kvstore:
+      store: memberlist
+
+limits_config:
+  reject_old_samples: true
+  reject_old_samples_max_age: 168h
+  retention_period: 3d
+  max_query_series: 10000
+  max_query_parallelism: 5

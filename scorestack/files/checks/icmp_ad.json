@@ -1,0 +1,13 @@
+{
+  "name": "ICMP_ad",
+  "type": "icmp",
+  "score_weight": 1,
+  "definition": {
+    "host": "{{.Host}}"
+  },
+  "attributes": {
+    "admin": {
+      "Host": "2600:1f26:1d:8a{{.TeamHex}}2::ad"
+    }
+  }
+}

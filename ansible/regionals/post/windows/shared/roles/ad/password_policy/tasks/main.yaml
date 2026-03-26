@@ -1,0 +1,5 @@
+---
+- name: Set Password Policy
+  ansible.windows.win_powershell:
+    script: "{{ lookup('ansible.builtin.file', 'files/password_policy.ps1') }}"
+    error_action: stop

@@ -1,0 +1,23 @@
+---
+- name: Copy Teleport bot yaml
+  ansible.builtin.copy:
+    src: templates/bot.yaml
+    dest: "/tmp/bot.yaml"
+    mode: "0644"
+    owner: root
+    group: root
+  tags:
+    - bot
+
+- name: Create Teleport bot
+  ansible.builtin.command:
+    cmd: "/usr/local/bin/tctl create -f /tmp/bot.yaml"
+  tags:
+    - bot
+
+- name: Remove Teleport bot file
+  ansible.builtin.file:
+    path: /tmp/bot.yaml
+    state: absent
+  tags:
+    - bot

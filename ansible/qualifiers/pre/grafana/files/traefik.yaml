@@ -1,0 +1,34 @@
+global:
+  checkNewVersion: false
+  sendAnonymousUsage: false
+
+entryPoints:
+  web:
+    address: ":80"
+
+  websecure:
+    address: ":443"
+    http:
+     tls: {}
+
+providers:
+  docker:
+    exposedByDefault: false
+  file:
+    filename: "/etc/traefik/traefik-ssl.yaml"
+
+api:
+  dashboard: true
+  disabledashboardad: true
+  insecure: true
+  
+ping: {}
+
+metrics:
+  prometheus:
+    headerLabels:
+      useragent: User-Agent
+
+log:
+  level: INFO
+  format: json

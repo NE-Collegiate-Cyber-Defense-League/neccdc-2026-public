@@ -1,0 +1,14 @@
+apiVersion: 1
+
+# https://grafana.com/docs/grafana/latest/administration/provisioning/#dashboards
+providers:
+  # https://grafana.com/grafana/dashboards/21733-wireguard/
+  - name: wireguard
+    orgId: 1
+    type: file
+    disableDeletion: true
+    updateIntervalSeconds: 60
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: true

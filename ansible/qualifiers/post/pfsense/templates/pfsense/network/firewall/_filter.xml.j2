@@ -1,0 +1,625 @@
+<filter>
+	<rule>
+		<id></id>
+		<tracker>1769561001</tracker>
+		<type>pass</type>
+		<interface>wan</interface>
+		<ipprotocol>inet6</ipprotocol>
+		<tag></tag>
+		<tagged></tagged>
+		<max></max>
+		<max-src-nodes></max-src-nodes>
+		<max-src-conn></max-src-conn>
+		<max-src-states></max-src-states>
+		<statetimeout></statetimeout>
+		<statepolicy></statepolicy>
+		<statetype><![CDATA[keep state]]></statetype>
+		<pflow></pflow>
+		<os></os>
+		<srcmac></srcmac>
+		<dstmac></dstmac>
+		<source>
+			<address>_linklocal6_</address>
+		</source>
+		<destination>
+			<address>_linklocal6_</address>
+		</destination>
+		<descr><![CDATA[Allow IPv6 Link Local]]></descr>
+		<bridgeto></bridgeto>
+		<updated>
+			<time>1769561001</time>
+			<username><![CDATA[admin@10.0.255.100 (Local Database)]]></username>
+		</updated>
+		<created>
+			<time>1769561001</time>
+			<username><![CDATA[admin@10.0.255.100 (Local Database)]]></username>
+		</created>
+	</rule>
+	<rule>
+		<id></id>
+		<tracker>1769561026</tracker>
+		<type>pass</type>
+		<interface>wan</interface>
+		<ipprotocol>inet6</ipprotocol>
+		<tag></tag>
+		<tagged></tagged>
+		<max></max>
+		<max-src-nodes></max-src-nodes>
+		<max-src-conn></max-src-conn>
+		<max-src-states></max-src-states>
+		<statetimeout></statetimeout>
+		<statepolicy></statepolicy>
+		<statetype><![CDATA[keep state]]></statetype>
+		<pflow></pflow>
+		<os></os>
+		<srcmac></srcmac>
+		<dstmac></dstmac>
+		<source>
+			<address>_linklocal6_</address>
+		</source>
+		<destination>
+			<address>_multicast6_</address>
+		</destination>
+		<descr><![CDATA[Allow IPv6 Link Local Multicast]]></descr>
+		<bridgeto></bridgeto>
+		<updated>
+			<time>1769561026</time>
+			<username><![CDATA[admin@10.0.255.100 (Local Database)]]></username>
+		</updated>
+		<created>
+			<time>1769561026</time>
+			<username><![CDATA[admin@10.0.255.100 (Local Database)]]></username>
+		</created>
+	</rule>
+	<rule>
+		<id></id>
+		<tracker>1767887105</tracker>
+		<type>pass</type>
+		<interface>wan</interface>
+		<ipprotocol>inet</ipprotocol>
+		<tag></tag>
+		<tagged></tagged>
+		<max></max>
+		<max-src-nodes></max-src-nodes>
+		<max-src-conn></max-src-conn>
+		<max-src-states></max-src-states>
+		<statetimeout></statetimeout>
+		<statepolicy></statepolicy>
+		<statetype><![CDATA[keep state]]></statetype>
+		<pflow></pflow>
+		<os></os>
+		<protocol>tcp</protocol>
+		<srcmac></srcmac>
+		<dstmac></dstmac>
+		<source>
+			<any></any>
+		</source>
+		<destination>
+			<network>wanip</network>
+			<port>FirewallManagement</port>
+		</destination>
+		<descr></descr>
+		<bridgeto></bridgeto>
+		<updated>
+			<time>1767887105</time>
+			<username><![CDATA[admin@10.0.255.200 (Local Database)]]></username>
+		</updated>
+		<created>
+			<time>1767887105</time>
+			<username><![CDATA[admin@10.0.255.200 (Local Database)]]></username>
+		</created>
+	</rule>
+	<rule>
+		<type>pass</type>
+		<interface>wan</interface>
+		<ipprotocol>inet</ipprotocol>
+		<statetype><![CDATA[keep state]]></statetype>
+		<protocol>icmp</protocol>
+		<source>
+			<any></any>
+		</source>
+		<destination>
+			<network>wanip</network>
+		</destination>
+		<descr><![CDATA[Default ICMP rule]]></descr>
+		<tracker>1767712170</tracker>
+	</rule>
+	<rule>
+		<id></id>
+		<tracker>1767727837</tracker>
+		<type>pass</type>
+		<interface>wan</interface>
+		<ipprotocol>inet6</ipprotocol>
+		<tag></tag>
+		<tagged></tagged>
+		<max></max>
+		<max-src-nodes></max-src-nodes>
+		<max-src-conn></max-src-conn>
+		<max-src-states></max-src-states>
+		<statetimeout></statetimeout>
+		<statepolicy></statepolicy>
+		<statetype><![CDATA[keep state]]></statetype>
+		<pflow></pflow>
+		<os></os>
+		<srcmac></srcmac>
+		<dstmac></dstmac>
+		<source>
+			<any></any>
+		</source>
+		<destination>
+			<network>wanip</network>
+		</destination>
+		<descr><![CDATA[Default ICMP rule]]></descr>
+		<bridgeto></bridgeto>
+		<updated>
+			<time>1767727837</time>
+			<username><![CDATA[admin@10.0.255.200 (Local Database)]]></username>
+		</updated>
+		<created>
+			<time>1767727837</time>
+			<username><![CDATA[admin@10.0.255.200 (Local Database)]]></username>
+		</created>
+	</rule>
+	<rule>
+		<type>pass</type>
+		<interface>wan</interface>
+		<ipprotocol>inet</ipprotocol>
+		<statetype><![CDATA[keep state]]></statetype>
+		<protocol>tcp</protocol>
+		<source>
+			<any></any>
+		</source>
+		<destination>
+			<network>wanip</network>
+			<port>22</port>
+		</destination>
+		<descr><![CDATA[Default SSH rule _replace_src_with_mgmtnet_]]></descr>
+		<tracker>1767712172</tracker>
+	</rule>
+	<rule>
+		<type>pass</type>
+		<interface>wan</interface>
+		<ipprotocol>inet</ipprotocol>
+		<statetype><![CDATA[keep state]]></statetype>
+		<protocol>tcp</protocol>
+		<source>
+			<any></any>
+		</source>
+		<destination>
+			<network>wanip</network>
+			<port>443</port>
+		</destination>
+		<descr><![CDATA[Default HTTPS rule _replace_src_with_mgmtnet_]]></descr>
+		<tracker>1767712174</tracker>
+	</rule>
+	<rule>
+		<type>pass</type>
+		<interface>wan</interface>
+		<ipprotocol>inet</ipprotocol>
+		<statetype><![CDATA[keep state]]></statetype>
+		<protocol>tcp</protocol>
+		<source>
+			<any></any>
+		</source>
+		<destination>
+			<network>wanip</network>
+			<port>80</port>
+		</destination>
+		<descr><![CDATA[Default HTTP rule _replace_src_with_mgmtnet_]]></descr>
+		<tracker>1767712174</tracker>
+	</rule>
+	<rule>
+		<id></id>
+		<tracker>1769724284</tracker>
+		<type>pass</type>
+		<interface>wan</interface>
+		<ipprotocol>inet46</ipprotocol>
+		<tag></tag>
+		<tagged></tagged>
+		<max></max>
+		<max-src-nodes></max-src-nodes>
+		<max-src-conn></max-src-conn>
+		<max-src-states></max-src-states>
+		<statetimeout></statetimeout>
+		<statepolicy></statepolicy>
+		<statetype><![CDATA[keep state]]></statetype>
+		<pflow></pflow>
+		<os></os>
+		<srcmac></srcmac>
+		<dstmac></dstmac>
+		<source>
+			<any></any>
+		</source>
+		<destination>
+			<any></any>
+		</destination>
+		<descr><![CDATA[ALL]]></descr>
+		<bridgeto></bridgeto>
+		<created>
+			<time>1769724284</time>
+			<username><![CDATA[admin@10.0.255.100 (Local Database)]]></username>
+		</created>
+		<updated>
+			<time>1769724297</time>
+			<username><![CDATA[admin@10.0.255.100 (Local Database)]]></username>
+		</updated>
+	</rule>
+	<rule>
+		<id></id>
+		<tracker>1769561103</tracker>
+		<type>pass</type>
+		<interface>lan</interface>
+		<ipprotocol>inet6</ipprotocol>
+		<tag></tag>
+		<tagged></tagged>
+		<max></max>
+		<max-src-nodes></max-src-nodes>
+		<max-src-conn></max-src-conn>
+		<max-src-states></max-src-states>
+		<statetimeout></statetimeout>
+		<statepolicy></statepolicy>
+		<statetype><![CDATA[keep state]]></statetype>
+		<pflow></pflow>
+		<os></os>
+		<srcmac></srcmac>
+		<dstmac></dstmac>
+		<source>
+			<address>_linklocal6_</address>
+		</source>
+		<destination>
+			<address>_linklocal6_</address>
+		</destination>
+		<descr><![CDATA[Allow IPv6 Link Local]]></descr>
+		<bridgeto></bridgeto>
+		<updated>
+			<time>1769561103</time>
+			<username><![CDATA[admin@10.0.255.100 (Local Database)]]></username>
+		</updated>
+		<created>
+			<time>1769561103</time>
+			<username><![CDATA[admin@10.0.255.100 (Local Database)]]></username>
+		</created>
+	</rule>
+	<rule>
+		<id></id>
+		<tracker>1769561154</tracker>
+		<type>pass</type>
+		<interface>lan</interface>
+		<ipprotocol>inet6</ipprotocol>
+		<tag></tag>
+		<tagged></tagged>
+		<max></max>
+		<max-src-nodes></max-src-nodes>
+		<max-src-conn></max-src-conn>
+		<max-src-states></max-src-states>
+		<statetimeout></statetimeout>
+		<statepolicy></statepolicy>
+		<statetype><![CDATA[keep state]]></statetype>
+		<pflow></pflow>
+		<os></os>
+		<srcmac></srcmac>
+		<dstmac></dstmac>
+		<source>
+			<address>_linklocal6_</address>
+		</source>
+		<destination>
+			<address>_multicast6_</address>
+		</destination>
+		<descr><![CDATA[Allow IPv6 Link Local Multicast]]></descr>
+		<bridgeto></bridgeto>
+		<updated>
+			<time>1769561154</time>
+			<username><![CDATA[admin@10.0.255.100 (Local Database)]]></username>
+		</updated>
+		<created>
+			<time>1769561154</time>
+			<username><![CDATA[admin@10.0.255.100 (Local Database)]]></username>
+		</created>
+	</rule>
+	<rule>
+		<id></id>
+		<tracker>1767727523</tracker>
+		<type>pass</type>
+		<interface>lan</interface>
+		<ipprotocol>inet6</ipprotocol>
+		<tag></tag>
+		<tagged></tagged>
+		<max></max>
+		<max-src-nodes></max-src-nodes>
+		<max-src-conn></max-src-conn>
+		<max-src-states></max-src-states>
+		<statetimeout></statetimeout>
+		<statepolicy></statepolicy>
+		<statetype><![CDATA[keep state]]></statetype>
+		<pflow></pflow>
+		<os></os>
+		<srcmac></srcmac>
+		<dstmac></dstmac>
+		<source>
+			<network>lan</network>
+		</source>
+		<destination>
+			<any></any>
+		</destination>
+		<descr><![CDATA[Default allow LAN to any rule]]></descr>
+		<bridgeto></bridgeto>
+		<created>
+			<time>1767727523</time>
+			<username><![CDATA[admin@10.0.255.100 (Local Database)]]></username>
+		</created>
+		<updated>
+			<time>1767727536</time>
+			<username><![CDATA[admin@10.0.255.100 (Local Database)]]></username>
+		</updated>
+	</rule>
+	<rule>
+		<type>pass</type>
+		<interface>lan</interface>
+		<ipprotocol>inet</ipprotocol>
+		<source>
+			<network>lan</network>
+		</source>
+		<destination>
+			<any></any>
+		</destination>
+		<descr><![CDATA[Default allow LAN to any rule]]></descr>
+		<tracker>0100000101</tracker>
+	</rule>
+	<rule>
+		<id></id>
+		<tracker>1769561113</tracker>
+		<type>pass</type>
+		<interface>opt1</interface>
+		<ipprotocol>inet6</ipprotocol>
+		<tag></tag>
+		<tagged></tagged>
+		<max></max>
+		<max-src-nodes></max-src-nodes>
+		<max-src-conn></max-src-conn>
+		<max-src-states></max-src-states>
+		<statetimeout></statetimeout>
+		<statepolicy></statepolicy>
+		<statetype><![CDATA[keep state]]></statetype>
+		<pflow></pflow>
+		<os></os>
+		<srcmac></srcmac>
+		<dstmac></dstmac>
+		<source>
+			<address>_linklocal6_</address>
+		</source>
+		<destination>
+			<address>_linklocal6_</address>
+		</destination>
+		<descr><![CDATA[Allow IPv6 Link Local]]></descr>
+		<bridgeto></bridgeto>
+		<updated>
+			<time>1769561113</time>
+			<username><![CDATA[admin@10.0.255.100 (Local Database)]]></username>
+		</updated>
+		<created>
+			<time>1769561113</time>
+			<username><![CDATA[admin@10.0.255.100 (Local Database)]]></username>
+		</created>
+	</rule>
+	<rule>
+		<id></id>
+		<tracker>1769561162</tracker>
+		<type>pass</type>
+		<interface>opt1</interface>
+		<ipprotocol>inet6</ipprotocol>
+		<tag></tag>
+		<tagged></tagged>
+		<max></max>
+		<max-src-nodes></max-src-nodes>
+		<max-src-conn></max-src-conn>
+		<max-src-states></max-src-states>
+		<statetimeout></statetimeout>
+		<statepolicy></statepolicy>
+		<statetype><![CDATA[keep state]]></statetype>
+		<pflow></pflow>
+		<os></os>
+		<srcmac></srcmac>
+		<dstmac></dstmac>
+		<source>
+			<address>_linklocal6_</address>
+		</source>
+		<destination>
+			<address>_multicast6_</address>
+		</destination>
+		<descr><![CDATA[Allow IPv6 Link Local Multicast]]></descr>
+		<bridgeto></bridgeto>
+		<updated>
+			<time>1769561162</time>
+			<username><![CDATA[admin@10.0.255.100 (Local Database)]]></username>
+		</updated>
+		<created>
+			<time>1769561162</time>
+			<username><![CDATA[admin@10.0.255.100 (Local Database)]]></username>
+		</created>
+	</rule>
+	<rule>
+		<id></id>
+		<tracker>1767727559</tracker>
+		<type>pass</type>
+		<interface>opt1</interface>
+		<ipprotocol>inet</ipprotocol>
+		<tag></tag>
+		<tagged></tagged>
+		<max></max>
+		<max-src-nodes></max-src-nodes>
+		<max-src-conn></max-src-conn>
+		<max-src-states></max-src-states>
+		<statetimeout></statetimeout>
+		<statepolicy></statepolicy>
+		<statetype><![CDATA[keep state]]></statetype>
+		<pflow></pflow>
+		<os></os>
+		<srcmac></srcmac>
+		<dstmac></dstmac>
+		<source>
+			<network>opt1</network>
+		</source>
+		<destination>
+			<any></any>
+		</destination>
+		<descr><![CDATA[Default allow SCREENED to any rule]]></descr>
+		<bridgeto></bridgeto>
+		<created>
+			<time>1767727559</time>
+			<username><![CDATA[admin@10.0.255.100 (Local Database)]]></username>
+		</created>
+		<updated>
+			<time>1767727582</time>
+			<username><![CDATA[admin@10.0.255.100 (Local Database)]]></username>
+		</updated>
+	</rule>
+	<rule>
+		<id></id>
+		<tracker>1767727569</tracker>
+		<type>pass</type>
+		<interface>opt1</interface>
+		<ipprotocol>inet6</ipprotocol>
+		<tag></tag>
+		<tagged></tagged>
+		<max></max>
+		<max-src-nodes></max-src-nodes>
+		<max-src-conn></max-src-conn>
+		<max-src-states></max-src-states>
+		<statetimeout></statetimeout>
+		<statepolicy></statepolicy>
+		<statetype><![CDATA[keep state]]></statetype>
+		<pflow></pflow>
+		<os></os>
+		<srcmac></srcmac>
+		<dstmac></dstmac>
+		<source>
+			<network>opt1</network>
+		</source>
+		<destination>
+			<any></any>
+		</destination>
+		<descr><![CDATA[Default allow SCREENED to any rule]]></descr>
+		<bridgeto></bridgeto>
+		<created>
+			<time>1767727569</time>
+			<username><![CDATA[admin@10.0.255.100 (Local Database)]]></username>
+		</created>
+		<updated>
+			<time>1767727595</time>
+			<username><![CDATA[admin@10.0.255.200 (Local Database)]]></username>
+		</updated>
+	</rule>
+	<rule>
+		<id></id>
+		<tracker>1769561138</tracker>
+		<type>pass</type>
+		<interface>opt2</interface>
+		<ipprotocol>inet6</ipprotocol>
+		<tag></tag>
+		<tagged></tagged>
+		<max></max>
+		<max-src-nodes></max-src-nodes>
+		<max-src-conn></max-src-conn>
+		<max-src-states></max-src-states>
+		<statetimeout></statetimeout>
+		<statepolicy></statepolicy>
+		<statetype><![CDATA[keep state]]></statetype>
+		<pflow></pflow>
+		<os></os>
+		<srcmac></srcmac>
+		<dstmac></dstmac>
+		<source>
+			<address>_linklocal6_</address>
+		</source>
+		<destination>
+			<address>_linklocal6_</address>
+		</destination>
+		<descr><![CDATA[Allow IPv6 Link Local]]></descr>
+		<bridgeto></bridgeto>
+		<updated>
+			<time>1769561138</time>
+			<username><![CDATA[admin@10.0.255.100 (Local Database)]]></username>
+		</updated>
+		<created>
+			<time>1769561138</time>
+			<username><![CDATA[admin@10.0.255.100 (Local Database)]]></username>
+		</created>
+	</rule>
+	<rule>
+		<id></id>
+		<tracker>1769561172</tracker>
+		<type>pass</type>
+		<interface>opt2</interface>
+		<ipprotocol>inet6</ipprotocol>
+		<tag></tag>
+		<tagged></tagged>
+		<max></max>
+		<max-src-nodes></max-src-nodes>
+		<max-src-conn></max-src-conn>
+		<max-src-states></max-src-states>
+		<statetimeout></statetimeout>
+		<statepolicy></statepolicy>
+		<statetype><![CDATA[keep state]]></statetype>
+		<pflow></pflow>
+		<os></os>
+		<srcmac></srcmac>
+		<dstmac></dstmac>
+		<source>
+			<address>_linklocal6_</address>
+		</source>
+		<destination>
+			<address>_multicast6_</address>
+		</destination>
+		<descr><![CDATA[Allow IPv6 Link Local Multicast]]></descr>
+		<bridgeto></bridgeto>
+		<updated>
+			<time>1769561172</time>
+			<username><![CDATA[admin@10.0.255.100 (Local Database)]]></username>
+		</updated>
+		<created>
+			<time>1769561172</time>
+			<username><![CDATA[admin@10.0.255.100 (Local Database)]]></username>
+		</created>
+	</rule>
+	<rule>
+		<id></id>
+		<tracker>1767727626</tracker>
+		<type>pass</type>
+		<interface>opt2</interface>
+		<ipprotocol>inet6</ipprotocol>
+		<tag></tag>
+		<tagged></tagged>
+		<max></max>
+		<max-src-nodes></max-src-nodes>
+		<max-src-conn></max-src-conn>
+		<max-src-states></max-src-states>
+		<statetimeout></statetimeout>
+		<statepolicy></statepolicy>
+		<statetype><![CDATA[keep state]]></statetype>
+		<pflow></pflow>
+		<os></os>
+		<srcmac></srcmac>
+		<dstmac></dstmac>
+		<source>
+			<network>opt2</network>
+		</source>
+		<destination>
+			<any></any>
+		</destination>
+		<descr><![CDATA[Default allow BRANCH to any rule]]></descr>
+		<bridgeto></bridgeto>
+		<updated>
+			<time>1767727626</time>
+			<username><![CDATA[admin@10.0.255.200 (Local Database)]]></username>
+		</updated>
+		<created>
+			<time>1767727626</time>
+			<username><![CDATA[admin@10.0.255.200 (Local Database)]]></username>
+		</created>
+	</rule>
+	<separator>
+		<opt2></opt2>
+		<opt1></opt1>
+		<lan></lan>
+	</separator>
+</filter>

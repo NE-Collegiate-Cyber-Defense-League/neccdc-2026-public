@@ -1,0 +1,29 @@
+---
+# https://falco.org/docs/setup/packages/#install-with-zypper
+- name: Import Falco GPG key
+  ansible.builtin.rpm_key:
+    state: present
+    key: https://falco.org/repo/falcosecurity-packages.asc
+  tags:
+    - falco
+
+- name: Add Falco repository
+  community.general.zypper_repository:
+    description: Falco Security
+    repo: https://falco.org/repo/falcosecurity-rpm.repo
+    auto_import_keys: true
+    autorefresh: true
+    enabled: true
+  tags:
+    - falco
+
+- name: Install falco
+  ansible.builtin.zypper:
+    name: falco
+    state: present
+  environment:
+    FALCO_FRONTEND: noninteractive
+    FALCO_DRIVER_CHOICE: "{{ falco_driver_type }}"
+    FALCOCTL_ENABLED: "true"
+  tags:
+    - falco

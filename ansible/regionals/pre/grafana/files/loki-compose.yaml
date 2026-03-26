@@ -1,0 +1,42 @@
+services:
+  loki-1: &loki
+    image: grafana/loki:3
+    command: -config.file=/etc/loki/local-config.yaml
+    restart: always
+    hostname: loki-1
+    volumes:
+      - ./loki.yaml:/etc/loki/local-config.yaml
+      - "loki-1-data:/loki"
+    depends_on:
+      memcached:
+        condition: service_healthy
+      storage:
+        condition: service_started
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.loki.rule=Host(`loki.<team_number>.chefops.tech`)"
+      - "traefik.http.services.loki.loadbalancer.server.port=3100"
+      - "traefik.http.routers.loki.entrypoints=websecure"
+      - "traefik.http.services.loki.loadbalancer.healthcheck.path=/ready"
+      - "traefik.http.routers.loki.service=loki"
+    networks:
+      - monitoring
+
+  loki-2:
+    <<: *loki
+    hostname: loki-2
+    volumes:
+      - ./loki.yaml:/etc/loki/local-config.yaml
+      - "loki-2-data:/loki"
+
+  loki-3:
+    <<: *loki
+    hostname: loki-3
+    volumes:
+      - ./loki.yaml:/etc/loki/local-config.yaml
+      - "loki-3-data:/loki"
+
+volumes:
+  loki-1-data:
+  loki-2-data:
+  loki-3-data:

@@ -1,0 +1,48 @@
+---
+# https://docs.gitea.com/administration/fail2ban-setup
+# https://github.com/roles-ansible/ansible_role_gitea/blob/main/tasks/fail2ban.yml
+- name: Install fail2ban packages
+  ansible.builtin.dnf:
+    name:
+      - fail2ban
+      - iptables
+    state: present
+  tags:
+    - fail2ban
+
+- name: Enable fail2ban
+  ansible.builtin.service:
+    name: fail2ban
+    enabled: true
+  tags:
+    - fail2ban
+
+- name: Touch gitea log file
+  ansible.builtin.file:
+    path: /var/lib/gitea/log/gitea.log
+    state: touch
+  tags:
+    - fail2ban
+
+- name: Install fail2ban filter
+  ansible.builtin.template:
+    src: files/fail2ban-filter.conf
+    dest: /etc/fail2ban/filter.d/gitea.conf
+    owner: root
+    group: root
+    mode: 0444
+  notify: Restart fail2ban
+  tags:
+    - fail2ban
+
+- name: Install fail2ban jail
+  become: true
+  ansible.builtin.template:
+    src: files/fail2ban-jail.conf
+    dest: /etc/fail2ban/jail.d/gitea.conf
+    owner: root
+    group: root
+    mode: 0444
+  notify: Restart fail2ban
+  tags:
+    - fail2ban

@@ -1,0 +1,30 @@
+---
+- name: Setup pfSense Corp
+  hosts: firewall_corp
+  become: false
+  gather_facts: true
+
+  vars:
+    template_file: firewall_corp.xml.j2
+    load_team_certs: true
+    certs_path: "../../../../documents/blue_team/regionals/chefops/team_{{team}}/certificates/"
+    unbound_custom_options: |
+      server:
+        private-domain:"{{ domains.branch.ad }}"
+        domain-insecure:"{{ domains.branch.ad }}"
+        private-domain:"{{ domains.corp.ad }}"
+        domain-insecure:"{{ domains.corp.ad }}"
+        local-zone: "teleport.{{ domains.corp.team }}" redirect
+        local-data: "teleport.{{ domains.corp.team }} 86400 IN A {{ team_address.teleport_corp.ipv4 }}"
+        local-data: "teleport.{{ domains.corp.team }} 86400 IN AAAA {{ team_address.teleport_corp.ipv6 }}"
+
+  tasks:
+    - name: Gather cert material from vars
+      ansible.builtin.set_fact:
+        public_key: "{{ lookup('ansible.builtin.file', certs_path ~ 'cert.crt') }}"
+        private_key: "{{ lookup('ansible.builtin.file', certs_path ~ 'private.key') }}"
+        ca_key: "{{ lookup('ansible.builtin.file', certs_path ~ 'cabundle.crt') }}"
+      when: load_team_certs | bool
+
+    - name: Include common pfSense tasks
+      ansible.builtin.include_tasks: tasks/main.yaml

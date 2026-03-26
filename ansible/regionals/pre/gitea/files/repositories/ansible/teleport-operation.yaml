@@ -1,0 +1,25 @@
+---
+- name: Teleport operation
+  hosts: teleport_servers
+  become: true
+  vars:
+    teleport_operation: reload  # reload | restart
+
+  tasks:
+    - name: Reload Teleport configuration
+      ansible.builtin.systemd:
+        name: teleport
+        state: reloaded
+      when: teleport_operation == "reload"
+
+    - name: Restart Teleport
+      ansible.builtin.systemd:
+        name: teleport
+        state: restarted
+      when: teleport_operation == "restart"
+
+    - name: Ensure Teleport is running
+      ansible.builtin.systemd:
+        name: teleport
+        state: started
+        enabled: true

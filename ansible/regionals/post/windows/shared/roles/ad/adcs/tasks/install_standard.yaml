@@ -1,0 +1,28 @@
+---
+#TODO: Update to use secure credentials
+- name: Install-ADCSCertificationAuthority-PS
+  ansible.windows.win_powershell:
+    script: |
+      [CmdletBinding()]
+      param (
+          [String]$CommonName,
+          [PSCredential]$Credential
+      )
+      try {
+        Install-AdcsCertificationAuthority -Credential $Credential -CAType EnterpriseRootCA -CryptoProviderName "RSA#Microsoft Software Key Storage Provider" -KeyLength 2048 -HashAlgorithmName SHA256 -ValidityPeriod Years -ValidityPeriodUnits 5 -CACommonName $CommonName -Force
+        $Ansible.Changed = $true
+      } catch {
+        if ($_.Exception.Message -match "The Certification Authority is already installed.") {
+          $Ansible.Changed = $false
+        } else {
+          $Ansible.Changed = $false
+          throw $_
+        }
+      }
+    error_action: stop
+    parameters:
+      CommonName: "{{ adcs_common_name }}"
+    sensitive_parameters:
+      - name: Credential
+        username: "{{ ansible_user }}"
+        password: '{{ ansible_password }}'

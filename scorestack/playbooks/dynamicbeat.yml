@@ -1,0 +1,15 @@
+---
+- name: Deploy Dynamicbeat
+  hosts: scorestack
+  gather_facts: false
+  become: true
+  vars_files:
+    - ../vars/score.yml
+  tasks:
+    - name: Dynamicbeat role
+      ansible.builtin.include_role:
+        name: ../roles/dynamicbeat
+      vars:
+        dynamicbeat_setup_install: true
+        dynamicbeat_setup_update: true
+        dynamicbeat_checks_src: ../files/checks/

@@ -1,0 +1,33 @@
+---
+# Note: This playbook is not working on Teleport Ubuntu 16. Probably due to being an ancient OS
+
+- name: Ensure apt-transport-https and gpg are present
+  ansible.builtin.apt:
+    name:
+      - apt-transport-https
+      - gnupg
+      - kmod
+      - systemd
+    state: present
+  tags:
+    - falco
+
+# This might break on some systems
+- name: Install kernel headers
+  ansible.builtin.apt:
+    name: "{% if 'pve' in ansible_kernel %}pve-headers-{{ ansible_kernel }}{% else %}linux-headers-{{ ansible_kernel }}{% endif %}"
+    state: present
+  ignore_errors: true
+  tags:
+    - falco
+
+- name: Install Falco
+  ansible.builtin.apt:
+    deb: "https://download.falco.org/packages/deb/stable/falco-{{ falco_version | default('0.43.0') }}-{{ ansible_facts['architecture'] }}.deb"
+    state: present
+  environment:
+    FALCO_FRONTEND: noninteractive
+    FALCO_DRIVER_CHOICE: "{{ falco_driver_type }}"
+    FALCOCTL_ENABLED: "true"
+  tags:
+    - falco

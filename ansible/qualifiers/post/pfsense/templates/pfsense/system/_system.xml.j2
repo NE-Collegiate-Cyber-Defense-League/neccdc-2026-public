@@ -1,0 +1,66 @@
+{#
+System settings and WebGUI/SSH configuration
+Everything here is within the <system> XML tag
+#}
+<optimization>normal</optimization>
+<hostname>{{ hostname }}</hostname>
+<domain>home.arpa</domain>
+<timeservers>2.pfsense.pool.ntp.org</timeservers>
+<webgui>
+    <protocol>https</protocol>
+    <loginautocomplete></loginautocomplete>
+    <nohttpreferercheck></nohttpreferercheck>
+    <max_procs>4</max_procs>
+    <nodnsrebindcheck></nodnsrebindcheck>
+    <noantilockout></noantilockout>
+    <ssl-certref>{{ certs.team.cert.refid }}</ssl-certref>
+    <dashboardcolumns>3</dashboardcolumns>
+    <webguicss>pfSense-dark-BETA.css</webguicss>
+    <disablehttpredirect></disablehttpredirect>
+    <disablehsts></disablehsts>
+    <roaming>enabled</roaming>
+    <logincss>007faa</logincss>
+    <loginshowhost></loginshowhost>
+    <quietlogin></quietlogin>
+    <port>8080</port>
+</webgui>
+<disablenatreflection>yes</disablenatreflection>
+<disablesegmentationoffloading></disablesegmentationoffloading>
+<disablelargereceiveoffloading></disablelargereceiveoffloading>
+<ipv6allow></ipv6allow>
+<maximumtableentries>400000</maximumtableentries>
+<powerd_ac_mode>hadp</powerd_ac_mode>
+<powerd_battery_mode>hadp</powerd_battery_mode>
+<powerd_normal_mode>hadp</powerd_normal_mode>
+<bogons>
+    <interval>monthly</interval>
+</bogons>
+<hn_altq_enable></hn_altq_enable>
+<serialspeed>115200</serialspeed>
+<enableserial></enableserial>
+<ssh>
+    <enable>enabled</enable>
+    <port>22</port>
+    <sshdagentforwarding>enabled</sshdagentforwarding>
+</ssh>
+<enablesshd></enablesshd>
+<already_run_config_upgrade></already_run_config_upgrade>
+<timezone>US/Eastern</timezone>
+<primaryconsole>serial</primaryconsole>
+<sshguard_threshold>30000</sshguard_threshold>
+<sshguard_blocktime>10</sshguard_blocktime>
+<sshguard_detection_time>10</sshguard_detection_time>
+<sshguard_whitelist>10.0.0.0/8 172.16.0.0/12 192.168.0.0/16</sshguard_whitelist>
+<ignoreiscwarning></ignoreiscwarning>
+<prefer_ipv4></prefer_ipv4>
+<language>en_US</language>
+<dnsallowoverride></dnsallowoverride>
+<dns1host></dns1host>
+<statepolicy><![CDATA[if-bound]]></statepolicy>
+<maximumstates></maximumstates>
+<aliasesresolveinterval></aliasesresolveinterval>
+<maximumfrags></maximumfrags>
+<reflectiontimeout></reflectiontimeout>
+<firmware>
+    <disablecheck></disablecheck>
+</firmware>

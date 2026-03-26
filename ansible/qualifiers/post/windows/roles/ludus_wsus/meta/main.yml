@@ -1,0 +1,28 @@
+---
+dependencies: []
+
+galaxy_info:
+  role_name: ludus_wsus
+  author: 5tuk0v
+  description: An Ansible Role that installs Windows Server Update Services (WSUS) on Windows Server and optionally configures products, classifications, and synchronization schedules
+  company: ''
+  license: GPLv3
+  min_ansible_version: "2.10"
+  platforms:
+    - name: Windows 
+      versions:
+        - "2016"
+        - "2019"
+        - "2022"
+        - "2025"
+  galaxy_tags:
+    - ludus
+    - wsus
+    - windows
+    - updates
+    - security
+    - lab
+    - patching
+    - sysadmin
+
+collections: []

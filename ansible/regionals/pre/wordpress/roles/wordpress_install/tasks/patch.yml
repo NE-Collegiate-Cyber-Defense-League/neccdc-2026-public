@@ -1,0 +1,93 @@
+---
+- name: Set local files root
+  ansible.builtin.set_fact:
+    local_files_root: "{{ role_path }}/files/artifacts"
+
+- name: Ensure WordPress content directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0777'
+  loop:
+    - "{{ wordpress_path }}/wp-content"
+    - "{{ wordpress_path }}/wp-content/plugins"
+    - "{{ wordpress_path }}/wp-content/themes"
+    - "{{ wordpress_path }}/wp-content/uploads"
+    - "{{ wordpress_path }}/wp-content/mu-plugins"
+    - "{{ wordpress_path }}/wp-content/w3tc-config"
+
+- name: Copy plugins.zip to remote (idempotent)
+  ansible.builtin.copy:
+    src: "{{ local_files_root }}/wp-content/plugins.zip"
+    dest: "/tmp/plugins.zip"
+    mode: '0644'
+    force: false
+
+- name: Check plugins patched marker
+  ansible.builtin.stat:
+    path: "{{ wordpress_path }}/wp-content/.plugins_patched"
+  register: plugins_patched
+
+- name: Patch artifacts (looped copy)
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    mode: "{{ item.mode | default('0644') }}"
+    directory_mode: "{{ item.directory_mode | default(omit) }}"
+    backup: "{{ item.backup | default(false) }}"
+    force: "{{ item.force | default(false) }}"
+  loop:
+    - { src: "{{ local_files_root }}/wp-config.php", dest: "{{ wordpress_path }}/wp-config.php", backup: true, mode: "0644", force: false }
+    - { src: "{{ local_files_root }}/wp-content/themes/chefops-oceancrest/", dest: "{{ wordpress_path }}/wp-content/themes/chefops-oceancrest/", directory_mode: "0755", mode: "0644", force: false }
+    - { src: "{{ local_files_root }}/wp-content/mu-plugins/", dest: "{{ wordpress_path }}/wp-content/mu-plugins/", directory_mode: "0755", mode: "0644", force: false }
+    - { src: "{{ local_files_root }}/wp-content/advanced-cache.php", dest: "{{ wordpress_path }}/wp-content/advanced-cache.php", backup: true, mode: "0644", force: false }
+    - { src: "{{ local_files_root }}/wp-content/w3tc-config/", dest: "{{ wordpress_path }}/wp-content/w3tc-config/", directory_mode: "0755", mode: "0644", force: false }
+  when: ansible_os_family is defined
+
+- name: Extract plugins from zip file (first-time only)
+  ansible.builtin.unarchive:
+    src: "/tmp/plugins.zip"
+    dest: "{{ wordpress_path }}/wp-content/"
+    remote_src: true
+    keep_newer: true
+  when: not (plugins_patched.stat.exists | default(false)) and not (repatch_plugins | default(false))
+
+- name: Mark plugins as patched
+  ansible.builtin.file:
+    path: "{{ wordpress_path }}/wp-content/.plugins_patched"
+    state: touch
+    mode: '0644'
+  when: not (plugins_patched.stat.exists | default(false)) and not (repatch_plugins | default(false))
+
+
+- name: Ensure .htaccess files exist
+  ansible.builtin.copy:
+    dest: "{{ item.path }}"
+    content: "{{ item.content }}"
+    mode: '0644'
+  loop:
+    - { path: "{{ wordpress_path }}/.htaccess", content: "{{ wordpress_root_htaccess }}" }
+    - { path: "{{ wordpress_path }}/wp-content/.htaccess", content: "{{ wordpress_block_php_htaccess }}" }
+    - { path: "{{ wordpress_path }}/wp-content/plugins/.htaccess", content: "{{ wordpress_block_php_htaccess }}" }
+    - { path: "{{ wordpress_path }}/wp-content/themes/.htaccess", content: "{{ wordpress_block_php_htaccess }}" }
+    - { path: "{{ wordpress_path }}/wp-content/uploads/.htaccess", content: "{{ wordpress_block_php_htaccess }}" }
+
+- name: Reset ownership after asset sync
+  ansible.builtin.file:
+    path: "{{ wordpress_path }}"
+    owner: www-data
+    group: www-data
+    recurse: true
+
+- name: Ensure wp-config.php suppresses deprecations
+  ansible.builtin.blockinfile:
+    path: "{{ wordpress_path }}/wp-config.php"
+    insertafter: '^<\?php'
+    marker: "// {mark} managed by ansible (deprecation suppression)"
+    block: |
+      error_reporting(E_ALL & ~E_DEPRECATED & ~E_STRICT & ~E_NOTICE);
+      ini_set('display_errors', '0');
+      ini_set('display_startup_errors', '0');
+      define('WP_DEBUG', false);
+      define('WP_DEBUG_DISPLAY', false);
+      define('WP_DISABLE_FATAL_ERROR_HANDLER', true);

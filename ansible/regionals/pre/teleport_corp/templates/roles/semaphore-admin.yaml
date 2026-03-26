@@ -1,0 +1,17 @@
+kind: role
+version: v7
+metadata:
+  name: semaphore-admin
+  description: Semaphore administrator
+spec:
+  options:
+    max_session_ttl: 4h
+  allow:
+    app_labels:
+      app: semaphore
+    logins:
+      - admin
+      - ec2-user
+      - '{{internal.logins}}'
+    node_labels:
+      service: semaphore

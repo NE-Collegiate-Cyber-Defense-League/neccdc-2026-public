@@ -1,0 +1,71 @@
+<package>
+    <name>RESTAPI</name>
+    <internal_name>restapi</internal_name>
+    <descr><![CDATA[The missing REST API package for pfSense]]></descr>
+    <website>https://github.com/jaredhendrickson13/pfsense-api</website>
+    <category>System</category>
+    <version>%%PKGVERSION%%</version>
+    <configurationfile>restapi.xml</configurationfile>
+    <maintainer>github@jaredhendrickson.com</maintainer>
+    <conf>
+        <enabled>enabled</enabled>
+        <read_only>disabled</read_only>
+        <keep_backup>enabled</keep_backup>
+        <login_protection>disabled</login_protection>
+        <log_successful_auth>disabled</log_successful_auth>
+        <hateoas>disabled</hateoas>
+        <expose_sensitive_fields>enabled</expose_sensitive_fields>
+        <override_sensitive_fields></override_sensitive_fields>
+        <allow_pre_releases>disabled</allow_pre_releases>
+        <allowed_interfaces></allowed_interfaces>
+        <represent_interfaces_as>id</represent_interfaces_as>
+        <auth_methods>KeyAuth</auth_methods>
+        <ha_sync>disabled</ha_sync>
+        <ha_sync_hosts></ha_sync_hosts>
+        <ha_sync_username></ha_sync_username>
+        <ha_sync_password></ha_sync_password>
+        <ha_sync_validate_certs>disabled</ha_sync_validate_certs>
+        <server_key></server_key>
+        <jwt_exp>3600</jwt_exp>
+        <keys>
+            <key>
+                <descr><![CDATA[Admin key]]></descr>
+                <username><![CDATA[admin]]></username>
+                <hash_algo>sha256</hash_algo>
+                <length_bytes>16</length_bytes>
+                <hash>b2ea85692f4e4a953a27466d174b416419961a1956abc9fe11a88a537693a6cc</hash>
+            </key>
+        </keys>
+        <access_list>
+            <item>
+                <type>allow</type>
+                <weight>10</weight>
+                <network>0.0.0.0/0</network>
+                <users></users>
+                <sched></sched>
+                <descr><![CDATA[Default allow all IPv4]]></descr>
+            </item>
+            <item>
+                <type>allow</type>
+                <weight>10</weight>
+                <network>0::/0</network>
+                <users></users>
+                <sched></sched>
+                <descr><![CDATA[Default allow all IPv6]]></descr>
+            </item>
+        </access_list>
+        <log_level>LOG_WARNING</log_level>
+    </conf>
+    <include_file>/usr/local/pkg/RESTAPI/nginx.inc</include_file>
+    <plugins>
+        <item>
+            <type>plugin_nginx</type>
+        </item>
+    </plugins>
+</package>
+<menu>
+    <name>REST API</name>
+    <tooltiptext>The missing REST API package for pfSense</tooltiptext>
+    <section>System</section>
+    <url>/system_restapi_settings.php</url>
+</menu>

@@ -1,0 +1,85 @@
+---
+- name: Add Teleport Repository
+  ansible.builtin.yum_repository:
+    name: teleport
+    description: "Gravitational Teleport packages"
+    baseurl: https://yum.releases.teleport.dev/rhel/8/Teleport/aarch64/stable/v16
+    gpgkey: https://yum.releases.teleport.dev/gpg
+    gpgcheck: true
+    enabled: true
+    state: present
+  tags:
+    - teleport
+
+- name: Install Teleport
+  ansible.builtin.dnf:
+    name: teleport >= 16.5.18
+    state: present
+    update_cache: true
+  tags:
+    - teleport
+
+- name: Copy teleport configuration template
+  ansible.builtin.template:
+    src: templates/teleport.yaml.j2
+    dest: /etc/teleport.yaml
+    mode: '0664'
+    owner: root
+    group: root
+  vars:
+    teleport_server_name: branch-ock
+  tags:
+    - teleport
+
+- name: Ensure teleport_server_name is in /etc/hosts
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    state: present
+    regexp: '^127\.0\.0\.1\s+{{ teleport_server_name }}$'
+    line: "127.0.0.1 {{ teleport_server_name }}"
+  vars:
+    teleport_server_name: branch-ock
+  tags:
+    - teleport
+
+- name: Copy temporary certificates
+  block:
+    - name: Copy full chain certificates
+      ansible.builtin.copy:
+        src: '../../../../documents/black_team/certificates/teleport/fullchain.crt'
+        dest: /var/lib/teleport/fullchain.crt
+        mode: '0400'
+        owner: root
+        group: root
+      tags:
+        - teleport
+
+    - name: Copy private key
+      ansible.builtin.copy:
+        src: '../../../../documents/black_team/certificates/teleport/private.key'
+        dest: /var/lib/teleport/private.key
+        mode: '0400'
+        owner: root
+        group: root
+      tags:
+        - teleport
+
+- name: Start and enable teleport
+  ansible.builtin.service:
+    name: teleport
+    state: restarted
+    enabled: true
+  tags:
+    - teleport
+
+- name: Wait teleport website is ready
+  ansible.builtin.uri:
+    url: 'http://localhost:3000/readyz'
+    return_content: false
+    status_code: 200
+  until: uri_output.status == 200
+  retries: 24
+  delay: 3
+  register: uri_output
+  tags:
+    - teleport

@@ -1,0 +1,13 @@
+[Unit]
+Description=FalcosidekickUI
+After=network.target
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+ExecStart=/usr/local/bin/falcosidekick-ui -y admin -w yourpassword
+WorkingDirectory=/opt/falcosidekick-ui
+
+[Install]
+WantedBy=multi-user.target

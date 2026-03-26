@@ -1,0 +1,19 @@
+---
+# Touch a dummy file to trigger a Falco rule (e.g. file creation in sensitive path).
+- name: Test Falco alert (touch dummy file)
+  hosts: falco_clients_corp,falco_clients_branch
+  become: true
+  vars:
+    falco_test_file: /etc/falco-test-dummy
+
+  tasks:
+    - name: Create dummy file to trigger Falco alert
+      ansible.builtin.file:
+        path: "{{ falco_test_file }}"
+        state: touch
+        mode: "0644"
+
+    - name: Remove Falco test dummy file
+      ansible.builtin.file:
+        path: "{{ falco_test_file }}"
+        state: absent

@@ -1,0 +1,27 @@
+{
+  "name": "HTTP_kiosk_A",
+  "type": "http",
+  "score_weight": 3,
+  "definition": {
+    "requests": [
+      {
+        "host": "{{.IP}}",
+        "path": "/assets/images/icons/check.svg",
+        "https": true,
+        "port": 443,
+        "method": "GET",
+        "matchcode": true,
+        "code": 200,
+        "headers": {
+          "Host": "{{.Host}}"
+        }
+      }
+    ]
+  },
+  "attributes": {
+    "admin": {
+      "Host": "{{.TeamNumber}}.oceancrests.kitchen",
+      "IP": "10.100.{{.TeamNumber}}.201"
+    }
+  }
+}

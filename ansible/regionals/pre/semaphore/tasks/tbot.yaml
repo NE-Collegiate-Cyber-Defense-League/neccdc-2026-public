@@ -1,0 +1,90 @@
+---
+# https://goteleport.com/docs/machine-workload-identity/deployment/linux/
+- name: Create tbot groups
+  ansible.builtin.group:
+    name: tbot
+    state: present
+  tags:
+    - tbot
+
+- name: Create tbot user
+  ansible.builtin.user:
+    name: tbot
+    append: true
+    groups: tbot
+    shell: "/bin/bash"
+    state: present
+    create_home: false
+    system: true
+  tags:
+    - tbot
+
+# https://goteleport.com/docs/reference/cli/tbot/
+# https://goteleport.com/docs/reference/machine-workload-identity/configuration/#directory
+- name: Copy tbot file
+  ansible.builtin.copy:
+    src: files/tbot.yaml
+    dest: /etc/tbot.yaml
+    owner: root
+    group: tbot
+    mode: "0644"
+  tags:
+    - tbot
+
+- name: Allow execute on teleport directory
+  ansible.builtin.file:
+    path: /var/lib/teleport
+    owner: root
+    group: tbot
+    mode: "710"
+
+- name: Setup tbot storage dir
+  ansible.builtin.file:
+    dest: /var/lib/teleport/bot
+    state: directory
+    owner: root
+    group: tbot
+    mode: "0775"
+  tags:
+    - tbot
+
+- name: Copy tbot systemd file
+  ansible.builtin.copy:
+    src: files/tbot.service
+    dest: /etc/systemd/system/tbot.service
+    owner: root
+    group: root
+    mode: "0644"
+  tags:
+    - tbot
+
+- name: Disable tbot systemd service
+  ansible.builtin.systemd_service:
+    name: tbot
+    state: stopped
+    enabled: false
+    daemon_reload: true
+  tags:
+    - tbot
+
+# https://goteleport.com/docs/machine-workload-identity/access-guides/ansible/
+- name: Setup identity output directory
+  ansible.builtin.file:
+    dest: /opt/machine-id
+    state: directory
+    owner: tbot
+    group: semaphore
+    mode: "0775"
+  tags:
+    - tbot
+
+- name: Copy tbot ansible config file
+  ansible.builtin.copy:
+    src: files/ansible.cfg
+    # dest: /opt/semaphore/ansible.cfg
+    dest: /etc/ansible/ansible.cfg
+    owner: root
+    group: tbot
+    mode: "0664"
+  tags:
+    - tbot

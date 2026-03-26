@@ -1,0 +1,29 @@
+{
+  "name": "HTTP_keycloak",
+  "type": "http",
+  "score_weight": 2,
+  "definition": {
+    "requests": [
+      {
+        "host": "{{.IP}}",
+        "path": "/health/live",
+        "https": true,
+        "port": 443,
+        "method": "GET",
+        "matchcode": true,
+        "code": 200,
+        "headers": {
+          "Host": "{{.Host}}"
+        },
+        "MatchContent": true,
+        "ContentRegex": "UP"
+      }
+    ]
+  },
+  "attributes": {
+    "admin": {
+      "Host": "keycloak.{{.TeamNumber}}.chefops.tech",
+      "IP": "2600:1f26:1d:8a{{.TeamHex}}0:ffff:ffff:ffff:fffe"
+    }
+  }
+}

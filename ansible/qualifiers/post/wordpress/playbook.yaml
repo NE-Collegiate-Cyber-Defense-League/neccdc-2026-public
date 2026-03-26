@@ -1,0 +1,23 @@
+---
+- name: Configure Wordpress
+  hosts: wordpress
+  become: true
+  vars:
+    team_number: "{{ hostvars[inventory_hostname]['team'] }}"
+    wp_domain: "https://{{ team_number }}.{{ domain }}"
+  tasks:
+    - name: Update WordPress site url
+      ansible.builtin.command:
+        cmd: wp option update siteurl "{{ wp_domain }}"
+      args:
+        chdir: /var/www/html
+      become: true
+      become_user: www-data
+
+    - name: Update WordPress home url
+      ansible.builtin.command:
+        cmd: wp option update home "{{ wp_domain }}"
+      args:
+        chdir: /var/www/html
+      become: true
+      become_user: www-data

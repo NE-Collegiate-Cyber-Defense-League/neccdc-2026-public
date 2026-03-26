@@ -1,0 +1,51 @@
+---
+# Older version of neovim
+# https://github.com/neovim/neovim-releases
+- name: Install old neovim deb package
+  ansible.builtin.apt:
+    deb: https://github.com/neovim/neovim-releases/releases/download/v0.10.2/nvim-linux64.deb
+  tags:
+    - neovim
+
+- name: Clone the LazyVim starter
+  ansible.builtin.git:
+    repo: "https://github.com/LazyVim/starter"
+    dest: "/home/ubuntu/.config/nvim"
+    umask: "000"
+  tags:
+    - neovim
+
+# https://github.com/LazyVim/LazyVim/issues/6421
+- name: Copy neovim old version override
+  ansible.builtin.template:
+    src: templates/neovim.lua
+    dest: /home/ubuntu/.config/nvim/lua/plugins/core.lua
+    mode: '0660'
+    owner: ubuntu
+    group: ubuntu
+  tags:
+    - neovim
+
+- name: Register nvim as vim alternative
+  ansible.builtin.command:
+    cmd: update-alternatives --install /usr/bin/vim vim /usr/bin/nvim 60
+  tags:
+    - neovim
+
+- name: Set nvim as default vim
+  ansible.builtin.command:
+    cmd: update-alternatives --set vim /usr/bin/nvim
+  tags:
+    - neovim
+
+- name: Register nvim as vi alternative
+  ansible.builtin.command:
+    cmd: update-alternatives --install /usr/bin/vi vi /usr/bin/nvim 60
+  tags:
+    - neovim
+
+- name: Set nvim as default vi
+  ansible.builtin.command:
+    cmd: update-alternatives --set vi /usr/bin/nvim
+  tags:
+    - neovim

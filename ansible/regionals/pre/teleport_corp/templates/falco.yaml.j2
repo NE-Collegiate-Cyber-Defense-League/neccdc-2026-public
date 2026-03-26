@@ -1,0 +1,16 @@
+json_output: true
+syslog_output:
+  enabled: true
+http_output:
+  enabled: false
+metrics:
+  enabled: true
+  interval: 15m
+  output_rule: true
+webserver:
+  enabled: true
+  prometheus_metrics_enabled: true
+  listen_port: 8765
+  # Can be an IPV4 or IPV6 address, defaults to IPV4.
+  listen_address: "::"
+  ssl_enabled: false # Why is this not set to true?

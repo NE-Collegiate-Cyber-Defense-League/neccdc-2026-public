@@ -1,0 +1,103 @@
+firewall:
+  hosts:
+    2600:1f26:001d:8a{{ team_number }}0:ffff:ffff:ffff:fffe:
+  vars:
+    ansible_user: admin
+    ansible_password: netadmin
+    ansible_port: 22
+
+falco_clients_corp:
+  children:
+    gitea:
+    grafana:
+    semaphore:
+    teleport:
+    wordpress:
+  vars:
+    falco_gitea_rules_url: "http://[2600:1f26:1d:8a02::feed]:3000/chefops/falco/raw/branch/main/falco_rules.yaml"
+
+falco_clients_branch:
+  children:
+    kiosks:
+    teleport_branch:
+  vars:
+    falco_gitea_rules_url: "https://gitea.{{ team_number }}.chefops.tech/chefops/falco/raw/branch/main/falco_rules.yaml"
+
+gitea:
+  hosts:
+    gitea.teleport:
+
+grafana:
+  hosts:
+    grafana.teleport:
+
+semaphore:
+  hosts:
+    semaphore.teleport:
+  vars:
+    ansible_python_interpreter: /usr/bin/python3.11
+
+wazuh:
+  hosts:
+    wazuh.teleport:
+  vars:
+    ansible_user: admin
+
+teleport:
+  hosts:
+    teleport.teleport:
+  vars:
+    ansible_python_interpreter: /usr/local/bin/python3.9
+    falco_service_name: falco-kmod
+
+wordpress:
+  hosts:
+    wordpress.teleport:
+
+linux:
+  children:
+    gitea:
+    grafana:
+    kiosks:
+    semaphore:
+    teleport:
+    teleport_branch:
+    wordpress:
+  vars:
+    ansible_user: ansible
+
+windows_ad:
+  hosts:
+    windows_ad.teleport:
+
+windows_server:
+  hosts:
+    windows_server.teleport:
+
+windows:
+  children:
+    windows_ad:
+    windows_server:
+
+
+# OCK Hosts
+kiosks:
+  hosts:
+    # kiosk-0.branch-ock:
+    kiosk-1.branch-ock:
+    kiosk-2.branch-ock:
+  # vars:
+  #   ansible_user: kiosk
+  #   ansible_password: kioskpassword
+
+teleport_branch:
+  hosts:
+    teleport.branch-ock:
+
+windows_dc:
+  hosts:
+    windows_dc.branch-ock:
+
+windows_pos:
+  hosts:
+    windows_pos.branch-ock:

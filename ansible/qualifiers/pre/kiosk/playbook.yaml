@@ -1,0 +1,177 @@
+- name: Setup Kiosk
+  hosts: packer
+  become: true
+  vars:
+    server_name: "kiosk"
+  tasks:
+    - name: Install required apt packages
+      ansible.builtin.apt:
+        name:
+          - ca-certificates
+          - curl
+          - gnupg2
+          - lsb-release
+          - wget
+          - sudo
+          - unzip
+        state: present
+        update_cache: true
+
+    - name: Install Falco
+      ansible.builtin.include_tasks:
+        file: "../../../shared/falco_client/main.yaml"
+      vars:
+        falco_version: "0.38.2"
+      tags:
+        - falco
+
+    - name: Weaken SSH
+      ansible.builtin.include_tasks:
+        file: "../../../shared/weaken_ssh/main.yaml"
+      vars:
+        ssh_config_path: /etc/ssh/sshd_config
+      tags:
+        - ssh
+
+    - name: Set Ansible user
+      ansible.builtin.include_tasks:
+        file: "../../../shared/semaphore_ansible/main.yaml"
+      tags:
+        - ansible
+
+    - name: Download and install amazon-ssm-agent deb package
+      ansible.builtin.apt:
+        deb: "https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/debian_arm64/amazon-ssm-agent.deb"
+
+    - name: Enable Amazon SSM Agent service
+      ansible.builtin.service:
+        enabled: true
+        state: started
+        name: "amazon-ssm-agent"
+
+    - name: Setup black team task
+      ansible.builtin.include_tasks:
+        file: "../../../shared/black_team/main.yaml"
+      vars:
+        root_groups: sudo
+      tags:
+        - black-team
+
+    - name: Create Kiosk User
+      ansible.builtin.user:
+        name: kiosk
+        comment: "Kiosk User"
+        shell: /bin/sh
+        groups: sudo
+        append: true
+        password: "{{ 'kioskpassword' | password_hash('sha512') }}"
+
+    - name: Setup Alloy
+      ansible.builtin.include_tasks:
+        file: "../../../shared/alloy/main.yaml"
+      vars:
+        mode: "pre"
+        include_docker: false
+        extra_config: |
+          prometheus.scrape "nginx" {
+            targets = [
+              {
+                __address__ = "127.0.0.1:9152",
+                instance    = constants.hostname,
+                job         = "nginx",
+              },
+            ]
+            forward_to      = [prometheus.remote_write.remote.receiver]
+            scrape_interval = "30s"
+          }
+      tags:
+        - alloy
+
+    - name: Add Nginx Repository
+      ansible.builtin.deb822_repository:
+        name: nginx
+        types: [deb]
+        uris: "https://nginx.org/packages/{{ ansible_facts['distribution'] | lower }}"
+        signed_by: "https://nginx.org/keys/nginx_signing.key"
+        suites: ["{{ ansible_facts['distribution_release'] | lower }}"]
+        components: [stable]
+        state: present
+        enabled: true
+
+    - name: Install Added Packages
+      ansible.builtin.apt:
+        name: nginx
+        state: present
+        update_cache: true
+
+    - name: Backup default nginx config
+      community.general.archive:
+        path:
+          - /etc/nginx/nginx.conf
+          - /etc/nginx/conf.d
+          - /etc/nginx/sites-enabled
+          - /etc/nginx/sites-available
+        format: gz
+        dest: /etc/nginx/nginx.conf.bak.gz
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Remove Nginx default site
+      ansible.builtin.file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+
+    - name: Get Nginx Config
+      ansible.builtin.get_url:
+        url: "https://cdn.cf.neccdl.org/kiosk/nginx.tar.gz"
+        checksum: "sha256:a66cff0d5ee1b419fc8002e6a99c7b20c0794e11075ca8c2c09d238d9eadac59"
+        dest: /tmp/nginx.tar.gz
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Extract Nginx Config
+      ansible.builtin.unarchive:
+        src: /tmp/nginx.tar.gz
+        dest: /etc/nginx/
+        remote_src: yes
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Copy Nginx Metrics Config
+      ansible.builtin.copy:
+        src: files/nginx-metrics.conf
+        dest: /etc/nginx/conf.d/nginx-metrics.conf
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Generate Diffie-Hellman parameters
+      community.crypto.openssl_dhparam:
+        path: /etc/nginx/dhparam.pem
+        size: 1024
+
+    - name: Download Site Files
+      ansible.builtin.get_url:
+        url: "https://cdn.cf.neccdl.org/kiosk/site.zip"
+        checksum: "sha256:7926029d403d63ce72816f0f3f1deb91654e5c0d46c85c38187d0cce4e2577e8"
+        dest: /tmp/site.zip
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Create Public directory
+      ansible.builtin.file:
+        path: /var/www/kiosk/public
+        state: directory
+
+    - name: Extract Site Files
+      ansible.builtin.unarchive:
+        src: /tmp/site.zip
+        dest: /var/www/kiosk/public
+        remote_src: yes
+        owner: root
+        group: root
+        mode: "0755"

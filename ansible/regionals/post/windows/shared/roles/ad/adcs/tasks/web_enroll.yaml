@@ -1,0 +1,33 @@
+---
+# ESC 8
+# ignore error if already installed
+- name: Enable Web enrollement
+  ansible.windows.win_powershell:
+    script: |
+      [CmdletBinding()]
+      param ()
+      try {
+        Install-AdcsWebEnrollment -Force
+        $Ansible.Changed = $true
+      } catch {
+        $Ansible.Changed = $false
+      }
+
+
+- name: Change IIS to allow anonymous access
+  ansible.windows.win_powershell:
+    script: |
+      Import-Module WebAdministration
+
+      & "$env:SystemRoot\System32\inetsrv\appcmd.exe" unlock config `
+        /section:system.webServer/security/authentication/anonymousAuthentication
+
+      & "$env:SystemRoot\System32\inetsrv\appcmd.exe" unlock config `
+        /section:system.webServer/security/authentication/windowsAuthentication
+
+      Set-WebConfigurationProperty `
+        -Filter "system.webServer/security/authentication/anonymousAuthentication" `
+        -PSPath "IIS:\Sites\Default Web Site\CertSrv" `
+        -Name enabled `
+        -Value $true
+

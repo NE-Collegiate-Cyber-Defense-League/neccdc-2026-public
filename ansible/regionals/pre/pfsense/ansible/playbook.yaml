@@ -1,0 +1,49 @@
+---
+- hosts: all
+  gather_facts: false
+
+  tasks:
+    - name: Remove packages
+      ansible.builtin.package:
+        name:
+          - "pfSense-pkg-aws-highavail"
+          - "pfSense-pkg-aws-wizard"
+          - "pfSense-pkg-ipsec-profile-wizard"
+          - "pfSense-pkg-Netgate_Firmware_Upgrade"
+        state: absent
+ 
+    - name: Install base packages
+      ansible.builtin.package:
+        name:
+          - "pfSense-pkg-sudo"
+          - "pfSense-pkg-haproxy"
+          - "pfSense-pkg-WireGuard"
+          - "pfSense-pkg-node_exporter"
+        state: present
+
+    - name: Copy base configuration
+      ansible.builtin.copy:
+        src: "files/config.xml"
+        dest: "/conf/config.xml"
+
+    - name: Clear config cache
+      ansible.builtin.file:
+        path: /tmp/config.cache
+        state: absent
+
+    # Doing reboot instead of reload for packer
+    - name: Reboot pfSense
+      ansible.builtin.reboot:
+        reboot_timeout: 300
+        pre_reboot_delay: 10
+        post_reboot_delay: 30
+
+    - name: Remove startup wizard marker
+      ansible.builtin.file:
+        path: /conf/trigger_initial_wizard
+        state: absent
+
+    - name: Remove Notices
+      ansible.builtin.file:
+        path: /tmp/notices/notices.serial
+        state: absent

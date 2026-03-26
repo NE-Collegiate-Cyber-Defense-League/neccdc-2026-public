@@ -1,0 +1,24 @@
+---
+- name: Install Amazon SSM Agent
+  ansible.builtin.include_tasks:
+    file: "tasks/setup-{{ ansible_facts['os_family'] }}.yaml"
+  tags:
+    - ssm
+
+- name: Copy SSM config # enabled dual stack
+  ansible.builtin.copy:
+    src: 'files/ssm-config.json'
+    dest: /etc/amazon/ssm/amazon-ssm-agent.json
+    owner: root
+    group: root
+    mode: '0644'
+  tags:
+    - ssm
+
+- name: Start SSM agent service
+  ansible.builtin.service:
+    name: amazon-ssm-agent
+    enabled: true
+    state: started
+  tags:
+    - ssm

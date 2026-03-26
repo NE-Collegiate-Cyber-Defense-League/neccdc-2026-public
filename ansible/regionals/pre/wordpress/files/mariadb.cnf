@@ -1,0 +1,5 @@
+[mariadb]
+require_secure_transport=ON
+ssl-ca=/opt/mariadb/certs/server.cas
+ssl-cert=/opt/mariadb/certs/server.crt
+ssl-key=/opt/mariadb/certs/server.key

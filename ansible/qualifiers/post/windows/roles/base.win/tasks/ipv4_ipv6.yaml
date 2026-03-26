@@ -1,0 +1,8 @@
+---
+- name: Prefer IPv4 over IPv6
+  ansible.builtin.win_regedit:
+    path: HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip6\Parameters
+    name: DisabledComponents
+    datatype: dword
+    data: 0x20
+    state: present

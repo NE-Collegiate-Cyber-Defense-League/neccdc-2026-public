@@ -1,0 +1,64 @@
+---
+- name: Configure Falco
+  hosts: falco
+  become: true
+  vars:
+    team_number: "{{ hostvars[inventory_hostname]['team'] }}"
+  tasks:
+    - name: Update Falcosidekick Webhook
+      ansible.builtin.replace:
+        path: /etc/falcosidekick/config.yaml
+        regexp: "https://dummy.discord.webhook"
+        replace: "{{ hostvars[inventory_hostname]['discord_webhook_url'][hostvars[inventory_hostname]['team']] }}"
+      notify: Restart Falcosidekick
+      tags:
+        - server
+
+    - name: Configure Alloy for Kiosk
+      ansible.builtin.include_tasks:
+        file: "../../../shared/alloy/main.yaml"
+      vars:
+        mode: "post"
+      tags:
+        - alloy
+        - server
+
+  handlers:
+    - name: Restart Falcosidekick
+      ansible.builtin.service:
+        name: falcosidekick
+        state: restarted
+      tags:
+        - server
+
+# Update the falcosidekick address
+- name: Update Falco Client Information
+  hosts: falco_clients
+  become: true
+  vars:
+    team_number: "{{ hostvars[inventory_hostname]['team'] }}"
+  tasks:
+    - name: Update Falco HTTP Output URL
+      ansible.builtin.replace:
+        path: /etc/falco/falco.yaml
+        regexp: "http://falcosidekick.example.com:2801"
+        replace: "http://falco.{{ team_number }}.chefops.tech:2801"
+      notify: Restart Falco
+      tags:
+        - client
+
+    - name: Enable Falco
+      ansible.builtin.service:
+        name: "{{ teleport_server_override | default('falco-modern-bpf') }}"
+        enabled: true
+      notify: Restart Falco
+      tags:
+        - client
+
+  handlers:
+    - name: Restart Falco
+      ansible.builtin.service:
+        name: "{{ teleport_server_override | default('falco-modern-bpf') }}"
+        state: restarted
+      tags:
+        - client

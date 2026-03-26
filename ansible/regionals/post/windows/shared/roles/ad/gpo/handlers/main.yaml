@@ -1,0 +1,8 @@
+---
+- name: gpupdate
+  ansible.windows.win_shell: gpupdate /force
+  register: gpupdate_result
+
+- name: Show gpupdate output
+  ansible.builtin.debug:
+    msg: "{{ gpupdate_result.stdout_lines }}"

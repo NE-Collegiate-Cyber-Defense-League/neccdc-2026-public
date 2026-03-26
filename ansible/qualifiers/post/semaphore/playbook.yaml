@@ -1,0 +1,36 @@
+- name: Configure Semaphore
+  hosts: semaphore
+  become: true
+  vars:
+    team_number: "{{ hostvars[inventory_hostname]['team'] }}"
+  tasks:
+    - name: Copy ChefOps inventory
+      ansible.builtin.template:
+        src: templates/inventories/chefops.yaml.j2
+        dest: /opt/semaphore/orgs/inventory.yaml
+        mode: "0644"
+        owner: semaphore
+        group: semaphore
+        backup: false
+      tags:
+        - ansible
+
+    - name: Copy OCK inventory
+      ansible.builtin.template:
+        src: templates/inventories/ock.yaml.j2
+        dest: /opt/semaphore/orgs/ock/inventory.yaml
+        mode: "0644"
+        owner: semaphore
+        group: semaphore
+        backup: false
+      tags:
+        - ansible
+
+    - name: Update Semaphore falco address
+      ansible.builtin.replace:
+        path: /opt/semaphore/playbooks/falco-update.yaml
+        regexp: 'falco\.example\.com'
+        replace: "falco.{{ team_number }}.chefops.tech"
+      tags:
+        - ansible
+        - playbooks

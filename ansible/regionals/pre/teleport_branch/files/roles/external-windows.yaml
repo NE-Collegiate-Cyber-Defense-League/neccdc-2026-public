@@ -1,0 +1,11 @@
+kind: role
+version: v7
+metadata:
+  name: external-windows
+  description: Remote administration from ChefOps. Granting access to manage our wInDoWs systems
+spec:
+  allow:
+    windows_desktop_logins:
+      - Administrator
+    node_labels:
+      os: windows

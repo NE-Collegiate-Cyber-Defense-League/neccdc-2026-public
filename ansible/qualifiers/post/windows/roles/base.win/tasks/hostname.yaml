@@ -1,0 +1,8 @@
+- name: Update Hostname to Align with Inventory Naming
+  ansible.windows.win_hostname:
+    name: "{{ set_hostname }}"
+  register: result_hostname
+
+- name: Initiate Reboot if Hostname Update Requires
+  ansible.windows.win_reboot:
+  when: result_hostname is defined and result_hostname.reboot_required

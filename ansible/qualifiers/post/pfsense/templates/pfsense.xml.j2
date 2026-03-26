@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+{# pfSense configuration root template: orchestrates all sections #}
+<pfsense>
+{# 
+======================================
+      SYSTEM CONFIGURATION
+======================================
+#}
+{% filter indent(width=4, first=true) %}
+{% include "pfsense/system/include.j2" %}
+{% endfilter +%}
+{# 
+======================================
+         INTERFACE CONFIGURATION 
+======================================
+#}
+{% filter indent(width=4, first=true) %}
+{% include "pfsense/network/include.j2" %}
+{% endfilter +%}
+{#
+======================================
+      EXTRA SYSTEM SETTINGS
+======================================
+#}
+{% filter indent(width=4, first=true) %}
+{% include "pfsense/extra/include.j2" %}
+{% endfilter %}
+</pfsense>

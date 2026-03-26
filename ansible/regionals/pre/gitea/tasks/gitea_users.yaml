@@ -1,0 +1,121 @@
+---
+# https://github.com/roles-ansible/ansible_role_gitea/blob/main/tasks/local_git_users.yml
+
+- name: Get Gitea organization teams from API
+  ansible.builtin.uri:
+    url: "{{ gitea_url }}/api/v1/orgs/chefops/teams"
+    method: GET
+    headers:
+      Authorization: "token {{ gitea_token }}"
+      Content-Type: "application/json"
+    return_content: true
+  register: gitea_teams_response
+  tags:
+    - gitea_users
+
+- name: Build team name to team id mapping
+  ansible.builtin.set_fact:
+    gitea_team_ids: "{{ gitea_teams_response.json | items2dict(key_name='name', value_name='id') }}"
+  tags:
+    - gitea_users
+
+- name: Use gitea normal users
+  ansible.builtin.command:
+    cmd: >
+      /usr/local/bin/gitea -c /etc/gitea/gitea.ini
+        admin user create --username '{{ item.username }}'
+        --password '{{ item.password }}'
+        --email '{{ item.email }}'
+        --must-change-password=false
+        --admin=false
+        --access-token=false
+  become_user: gitea
+  register: gitea_admin_create
+  failed_when: >
+    gitea_admin_create.rc != 0 and
+    "user already exists" not in gitea_admin_create.stderr
+  changed_when: gitea_admin_create.rc == 0
+  when: item.department == "Security" or item.department == "Support" or item.department == "Operations"
+  with_items: "{{ users_data.users }}"
+  tags:
+    - gitea_users
+
+- name: Use gitea admin users
+  ansible.builtin.command:
+    cmd: >
+      /usr/local/bin/gitea -c /etc/gitea/gitea.ini
+        admin user create --username '{{ item.username }}'
+        --password '{{ item.password }}'
+        --email '{{ item.email }}'
+        --must-change-password=false
+        --admin=true
+        --access-token=true
+  become_user: gitea
+  register: gitea_admin_create
+  failed_when: >
+    gitea_admin_create.rc != 0 and
+    "user already exists" not in gitea_admin_create.stderr
+  changed_when: gitea_admin_create.rc == 0
+  when: item.department == "Engineering"
+  with_items: "{{ users_data.users }}"
+  tags:
+    - gitea_users
+
+- name: Use gitea admin former users
+  ansible.builtin.command:
+    cmd: >
+      /usr/local/bin/gitea -c /etc/gitea/gitea.ini
+        admin user create --username '{{ item.username }}'
+        --password '{{ item.password }}'
+        --email '{{ item.email }}'
+        --must-change-password=false
+        --admin=true
+        --access-token=true
+  become_user: gitea
+  register: gitea_admin_create
+  failed_when: >
+    gitea_admin_create.rc != 0 and
+    "user already exists" not in gitea_admin_create.stderr
+  changed_when: gitea_admin_create.rc == 0
+  when: item.department == "Engineering" or item.position == "Help Desk"
+  with_items: "{{ former_users_data.users }}"
+  tags:
+    - gitea_users
+
+- name: Assign current users to Gitea team via API
+  ansible.builtin.uri:
+    url: "{{ gitea_url }}/api/v1/teams/{{ gitea_team_ids[team_name] }}/members/{{ item.username }}"
+    method: PUT
+    headers:
+      Authorization: "token {{ gitea_token }}"
+      Content-Type: "application/json"
+    status_code: [204, 404]
+  vars:
+    team_name: "{{ {'Security': 'security', 'Engineering': 'engineering', 'Operations': 'operations', 'Support': 'operations'}[item.department] }}"
+  loop: "{{ users_data.users | selectattr('department', 'in', ['Security', 'Support', 'Operations', 'Engineering']) | list }}"
+  tags:
+    - gitea_users
+
+- name: Assign former Engineering users to Gitea engineering team via API
+  ansible.builtin.uri:
+    url: "{{ gitea_url }}/api/v1/teams/{{ gitea_team_ids['engineering'] }}/members/{{ item.username }}"
+    method: PUT
+    headers:
+      Authorization: "token {{ gitea_token }}"
+      Content-Type: "application/json"
+    status_code: [204, 404]
+  loop: "{{ former_users_data.users | selectattr('department', 'equalto', 'Engineering') | list }}"
+  tags:
+    - gitea_users
+
+- name: Assign former Help Desk users to Gitea operations team via API
+  ansible.builtin.uri:
+    url: "{{ gitea_url }}/api/v1/teams/{{ gitea_team_ids['operations'] }}/members/{{ item.username }}"
+    method: PUT
+    headers:
+      Authorization: "token {{ gitea_token }}"
+      Content-Type: "application/json"
+    status_code: [204, 404]
+  loop: "{{ former_users_data.users | selectattr('position', 'equalto', 'Help Desk') | rejectattr('department', 'equalto', 'Engineering') | list }}"
+  tags:
+    - gitea_users

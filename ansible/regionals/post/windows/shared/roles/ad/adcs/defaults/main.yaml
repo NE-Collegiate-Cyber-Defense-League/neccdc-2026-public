@@ -1,0 +1,6 @@
+---
+adcs_web_enrollment: true
+adcs_templates:
+  - SSL
+adcs_backup_cert_file_path: ""
+adcs_backup_cert_file_password: ""

@@ -1,0 +1,189 @@
+declare "pfsense_logs" {
+  argument "forward_to" {
+    comment = "Must be a list(LogsReceiver) where collected logs should be forwarded to"
+  }
+
+  loki.source.syslog "receiver" {
+    listener {
+      address  = "0.0.0.0:55514"
+      protocol = "udp"
+      label_structured_data = true
+    }
+
+    relabel_rules = loki.relabel.syslog.rules
+    forward_to = [loki.process.stage1.receiver]
+  }
+
+  loki.relabel "syslog" {
+    forward_to = []
+
+    rule {
+      target_label  = "job"
+      replacement   = "pfsense"
+    }
+
+    rule {
+      source_labels = ["__syslog_message_hostname"]
+      target_label  = "instance"
+    }
+
+    rule {
+      source_labels = ["__syslog_message_app_name"]
+      target_label  = "service_name"
+    }
+
+    rule {
+      source_labels = ["__syslog_message_severity"]
+      target_label  = "level"
+    }
+	
+    rule {
+		action = "labelmap"
+		regex = "__syslog_(.+)"
+	  }
+  }
+
+  loki.process "stage2" {
+    forward_to = argument.forward_to.value
+
+    stage.labels {
+      values = {
+        level = "",
+      }
+    }
+  
+    stage.structured_metadata {
+      values = {
+        connection_hostname     = "",
+        connection_ip_address      = "",
+        message_app_name    = "",
+        message_facility      = "",
+        message_hostname   = "",
+        message_severity   = "",
+        message_proc_id   = "",
+      }
+    }
+  }
+
+  loki.process "stage1" {
+    forward_to = [loki.process.stage2.receiver]
+    stage.match {
+      selector      = "{message_app_name=\"filterlog\"}"
+      pipeline_name = "filterlog_parsing"
+
+      stage.regex {
+        expression = string.join(
+          [
+            "^(?P<rule>[^,]*)",
+            "(?P<subrule>[^,]*)",
+            "(?P<anchor>[^,]*)",
+            "(?P<tracker>[^,]*)",
+            "(?P<interface>[^,]*)",
+            "(?P<reason>[^,]*)",
+            "(?P<action>[^,]*)",
+            "(?P<direction>[^,]*)",
+            "(?P<ip_version>[^,]*)",
+            "(?P<remainder>.*)$",
+          ], ",",
+        )
+      }
+
+      stage.labels {
+        values = {
+          ip_version = "",
+        }
+      }
+    }
+
+    stage.match {
+      selector      = "{ip_version=\"4\"}"
+      pipeline_name = "filterlog_ipv4_parsing"
+
+      stage.regex {
+        source     = "remainder"
+        expression = string.join(
+          [
+            "^(?P<tos>[^,]*)",
+            "(?P<ecn>[^,]*)",
+            "(?P<ttl>[^,]*)",
+            "(?P<id>[^,]*)",
+            "(?P<offset>[^,]*)",
+            "(?P<flags>[^,]*)",
+            "(?P<proto_id>[^,]*)",
+            "(?P<proto>[^,]*)",
+            "(?P<length>[^,]*)",
+            "(?P<source_ip>[^,]*)",
+            "(?P<dest_ip>[^,]*)",
+            "(?P<ip_remainder>.*)$",
+          ], ",",
+        )
+      }
+
+      stage.labels {
+        values = {
+          proto_id = "",
+        }
+      }
+    }
+
+    stage.match {
+      selector      = "{ip_version=\"6\"}"
+      pipeline_name = "filterlog_ipv6_parsing"
+
+      stage.regex {
+        source     = "remainder"
+        expression = string.join(
+          [
+            "^(?P<class>[^,]*)",
+            "(?P<flow_label>[^,]*)",
+            "(?P<hop_limit>[^,]*)",
+            "(?P<proto>[^,]*)",
+            "(?P<proto_id>[^,]*)",
+            "(?P<length>[^,]*)",
+            "(?P<source_ip>[^,]*)",
+            "(?P<dest_ip>[^,]*)",
+            "(?P<ip_remainder>.*)$",
+          ], ",",
+        )
+      }
+
+      stage.labels {
+        values = {
+          proto_id = "",
+        }
+      }
+    }
+
+    stage.match {
+      selector      = "{proto_id=~\"6|17\"}"
+      pipeline_name = "filterlog_port_parsing"
+
+      stage.regex {
+        source     = "ip_remainder"
+        expression = "^(?P<source_port>[^,]*),(?P<dest_port>[^,]*),"
+      }
+    }
+
+    stage.label_drop {
+      values = ["proto_id"]
+    }
+
+    stage.structured_metadata {
+      values = {
+        proc_id     = "",
+        msg_id      = "",
+        facility    = "",
+        action      = "",
+        ipversion   = "",
+        direction   = "",
+        interface   = "",
+        reason      = "",
+        proto       = "",
+        source_ip   = "",
+        dest_ip     = "",
+        source_port = "",
+        dest_port   = "",
+      }
+    }
+  }
+}

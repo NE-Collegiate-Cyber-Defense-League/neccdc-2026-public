@@ -1,0 +1,42 @@
+# Define mappings for each version
+pfsense_versions:
+  "2.7.2":
+    api_version: "pfSense-2.7.2-pkg-RESTAPI.pkg"
+    sudo_version: "0.3_8"
+    haproxy_version: "0.63_2"
+    interface_convention: "vtnet"
+  "24.03":
+    api_version: "pfSense-24.03-pkg-RESTAPI.pkg"
+    sudo_version: "0.3_8"
+    haproxy_version: "0.63_5"
+    interface_convention: "ena"
+  "24.11":
+    api_version: "pfSense-24.11-pkg-RESTAPI.pkg"
+    sudo_version: "0.3_10"
+    haproxy_version: "0.63_9"
+    interface_convention: "ena"
+  "25.11":
+    api_version: "pfSense-25.11-pkg-RESTAPI.pkg"
+    sudo_version: "0.3.1"
+    haproxy_version: "0.65.1_1"
+    interface_convention: "ena"
+
+packages_remove:
+  "24.11":
+    - "pfSense-pkg-Netgate_Firmware_Upgrade-23.05.01"
+    - "pfSense-pkg-WireGuard-0.2.9"
+    - "pfSense-pkg-aws-highavail-1.2"
+    - "pfSense-pkg-aws-wizard-0.12"
+    - "pfSense-pkg-ipsec-profile-wizard-1.2.4"
+  "25.11":
+    - "pfSense-pkg-aws-highavail-1.3.0"
+    - "pfSense-pkg-aws-wizard-0.12"
+    - "pfSense-pkg-ipsec-profile-wizard-1.2.4"
+    - "pfSense-pkg-WireGuard-0.2.11"
+
+# Select the correct version details dynamically
+pfsense_api_url: "https://github.com/jaredhendrickson13/pfsense-api/releases/latest/download"
+pfsense_api_pkg: "{{ pfsense_api_url }}/{{ pfsense_versions[pfsense_version].api_version }}"
+
+pfsense_sudo_pkg: "pfSense-pkg-sudo-{{ pfsense_versions[pfsense_version].sudo_version }}"
+pfsense_haproxy_pkg: "pfSense-pkg-haproxy-{{ pfsense_versions[pfsense_version].haproxy_version }}"

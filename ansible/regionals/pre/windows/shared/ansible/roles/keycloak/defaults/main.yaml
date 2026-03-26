@@ -1,0 +1,9 @@
+---
+# Default variables for Keycloak role
+
+
+# Keycloak configuration
+keycloak_version: "26.5.4"
+keycloak_archive_name: "keycloak-{{ keycloak_version }}.zip"
+keycloak_download_url: "https://github.com/keycloak/keycloak/releases/download/{{ keycloak_version }}/{{ keycloak_archive_name }}"
+keycloak_install_path: "C:\\Program Files\\keycloak-{{ keycloak_version }}"

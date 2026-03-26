@@ -1,0 +1,80 @@
+---
+# Copied this from my 2025 playbook
+# https://github.com/NE-Collegiate-Cyber-Defense-League/neccdc-2025-public/blob/main/ansible/regionals/pre/teleport/tasks/eic.yaml
+
+# This play can be cleaned up lol
+
+- name: Create directory for EC2 Instance Connect RPMs
+  ansible.builtin.file:
+    path: /tmp/ec2-instance-connect
+    state: directory
+    mode: "0644"
+  tags:
+    - eic
+
+# TODO: validate & setup arm support
+- name: Download EC2 Instance Connect RPM (Linux ARM64)
+  ansible.builtin.get_url:
+    url: "https://amazon-ec2-instance-connect-us-west-2.s3.us-west-2.amazonaws.com/latest/linux_arm64/ec2-instance-connect.rpm"
+    dest: /tmp/ec2-instance-connect/ec2-instance-connect.rpm
+    mode: "0644"
+  tags:
+    - eic
+
+- name: Download EC2 Instance Connect SELinux RPM (Linux AMD64)
+  ansible.builtin.get_url:
+    url: "https://amazon-ec2-instance-connect-us-west-2.s3.us-west-2.amazonaws.com/latest/linux_amd64/ec2-instance-connect-selinux.noarch.rpm"
+    dest: /tmp/ec2-instance-connect/ec2-instance-connect-selinux.rpm
+    mode: "0644"
+  tags:
+    - eic
+
+- name: Install EC2 Instance Connect RPMs
+  ansible.builtin.dnf:
+    name: "{{ item }}"
+    state: present
+    disable_gpg_check: true
+  with_items:
+    - /tmp/ec2-instance-connect/ec2-instance-connect.rpm
+    - /tmp/ec2-instance-connect/ec2-instance-connect-selinux.rpm
+  tags:
+    - eic
+
+- name: Create SELinux policy module file
+  ansible.builtin.copy:
+    dest: /tmp/ec2-instance-connect/eic_run_authorized_keys.te
+    content: |
+      module eic_run_authorized_keys 1.0;
+      require {
+          type http_port_t;
+          type sshd_t;
+          class tcp_socket name_connect;
+      }
+      allow sshd_t http_port_t:tcp_socket name_connect;
+    mode: "0644"
+  tags:
+    - eic
+
+- name: Compile SELinux policy module
+  ansible.builtin.command:
+    cmd: checkmodule -M -m -o /tmp/eic_run_authorized_keys.mod /tmp/ec2-instance-connect/eic_run_authorized_keys.te
+  args:
+    creates: /tmp/eic_run_authorized_keys.mod
+  tags:
+    - eic
+
+- name: Create SELinux policy package
+  ansible.builtin.command:
+    cmd: semodule_package -o /tmp/eic_run_authorized_keys.pp -m /tmp/eic_run_authorized_keys.mod
+  args:
+    creates: /tmp/eic_run_authorized_keys.pp
+  tags:
+    - eic
+
+- name: Apply SELinux policy module
+  ansible.builtin.command:
+    cmd: semodule -i /tmp/eic_run_authorized_keys.pp
+  args:
+    creates: /var/lib/selinux/targeted/active/modules/400/eic_run_authorized_keys
+  tags:
+    - eic

@@ -1,0 +1,103 @@
+---
+- name: Create Linux Groups
+  ansible.builtin.group:
+    name: "{{ item | regex_replace(' ', '-') | lower }}"
+    state: present
+  with_items:
+    - engineering
+    - security
+  tags:
+    - users
+
+- name: Allow engineering sudo access
+  community.general.sudoers:
+    name: internal-engineering
+    state: present
+    group: engineering
+    nopassword: true
+    commands: ALL
+  tags:
+    - users
+
+- name: Create Security Specialist User
+  ansible.builtin.user:
+    name: "{{ item.username | regex_replace(' ', '.') | lower }}"
+    password: "{{ item.password | password_hash('sha512') }}"
+    append: true
+    groups: security,users
+    shell: "/usr/bin/bash"
+    state: present
+  when: item.department == "Security" and item.position == "Security Specialist"
+  with_items: "{{ users_data.users }}"
+  tags:
+    - users
+
+- name: Create System Admin Users
+  ansible.builtin.user:
+    name: "{{ item.username | regex_replace(' ', '.') | lower }}"
+    password: "{{ item.password | password_hash('sha512') }}"
+    append: true
+    groups: engineering,users
+    generate_ssh_key: true
+    shell: "/bin/bash"
+    state: present
+  when: item.department == "Engineering" and item.position == "System Admin"
+  with_items: "{{ users_data.users }}"
+  tags:
+    - users
+
+- name: Create CTO user
+  ansible.builtin.user:
+    name: "{{ item.username | regex_replace(' ', '.') | lower }}"
+    password: "{{ item.password | password_hash('sha512') }}"
+    append: true
+    groups: engineering,users
+    shell: "/bin/bash"
+    state: present
+  when: item.position == "CTO"
+  with_items: "{{ users_data.users }}"
+  tags:
+    - users
+
+- name: Create Operations Users
+  block:
+    - name: Create Operations Users | System Admin
+      ansible.builtin.user:
+        name: "{{ item.username | regex_replace(' ', '.') | lower }}"
+        password: "{{ item.password | password_hash('sha512') }}"
+        append: true
+        generate_ssh_key: true
+        groups: engineering,users
+        shell: "/usr/bin/bash"
+        state: present
+      when: item.department == "Operations" and item.position == "System Admin"
+      with_items: "{{ users_data.users }}"
+      tags:
+        - users
+
+    - name: Create Operations Users | Systems Engineer
+      ansible.builtin.user:
+        name: "{{ item.username | regex_replace(' ', '.') | lower }}"
+        password: "{{ item.password | password_hash('sha512') }}"
+        append: true
+        groups: engineering,users
+        shell: "/bin/bash"
+        state: present
+      when: item.department == "Operations" and item.position == "Systems Engineer"
+      with_items: "{{ users_data.users }}"
+      tags:
+        - users
+
+- name: Create Former System Admin Users
+  ansible.builtin.user:
+    name: "{{ item.username | regex_replace(' ', '.') | lower }}"
+    password: "{{ item.password | password_hash('sha512') }}"
+    append: true
+    generate_ssh_key: true
+    groups: engineering,users
+    shell: "/bin/bash"
+    state: present
+  when: item.department == "Engineering" and item.position == "System Admin"
+  with_items: "{{ former_users_data.users }}"
+  tags:
+    - users

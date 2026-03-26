@@ -1,0 +1,29 @@
+---
+# https://gist.github.com/hvmonteiro/7f897cd8ae3993195855040056f87dc6
+- name: Copy motd file
+  ansible.builtin.copy:
+    src: files/motd
+    dest: /etc/motd
+    owner: root
+    group: root
+    mode: '0644'
+  tags:
+    - random
+
+- name: Ensure group "mysql" exists
+  ansible.builtin.group:
+    name: mysql
+    state: present
+  tags:
+    - random
+
+- name: Add mysql user
+  ansible.builtin.user:
+    name: mysql
+    uid: 900
+    groups: mysql,semaphore
+    system: true
+    shell: /bin/bash
+    create_home: true
+  tags:
+    - random

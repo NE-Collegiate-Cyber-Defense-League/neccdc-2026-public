@@ -1,0 +1,44 @@
+---
+- hosts: branch_win_dc
+  gather_facts: true
+  vars_files:
+    - "../shared/vars/config.json"
+  vars:
+    roles_path: "../shared/roles"
+    data: "{{ lab[domain] }}"
+
+  roles:
+    - { role: "{{ roles_path }}/base/timezone", set_timezone: "Eastern Standard Time" }
+    - { role: "{{ roles_path }}/base/hostname", set_hostname: "{{ hostname }}" }
+    - { role: "{{ roles_path }}/ad/domain_controller" }
+    - { role: "{{ roles_path }}/ad/black-team" }
+  tags:
+    - create
+
+- hosts: branch_win_dc
+  gather_facts: true
+  vars_files:
+    - "../shared/vars/config.json"
+  vars:
+    ansible_user: "black-team@{{ domain }}"
+    ansible_password: "{{ black_team_password }}"
+    ansible_become: true
+    ansible_become_user: "{{ ansible_user }}"
+    ansible_become_password: "{{ ansible_password }}"
+
+    roles_path: "../shared/roles"
+    data: "{{ lab[domain] }}"
+
+  roles:
+    - { role: "{{ roles_path }}/ad/password_policy" }
+    - { role: "{{ roles_path }}/ad/upn", upn_suffixes: "{{ data.upns }}" }
+    - { role: "{{ roles_path }}/ad/users", config: "{{ data }}" }
+    - { role: "{{ roles_path }}/ad/gpo", gpo_mappings: "{{ data.gpo_mappings }}" }
+    - { role: "{{ roles_path }}/ad/service_accounts", set_accounts: "{{ data.service_accounts }}" }
+    - { role: "{{ roles_path }}/ad/acl", ad_acls: "{{ data.acls }}" }
+    - { role: "{{ roles_path }}/ad/dns_server", dns_forwarders: "{{ data.dns_servers }}" }
+    - { role: "{{ roles_path }}/ad/adcs", adcs_common_name: "{{ data.adcs.common_name }}", adcs_templates: "{{ data.adcs.templates }}" }
+    - { role: "{{ roles_path }}/alloy", alloy_template: "dc" }
+  tags:
+    - config
+

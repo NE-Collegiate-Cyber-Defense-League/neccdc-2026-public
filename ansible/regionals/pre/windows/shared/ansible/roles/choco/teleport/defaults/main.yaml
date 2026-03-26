@@ -1,0 +1,7 @@
+---
+# Default variables for Teleport role
+
+teleport_version: "16.5.8"
+teleport_archive_name: "teleport-v{{ teleport_version }}-windows-amd64-bin.zip"
+teleport_download_url: "https://cdn.teleport.dev/{{ teleport_archive_name }}"
+teleport_archive_path: "C:\\Windows\\Temp\\{{ teleport_archive_name }}"

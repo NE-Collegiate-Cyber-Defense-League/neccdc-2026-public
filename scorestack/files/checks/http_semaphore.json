@@ -1,0 +1,25 @@
+{
+  "name": "HTTP_semaphore",
+  "type": "http",
+  "score_weight": 1,
+  "definition": {
+    "requests": [
+      {
+        "host": "{{.Host}}",
+        "path": "/api/ping",
+        "https": true,
+        "port": 3000,
+        "method": "GET",
+        "matchcode": true,
+        "code": 200,
+        "MatchContent": true,
+        "ContentRegex": "pong"
+      }
+    ]
+  },
+  "attributes": {
+    "admin": {
+      "Host": "2600:1f26:1d:8a{{.TeamHex}}2:d09:ca7:b15d:f158"
+    }
+  }
+}

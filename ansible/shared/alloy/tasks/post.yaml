@@ -1,0 +1,21 @@
+---
+- name: Update Grafana Server URL in Alloy Config
+  ansible.builtin.replace:
+    path: "/etc/alloy/config.alloy"
+    regexp: '{{ item.regexp }}'
+    replace: '{{ item.replace }}'
+  with_items:
+    - { regexp: 'loki_server_name', replace: "{{ loki_server_name | default('https://loki.' ~ team_number ~ '.chefops.tech') }}" }
+    - { regexp: 'mimir_server_name', replace: "{{ mimir_server_name | default('https://mimir.' ~ team_number ~ '.chefops.tech') }}" }
+    - { regexp: '<firewall_corp>', replace: "{{ 'firewall.' ~ domains.corp.team }}" }
+    - { regexp: '<firewall_branch>', replace: "{{ 'firewall.' ~ domains.branch.team }}" }
+  tags:
+    - alloy
+
+- name: Restart Alloy
+  ansible.builtin.systemd:
+    name: alloy
+    state: restarted
+    enabled: true
+  tags:
+    - alloy

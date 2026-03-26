@@ -1,0 +1,281 @@
+---
+- name: Insert Semaphore project
+  ttafsir.sqlite_utils.insert:
+    db_path: /opt/semaphore/database.sqlite
+    table: project
+    replace: true
+    records:
+      id: "2"
+      created: '{{ lookup(''pipe'', ''date -u "+%Y-%m-%d %H:%M:%S %z UTC"'') }}'
+      name: Ocean Crest Kitchens
+  tags:
+    - semaphore
+    - semaphore_config
+
+- name: Insert Semaphore project users
+  ttafsir.sqlite_utils.insert:
+    db_path: /opt/semaphore/database.sqlite
+    table: project__user
+    replace: true
+    records:
+      project_id: "2"
+      user_id: "0"
+      role: owner
+  tags:
+    - semaphore
+    - semaphore_config
+
+- name: Insert Semaphore NoAuth key
+  ttafsir.sqlite_utils.insert:
+    db_path: /opt/semaphore/database.sqlite
+    table: access_key
+    replace: true
+    records:
+      id: "2"
+      name: NoAuth
+      type: none
+      project_id: "2"
+  tags:
+    - semaphore
+    - semaphore_config
+
+- name: Insert Semaphore project env vars
+  ttafsir.sqlite_utils.insert:
+    db_path: /opt/semaphore/database.sqlite
+    table: project__environment
+    replace: true
+    records:
+      id: "5"
+      project_id: "2"
+      json: "{}"
+      name: "Runtime Parameters"
+      env: "{{ env | ansible.builtin.to_json(separators=(',', ':')) }}"
+  vars:
+    env:
+      ANSIBLE_HOST_KEY_CHECKING: "False"
+      ANSIBLE_COW_SELECTION: "None" # This is an actual ansible env var
+      ANSIBLE_NOCOWS: "False"
+  tags:
+    - semaphore
+    - semaphore_config
+
+- name: Create org inventory dir
+  ansible.builtin.file:
+    dest: /opt/semaphore/orgs/ock
+    state: directory
+    mode: "0755"
+  tags:
+    - semaphore
+    - semaphore_config
+
+- name: Copy Semaphore inventory
+  ansible.builtin.template:
+    src: templates/inventories/ock.yaml
+    dest: /opt/semaphore/orgs/ock/inventory.yaml
+    mode: "0644"
+    owner: semaphore
+    group: semaphore
+    backup: false
+  tags:
+    - semaphore
+    - semaphore_config
+
+- name: Insert Semaphore inventory
+  ttafsir.sqlite_utils.insert:
+    db_path: /opt/semaphore/database.sqlite
+    table: project__inventory
+    replace: true
+    records:
+      id: "2"
+      project_id: "2"
+      type: file
+      ssh_key_id: "2"
+      inventory: "/opt/semaphore/orgs/ock/inventory.yaml"
+      name: inventory
+  tags:
+    - semaphore
+    - semaphore_config
+
+- name: Insert Semaphore repository
+  ttafsir.sqlite_utils.insert:
+    db_path: /opt/semaphore/database.sqlite
+    table: project__repository
+    replace: true
+    records:
+      id: "2"
+      project_id: "2"
+      git_url: /opt/semaphore/playbooks
+      ssh_key_id: "2"
+      name: Local
+  tags:
+    - semaphore
+    - semaphore_config
+
+- name: Insert pipeline templates
+  block:
+    - name: Insert pipeline template | Debug
+      ttafsir.sqlite_utils.insert:
+        db_path: /opt/semaphore/database.sqlite
+        table: project__template
+        replace: true
+        records:
+          id: "7"
+          project_id: "2"
+          inventory_id: "2"
+          repository_id: "2"
+          environment_id: "5"
+          playbook: debug.yaml
+          arguments: "[]"
+          name: "debug"
+          description: "Gets host system information"
+          app: ansible
+          task_params: "{}"
+      tags:
+        - semaphore
+        - semaphore_config
+
+    - name: Insert pipeline template | Restart nginx
+      ttafsir.sqlite_utils.insert:
+        db_path: /opt/semaphore/database.sqlite
+        table: project__template
+        replace: true
+        records:
+          id: "8"
+          project_id: "2"
+          inventory_id: "2"
+          repository_id: "2"
+          environment_id: "5"
+          playbook: restart-nginx.yaml
+          arguments: "[]"
+          name: restart-nginx
+          description: "Update nginx to pull latest menus"
+          app: ansible
+          task_params: "{}"
+      tags:
+        - semaphore
+        - semaphore_config
+
+    - name: Insert pipeline template | Dev Access
+      ttafsir.sqlite_utils.insert:
+        db_path: /opt/semaphore/database.sqlite
+        table: project__template
+        replace: true
+        records:
+          id: "9"
+          project_id: "2"
+          inventory_id: "2"
+          repository_id: "2"
+          environment_id: "5"
+          playbook: quick-dev-access.yaml
+          arguments: "[]"
+          name: "developer-access"
+          description: "Make sure developers are not blocked by obscure security requirements"
+          app: ansible
+          task_params: "{}"
+      tags:
+        - semaphore
+        - semaphore_config
+
+    - name: Insert pipeline template | Webhook
+      ttafsir.sqlite_utils.insert:
+        db_path: /opt/semaphore/database.sqlite
+        table: project__template
+        replace: true
+        records:
+          id: "10"
+          project_id: "2"
+          inventory_id: "2"
+          repository_id: "2"
+          environment_id: "5"
+          playbook: webhook.yaml
+          arguments: "[]"
+          name: "Special Sauce Recipe"
+          description: ""
+          app: ansible
+          task_params: "{}"
+      tags:
+        - semaphore
+        - semaphore_config
+
+- name: Insert schedule cron
+  block:
+    - name: Insert schedule cron | Debug
+      ttafsir.sqlite_utils.insert:
+        db_path: /opt/semaphore/database.sqlite
+        table: project__schedule
+        replace: true
+        records:
+          id: "3"
+          template_id: "7"
+          project_id: "2"
+          cron_format: "0 */2 * * *"
+          name: "DebugSchedule"
+          active: "1"
+      notify: Restart Semaphore
+      tags:
+        - semaphore
+        - semaphore_config
+
+    - name: Insert schedule cron | Nginx
+      ttafsir.sqlite_utils.insert:
+        db_path: /opt/semaphore/database.sqlite
+        table: project__schedule
+        replace: true
+        records:
+          id: "4"
+          template_id: "8"
+          project_id: "2"
+          cron_format: "59 7 * * 1-5"
+          name: "NginxMenuSync"
+          active: "1"
+      notify: Restart Semaphore
+      tags:
+        - semaphore
+        - semaphore_config
+
+- name: Insert integration parameters
+  ttafsir.sqlite_utils.insert:
+    db_path: /opt/semaphore/database.sqlite
+    table: project__task_params
+    replace: true
+    records:
+      id: "2"
+      environment: "{}"
+      project_id: "2"
+      params: '{"debug_level":4,"dry_run":false}'
+      message: ""
+  tags:
+    - semaphore
+    - semaphore_config
+
+- name: Insert integration
+  ttafsir.sqlite_utils.insert:
+    db_path: /opt/semaphore/database.sqlite
+    table: project__integration
+    replace: true
+    records:
+      id: "2"
+      name: "TriggerJob"
+      project_id: "2"
+      template_id: "10"
+      auth_method: ""
+      auth_header: ""
+      task_params_id: "2"
+  tags:
+    - semaphore
+    - semaphore_config
+
+# http://localhost:3000/api/integrations/123
+- name: Insert integration trigger
+  ttafsir.sqlite_utils.insert:
+    db_path: /opt/semaphore/database.sqlite
+    table: project__integration_alias
+    replace: true
+    records:
+      id: "2"
+      alias: "123"
+      project_id: "2"
+      integration_id: "2"
+  tags:
+    - semaphore
+    - semaphore_config

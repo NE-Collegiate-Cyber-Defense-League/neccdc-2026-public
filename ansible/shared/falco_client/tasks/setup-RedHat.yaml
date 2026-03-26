@@ -1,0 +1,40 @@
+---
+# Based on the work from the ansible-falco role by juju4
+# https://github.com/juju4/ansible-falco
+
+- name: Install falcosecurity repository key
+  ansible.builtin.rpm_key:
+    state: present
+    key: https://falco.org/repo/falcosecurity-packages.asc
+    validate_certs: true
+  tags:
+    - falco
+
+- name: Install falcosecurity repository
+  ansible.builtin.get_url:
+    url: "https://falco.org/repo/falcosecurity-rpm.repo"
+    dest: /etc/yum.repos.d/falcosecurity.repo
+    mode: '0644'
+    validate_certs: true
+  tags:
+    - falco
+
+- name: Install kernel-devel
+  ansible.builtin.dnf:
+    name: kernel-devel
+    state: present
+    update_cache: true
+  tags:
+    - falco
+
+- name: Install falco
+  ansible.builtin.dnf:
+    name: falco
+    state: present
+    update_cache: true
+  environment:
+    FALCO_FRONTEND: noninteractive
+    FALCO_DRIVER_CHOICE: "{{ falco_driver_type }}"
+    FALCOCTL_ENABLED: "true"
+  tags:
+    - falco

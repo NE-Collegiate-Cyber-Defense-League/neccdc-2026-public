@@ -1,0 +1,33 @@
+---
+- name: Ensure SSH password auth is enabled
+  ansible.builtin.lineinfile:
+    path: "{{ ssh_config_path | default('/etc/ssh/sshd_config') }}"
+    regexp: "^#PasswordAuthentication|^PasswordAuthentication"
+    line: "PasswordAuthentication yes"
+  tags:
+    - ssh
+
+- name: Ensure SSH password auth works
+  ansible.builtin.lineinfile:
+    path: "{{ ssh_config_path | default('/etc/ssh/sshd_config') }}"
+    regexp: "^#ChallengeResponseAuthentication|^ChallengeResponseAuthentication"
+    line: "ChallengeResponseAuthentication yes"
+    insertbefore: BOF # If it does not work if put at bottom of file which caused errors (rocky linux)
+  tags:
+    - ssh
+
+- name: Ensure SSH root login is enabled
+  ansible.builtin.lineinfile:
+    path: "{{ ssh_config_path | default('/etc/ssh/sshd_config') }}"
+    regexp: "^#PermitRootLogin|^PermitRootLogin"
+    line: "PermitRootLogin yes"
+  tags:
+    - ssh
+
+- name: Restart ssh service
+  ansible.builtin.service:
+    name: "{{ ssh_service_name | default('sshd') }}"
+    enabled: true
+    state: restarted
+  tags:
+    - ssh

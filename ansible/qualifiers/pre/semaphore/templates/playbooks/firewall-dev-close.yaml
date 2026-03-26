@@ -1,0 +1,60 @@
+# Used to block ddos attacks against primary webserver
+---
+- name: Restore firewall after development testing
+  hosts: wordpress
+  become: true
+
+  vars:
+    firewall_backup_dir: /var/lib/firewalld/dev-backups
+    firewall_backup_path: "{{ firewall_backup_dir }}/firewalld"
+
+  tasks:
+    - name: Ensure firewalld is installed
+      ansible.builtin.package:
+        name: firewalld
+        state: present
+
+    - name: Ensure firewalld is running
+      ansible.builtin.service:
+        name: firewalld
+        state: started
+        enabled: true
+
+    - name: Check if firewalld backup exists
+      ansible.builtin.stat:
+        path: "{{ firewall_backup_path }}"
+      register: firewalld_backup_stat
+
+    - name: Abort if no firewalld backup is present
+      ansible.builtin.fail:
+        msg: "Firewalld backup not found; cannot safely restore"
+      when: not firewalld_backup_stat.stat.exists
+
+    - name: Restore firewalld configuration
+      ansible.builtin.copy:
+        src: "{{ firewall_backup_path }}"
+        dest: /etc/firewalld
+        remote_src: true
+
+    - name: Reload firewalld
+      ansible.builtin.service:
+        name: firewalld
+        state: reloaded
+
+    - name: Ensure HTTP (port 80) is closed
+      ansible.posix.firewalld:
+        service: http
+        permanent: false
+        state: disabled
+        immediate: true
+
+    - name: Ensure HTTPS (port 443) is closed
+      ansible.posix.firewalld:
+        service: https
+        permanent: false
+        state: disabled
+        immediate: true
+
+    - name: Log firewall restore
+      ansible.builtin.debug:
+        msg: "Firewall restored from development mode"

@@ -1,0 +1,83 @@
+---
+- name: Install UpdateServices
+  ansible.windows.win_feature:
+    name: UpdateServices
+    state: present
+    include_sub_features: false
+    include_management_tools: true
+  register: wsus_feature_install
+
+- name: Install UpdateServices-WidDB
+  ansible.windows.win_feature:
+    name: UpdateServices-WidDB
+    state: present
+    include_sub_features: false
+    include_management_tools: true
+  register: wsus_widdb_install
+
+- name: Install UpdateServices-Services
+  ansible.windows.win_feature:
+    name: UpdateServices-Services
+    state: present
+    include_sub_features: false
+    include_management_tools: true
+  register: wsus_services_install
+
+- name: Reboot if required after WSUS installation
+  ansible.windows.win_reboot:
+    reboot_timeout: 600
+  when: >
+    wsus_feature_install.reboot_required or
+    wsus_widdb_install.reboot_required or
+    wsus_services_install.reboot_required
+
+- name: Run WSUS post-install configuration
+  ansible.windows.win_powershell:
+    script: |
+      $postInstall = 'C:\Program Files\Update Services\Tools\wsusutil.exe'
+      $contentPath = "{{ ludus_wsus_content_folder }}"
+      
+      if (Test-Path $postInstall) {
+        # Redirect wsusutil output to null to avoid polluting our structured output
+        & $postInstall postinstall CONTENT_DIR=$contentPath | Out-Null
+        
+        [PSCustomObject]@{
+          Changed = $true
+          ContentPath = $contentPath
+        }
+      } else {
+        [PSCustomObject]@{
+          Changed = $false
+          Error = "wsusutil.exe not found"
+        }
+      }
+  register: wsus_postinstall
+  changed_when: wsus_postinstall.output[0].Changed
+
+- name: Configure Windows Firewall for WSUS HTTP
+  community.windows.win_firewall_rule:
+    name: WSUS (HTTP-In)
+    description: Allow inbound HTTP traffic for WSUS client connections
+    localport: 8530
+    action: allow
+    direction: in
+    protocol: tcp
+    state: present
+    enabled: true
+    profiles:
+      - domain
+      - private
+
+- name: Configure Windows Firewall for WSUS HTTPS
+  community.windows.win_firewall_rule:
+    name: WSUS (HTTPS-In)
+    description: Allow inbound HTTPS traffic for WSUS client connections
+    localport: 8531
+    action: allow
+    direction: in
+    protocol: tcp
+    state: present
+    enabled: true
+    profiles:
+      - domain
+      - private

@@ -1,0 +1,6 @@
+---
+- name: Setup EC2 Instance Connect
+  ansible.builtin.include_tasks:
+    file: "tasks/setup-{{ ansible_os_family }}.yaml"
+  tags:
+    - eic

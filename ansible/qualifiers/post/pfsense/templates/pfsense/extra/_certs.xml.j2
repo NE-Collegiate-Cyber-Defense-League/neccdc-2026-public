@@ -1,0 +1,49 @@
+{# pfSense Certificates: static (shared) entries #}
+{# 
+======================================
+        GENERATED CERTIFICATE
+======================================
+#}
+{% for c in certs.system %}
+<cert>
+    <refid>{{ c.refid }}</refid>
+    <descr><![CDATA[{{ c.descr }}]]></descr>
+    <type>{{ c.type }}</type>
+    <crt>{{ c.crt }}</crt>
+    <prv>{{ c.prv }}</prv>
+</cert>
+{% endfor %}
+{# 
+======================================
+        TEAM CERTIFICATES
+======================================
+#}
+{% if load_team_certs %}
+<cert>
+  <refid>{{ certs.team.cert.refid }}</refid>
+  <descr><![CDATA[{{ certs.team.cert.descr }}]]></descr>
+  <crt>{{ certs.team.cert.crt | b64encode }}</crt>
+  <prv>{{ certs.team.cert.prv | b64encode }}</prv>
+  <caref>{{ certs.team.ca.refid }}</caref>
+</cert>
+<ca>
+  <refid>{{ certs.team.ca.refid }}</refid>
+  <descr><![CDATA[{{ certs.team.ca.descr }}]]></descr>
+  <crt>{{ certs.team.ca.crt | b64encode }}</crt>
+  <randomserial>disabled</randomserial>
+  <serial>0</serial>
+</ca>
+{% endif %}
+{# 
+======================================
+        SSH HOST KEY FILES
+======================================
+#}
+<sshdata>
+{% for k in certs.sshdata %}
+    <sshkeyfile>
+        <filename>{{ k.filename }}</filename>
+        <xmldata>{{ k.xmldata }}</xmldata>
+    </sshkeyfile>
+{% endfor %}
+</sshdata>

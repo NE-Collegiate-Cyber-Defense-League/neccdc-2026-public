@@ -1,0 +1,22 @@
+---
+# NOTE: For development use only. Do not run in production.
+# Untested
+- name: Grant engineers sudo access
+  hosts: linux
+  become: true
+  vars:
+    engineering_group: engineering
+  tasks:
+    - name: Ensure engineers group exists
+      ansible.builtin.group:
+        name: "{{ engineering_group }}"
+        state: present
+
+    - name: Allow engineers to run sudo commands
+      community.general.sudoers:
+        name: engineering
+        state: present
+        group: "{{ engineering_group }}"
+        commands: ALL
+      tags:
+        - tricks

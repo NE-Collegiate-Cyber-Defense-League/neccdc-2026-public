@@ -1,0 +1,28 @@
+{
+  "name": "HTTP_rustfs",
+  "type": "http",
+  "score_weight": 1,
+  "definition": {
+    "requests": [
+      {
+        "host": "{{.IP}}",
+        "path": "/rustfs/console/auth/login",
+        "https": true,
+        "port": 443,
+        "method": "GET",
+        "matchcode": true,
+        "code": 200,
+        "matchcontent": false,
+        "headers": {
+          "Host": "{{.Host}}"
+        }
+      }
+    ]
+  },
+  "attributes": {
+    "admin": {
+      "Host": "storage-console.{{.TeamNumber}}.chefops.tech",
+      "IP": "2600:1f26:1d:8a{{.TeamHex}}2:0:ace::"
+    }
+  }
+}

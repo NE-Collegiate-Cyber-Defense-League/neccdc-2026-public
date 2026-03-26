@@ -1,0 +1,33 @@
+---
+# https://opensource.com/article/21/4/systemd-resolved
+- name: Copy the updated resolv.conf
+  ansible.builtin.template:
+    src: ../templates/resolv.conf.j2
+    dest: /opt/resolv.conf
+    mode: "0644"
+    owner: root
+    group: root
+  tags:
+    - dns
+
+- name: Delete existing /etc/resolv.conf linked file
+  ansible.builtin.file:
+    path: /etc/resolv.conf
+    state: absent
+  tags:
+    - dns
+
+- name: Create link to the new resolver file
+  ansible.builtin.file:
+    src: /opt/resolv.conf
+    dest: /etc/resolv.conf
+    state: link
+  tags:
+    - dns
+
+- name: Ensure /etc/resolv.conf is immutable
+  ansible.builtin.file:
+    path: /etc/resolv.conf
+    attributes: +i
+  tags:
+    - dns

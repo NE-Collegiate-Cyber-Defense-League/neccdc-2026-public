@@ -1,0 +1,59 @@
+---
+- name: Update software package(s)
+  hosts: "{{ target_hosts | default('linux') }}"
+  become: true
+  vars:
+    package_list: ["sudo"]
+    update_type: update
+
+  tasks:
+    - name: Update apt cache (Debian/Ubuntu)
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+      when: ansible_os_family == "Debian"
+
+    - name: Upgrade all packages (Debian/Ubuntu)
+      ansible.builtin.apt:
+        upgrade: dist
+      when: ansible_os_family == "Debian" and update_type == "upgrade"
+
+    - name: Install/upgrade specific packages (Debian/Ubuntu)
+      ansible.builtin.apt:
+        name: "{{ package_list }}"
+        state: latest
+      when: ansible_os_family == "Debian" and package_list | length > 0
+
+    - name: Update dnf/yum cache (RHEL/Rocky)
+      ansible.builtin.dnf:
+        update_cache: true
+      when: ansible_os_family == "RedHat"
+
+    - name: Upgrade all packages (RHEL/Rocky)
+      ansible.builtin.dnf:
+        name: "*"
+        state: latest
+      when: ansible_os_family == "RedHat" and update_type == "upgrade"
+
+    - name: Install/upgrade specific packages (RHEL/Rocky)
+      ansible.builtin.dnf:
+        name: "{{ package_list }}"
+        state: latest
+      when: ansible_os_family == "RedHat" and package_list | length > 0
+
+    - name: Refresh zypper cache (SUSE/openSUSE)
+      ansible.builtin.zypper:
+        update_cache: true
+      when: ansible_os_family == "Suse"
+
+    - name: Upgrade all packages (SUSE/openSUSE)
+      ansible.builtin.zypper:
+        name: "*"
+        state: latest
+      when: ansible_os_family == "Suse" and update_type == "upgrade"
+
+    - name: Install/upgrade specific packages (SUSE/openSUSE)
+      ansible.builtin.zypper:
+        name: "{{ package_list }}"
+        state: latest
+      when: ansible_os_family == "Suse" and package_list | length > 0

@@ -1,0 +1,58 @@
+---
+- name: Disable network wizard pop-up
+  ansible.windows.win_regedit:
+    path: HKLM:\SYSTEM\CurrentControlSet\Control\Network\NewNetworkWindowOff
+    state: present
+  when: "'Core' not in ansible_facts['os_installation_type']"
+
+- name: Show file extensions
+  ansible.windows.win_regedit:
+    path: HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced
+    name: HideFileExt
+    data: 0
+    type: dword
+  when: "'Core' not in ansible_facts['os_installation_type']"
+
+- name: Enable QuickEdit mode
+  ansible.windows.win_regedit:
+    path: HKCU:\Console
+    name: QuickEdit
+    data: 1
+    type: dword
+
+- name: Show Run in Start Menu
+  ansible.windows.win_regedit:
+    path: HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced
+    name: Start_ShowRun
+    data: 1
+    type: dword
+  when: "'Core' not in ansible_facts['os_installation_type']"
+
+- name: Show administrative tools in Start Menu
+  ansible.windows.win_regedit:
+    path: HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced
+    name: StartMenuAdminTools
+    data: 1
+    type: dword
+  when: "'Core' not in ansible_facts['os_installation_type']"
+
+- name: Disable Microsoft Edge first-run Welcome screen
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Policies\Microsoft\Edge
+    name: HideFirstRunExperience
+    data: 00000001
+    type: dword
+
+- name: Disable IE Enhanced Security Configuration for Administrators
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Microsoft\Active Setup\Installed Components\{A509B1A7-37EF-4b3f-8CFC-4F3A74704073}
+    name: IsInstalled
+    data: 0
+    type: dword
+
+- name: Disable IE Enhanced Security Configuration for Users
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Microsoft\Active Setup\Installed Components\{A509B1A8-37EF-4b3f-8CFC-4F3A74704073}
+    name: IsInstalled
+    data: 0
+    type: dword

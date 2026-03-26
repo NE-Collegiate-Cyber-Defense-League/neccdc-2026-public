@@ -1,0 +1,19 @@
+---
+- name: Debug
+  hosts: linux
+  vars:
+    host_status: available
+  tasks:
+    - name: Print host information
+      ansible.builtin.debug:
+        msg:
+          hostname: "{{ ansible_facts['hostname'] }}"
+          os: "{{ ansible_facts['distribution'] }} {{ ansible_facts['distribution_version'] }}"
+          kernel: "{{ ansible_facts['kernel'] }}"
+          uptime_seconds: "{{ ansible_facts['uptime_seconds'] }}"
+          ipv4: "{{ ansible_facts['default_ipv4']['address'] | default('N/A') }}"
+          interfaces: "{{ ansible_facts['interfaces'] }}"
+          cpu_cores: "{{ ansible_facts['processor_vcpus'] }}"
+          memory_mb:
+            total: "{{ ansible_facts['memtotal_mb'] }}"
+            free: "{{ ansible_facts['memfree_mb'] }}"

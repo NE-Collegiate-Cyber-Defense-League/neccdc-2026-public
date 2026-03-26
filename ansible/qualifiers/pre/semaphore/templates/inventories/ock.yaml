@@ -1,0 +1,10 @@
+kiosk:
+  hosts:
+    localhost: {}
+  vars:
+    ansible_become: false
+
+all:
+  vars:
+    ansible_user: ansible
+    ansible_private_key_file: /opt/semaphore/id_rsa

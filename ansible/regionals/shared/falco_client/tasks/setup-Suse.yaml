@@ -1,0 +1,27 @@
+---
+- name: Install falcosecurity repository key
+  ansible.builtin.rpm_key:
+    state: present
+    key: https://falco.org/repo/falcosecurity-packages.asc
+    validate_certs: true
+  tags:
+    - falco
+
+- name: Install kernel-devel
+  ansible.builtin.zypper:
+    name: kernel-devel
+    state: present
+    update_cache: true
+  tags:
+    - falco
+
+- name: Install Falco
+  ansible.builtin.zypper:
+    name: "https://download.falco.org/packages/rpm/falco-{{ falco_version | default('0.43.0') }}-{{ ansible_facts['architecture'] }}.rpm"
+    state: present
+  environment:
+    FALCO_FRONTEND: noninteractive
+    FALCO_DRIVER_CHOICE: "{{ falco_driver_type }}"
+    FALCOCTL_ENABLED: "true"
+  tags:
+    - falco

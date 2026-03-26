@@ -1,0 +1,12 @@
+---
+- name: Corp Windows DC
+  import_playbook: corp/playbook_dc01.yaml
+
+- name: Corp Windows Keycloak
+  import_playbook: corp/playbook_srv01.yaml
+
+- name: Branch Windows DC
+  import_playbook: branch/playbook_dc02.yaml
+
+- name: Branch Windows POS
+  import_playbook: branch/playbook_pos.yaml

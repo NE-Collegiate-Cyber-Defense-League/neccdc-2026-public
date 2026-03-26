@@ -1,0 +1,9 @@
+{# Installed packages aggregator include #}
+<installedpackages>
+{% filter indent(width=4, first=true) %}
+{% include "pfsense/extra/packages/_nexus.xml.j2" +%}
+{% include "pfsense/extra/packages/_sudo.xml.j2" +%}
+{% include "pfsense/extra/packages/_restapi.xml.j2" +%}
+{% include "pfsense/extra/packages/_haproxy.xml.j2" +%}
+{% endfilter +%}
+</installedpackages>

@@ -1,0 +1,47 @@
+{
+  "name": "ansible-dev-container",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "containerUser": "root",
+  "runArgs": [
+    "--network=neccdc-devcontainer",
+    "--security-opt",
+    "seccomp=unconfined",
+    "--security-opt",
+    "label=disable",
+    "--cap-add=SYS_ADMIN",
+    "--cap-add=SYS_RESOURCE",
+    "--device",
+    "/dev/fuse",
+    "--security-opt",
+    "apparmor=unconfined",
+    "--hostname=ansible-dev-container"
+  ],
+  "updateRemoteUserUID": true,
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "4ops.packer",
+        "eamodio.gitlens",
+        "nhoizey.gremlins",
+        "redhat.ansible",
+        "redhat.vscode-redhat-account",
+        "wholroyd.jinja"
+      ]
+    },
+    "settings": {
+      "remote.containers.copyGitConfig": false
+    }
+  },
+  "mounts": [
+    // Copy the ssh key into the container
+    "source=${localWorkspaceFolder}/documents/black_team/id_rsa,target=/root/.ssh/id_rsa,type=bind,consistency=cached",
+    // Copy AWS credentials into the container (cross-platform)
+    "source=${localEnv:USERPROFILE}${localEnv:HOME}/.aws,target=/root/.aws,type=bind"
+  ],
+  "containerEnv": {
+    "ANSIBLE_CONFIG": "/workspaces/neccdc-2026/ansible/regionals/inventory/ansible.cfg",
+    "AWS_PROFILE": "neccdc"
+  }
+}

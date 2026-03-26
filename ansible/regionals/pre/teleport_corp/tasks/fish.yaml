@@ -1,0 +1,52 @@
+---
+# https://github.com/jwillikers/ansible_fish/tree/main
+- name: Install fish
+  ansible.builtin.apt:
+    name: fish
+    state: present
+  tags:
+    - fish
+
+- name: Set fish as the user's login shell
+  ansible.builtin.user:
+    name: ubuntu
+    shell: /usr/bin/fish
+  register: u
+  tags:
+    - fish
+
+- name: Create the user's fish config directory
+  ansible.builtin.file:
+    path: "{{ u.home }}/.config/fish/functions/"
+    state: directory
+    recurse: true
+    mode: '0770'
+    owner: ubuntu
+  tags:
+    - fish
+
+- name: Disable the greeting message
+  ansible.builtin.copy:
+    src: templates/greeting.fish
+    dest: "{{ u.home }}/.config/fish/functions/fish_greeting.fish"
+    mode: '0640'
+    owner: ubuntu
+  tags:
+    - fish
+
+- name: Download fish prompt
+  ansible.builtin.get_url:
+    url: 'https://raw.githubusercontent.com/oh-my-fish/theme-robbyrussell/refs/heads/master/functions/fish_prompt.fish'
+    dest: "{{ u.home }}/.config/fish/functions/fish_prompt.fish"
+    mode: '0666'
+    owner: ubuntu
+    group: ubuntu
+  tags:
+    - fish
+
+- name: Root users shell is fish
+  ansible.builtin.user:
+    name: root
+    shell: /usr/bin/fish
+  tags:
+    - fish

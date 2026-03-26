@@ -1,0 +1,68 @@
+---
+- name: Set hostname
+  hosts: linux
+  become: true
+  tasks:
+    - name: Set a hostname
+      ansible.builtin.hostname:
+        name: "{{ hostname }}"
+      tags:
+        - hostname
+
+    - name: Hostname points to localhost
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        line: "127.0.0.1 {{ hostname }}"
+        backup: false
+      tags:
+        - hostname
+
+    - name: Disable cloud-init /etc/hosts management
+      ansible.builtin.copy:
+        dest: /etc/cloud/cloud.cfg.d/99-disable-manage-etc-hosts.cfg
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          manage_etc_hosts: false
+      tags:
+        - hostname
+
+- name: Configure Branch Private DNS
+  hosts: kiosks,teleport_branch
+  become: true
+  vars:
+    team: "{{ hostvars[inventory_hostname]['team'] }}"
+    dns_server_address: "{{ team_address.firewall_branch_private.ipv6 }}"
+  tasks:
+    - name: Configure DNS
+      ansible.builtin.include_tasks:
+        file: "../../../shared/dns/main.yaml"
+      tags:
+        - dns
+
+- name: Configure Corp DMZ DNS
+  hosts: wordpress,teleport_corp
+  become: true
+  vars:
+    team: "{{ hostvars[inventory_hostname]['team'] }}"
+    dns_server_address: "{{ team_address.firewall_corp_dmz.ipv4 }}"
+  tasks:
+    - name: Configure DNS
+      ansible.builtin.include_tasks:
+        file: "../../../shared/dns/main.yaml"
+      tags:
+        - dns
+
+- name: Configure Corp Private DNS
+  hosts: gitea,grafana,semaphore
+  become: true
+  vars:
+    team: "{{ hostvars[inventory_hostname]['team'] }}"
+    dns_server_address: "{{ team_address.firewall_corp_private.ipv6 }}"
+  tasks:
+    - name: Configure DNS
+      ansible.builtin.include_tasks:
+        file: "../../../shared/dns/main.yaml"
+      tags:
+        - dns

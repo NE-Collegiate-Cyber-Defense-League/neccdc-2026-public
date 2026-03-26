@@ -1,0 +1,20 @@
+---
+# Keycloak configuration
+keycloak_version: "26.5.4"
+keycloak_install_path: "C:\\Program Files\\keycloak-{{ keycloak_version }}"
+
+# Force reinstall/redownload options
+keycloak_force: false
+
+# Keycloak bootstrap admin credentials
+keycloak_bootstrap_admin_username: "admin"
+keycloak_bootstrap_admin_password: "changeme"
+
+# Keycloak service user
+# Default is SYSTEM (LocalSystem). Can be overridden with:
+# Example: "DOMAIN\keycloak_service" or ".\keycloak_user"
+keycloak_service_user: "SYSTEM"
+keycloak_service_password: ""
+
+keycloak_ldaps_cert_store: "Root"
+keycloak_ldaps_cert_subject:

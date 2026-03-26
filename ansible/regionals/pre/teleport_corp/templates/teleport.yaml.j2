@@ -1,0 +1,61 @@
+version: v3
+teleport:
+  nodename: {{ teleport_server_name }}
+  data_dir: /var/lib/teleport
+  diag_addr: 0.0.0.0:3000
+  log:
+    output: stderr
+    severity: INFO
+    format:
+      output: text
+  ca_pin: ""
+  join_params:
+    token_name: ""
+    method: token
+auth_service:
+  enabled: true
+  authentication:
+    connector_name: local
+    type: local
+  listen_addr: 0.0.0.0:3025
+  cluster_name: {{ teleport_server_name }}
+  proxy_listener_mode: multiplex
+  tokens:
+    - "proxy,node:7CP45VG50LBHR508HRNEH648"
+  session_recording: node
+  proxy_checks_host_keys: false
+  client_idle_timeout: 30m
+  client_idle_timeout_message: "User detected not working, this incident will be reported."
+  web_idle_timeout: never
+  message_of_the_day: "{{ teleport_motd | replace('\n', '\\n') }}"
+ssh_service:
+  enabled: true
+  listen_addr: 0.0.0.0:3022
+  permit_user_env: true
+  disable_create_host_user: false
+  ssh_file_copy: true
+  enhanced_recording:
+    enabled: false
+  pam:
+    enabled: false
+    service_name: "sshd"
+    use_pam_auth: true
+  labels:
+    ansible: "true"
+    os: linux
+    service: teleport
+  commands:
+    - name: hostname
+      command: [hostname]
+      period: 1m0s
+proxy_service:
+  enabled: true
+  web_listen_addr: 0.0.0.0:443
+  public_addr: {{ teleport_server_dns_address }}:443
+  https_keypairs:
+    - key_file: /var/lib/teleport/private.key
+      cert_file: /var/lib/teleport/fullchain.crt
+app_service:
+  enabled: false
+discovery_service:
+  enabled: true

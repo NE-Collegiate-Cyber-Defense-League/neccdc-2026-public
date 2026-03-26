@@ -1,0 +1,97 @@
+---
+- name: Ensure apt-transport-https and gpg are present
+  ansible.builtin.apt:
+    name:
+      - apt-transport-https
+      - gnupg
+      - kmod
+      - systemd
+    state: present
+  tags:
+    - falco
+
+- name: Falco apt key
+  ansible.builtin.apt_key:
+    url: https://falco.org/repo/falcosecurity-packages.asc
+    state: present
+  tags:
+    - falco
+
+- name: Install falcosecurity apt source
+  ansible.builtin.apt_repository:
+    repo: "deb https://download.falco.org/packages/deb stable main"
+    filename: falcosecurity
+    mode: '0444'
+    state: present
+  tags:
+    - falco
+
+# This might break on some systems
+- name: Install kernel headers
+  ansible.builtin.apt:
+    name: "{% if 'pve' in ansible_kernel %}pve-headers-{{ ansible_kernel }}{% else %}linux-headers-{{ ansible_kernel }}{% endif %}"
+    state: present
+  ignore_errors: true
+  tags:
+    - falco
+
+- name: Install Falco
+  ansible.builtin.apt:
+    name: "falco=0.38.2"
+    state: present
+    update_cache: true
+  environment:
+    FALCO_FRONTEND: noninteractive
+    FALCO_DRIVER_CHOICE: kmod
+    FALCOCTL_ENABLED: "true"
+  tags:
+    - falco
+
+- name: Hold the 'falco' package
+  ansible.builtin.dpkg_selections:
+    name: falco
+    selection: hold
+  tags:
+    - falco
+
+- name: Check falco config directory permissions
+  ansible.builtin.file:
+    dest: /etc/falco
+    state: directory
+    mode: '0755'
+  tags:
+    - falco
+
+- name: Update Falco config
+  ansible.builtin.template:
+    src: templates/falco.yaml.j2
+    dest: /etc/falco/config.d/config.yaml
+    mode: '0644'
+    backup: false
+  tags:
+    - falco
+
+# For some reason now in regionals the falco-kmod-inject service does not work & there are args not expected
+# So I just removed them
+- name: Update Falco systemd service
+  ansible.builtin.template:
+    src: templates/falco.service
+    dest: /usr/lib/systemd/system/falco-modern-bpf.service
+    mode: '0644'
+    backup: false
+  tags:
+    - falco
+
+- name: Reload systemd daemon
+  ansible.builtin.systemd:
+    daemon_reload: true
+  tags:
+    - falco
+
+- name: Disable and Stop Falco
+  ansible.builtin.service:
+    name: falco-kmod
+    state: stopped
+    enabled: false
+  tags:
+    - falco

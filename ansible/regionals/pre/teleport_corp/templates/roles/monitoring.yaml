@@ -1,0 +1,12 @@
+kind: role
+version: v7
+metadata:
+  name: monitoring
+spec:
+  allow:
+    app_labels:
+      division: monitoring
+    logins:
+      - admin
+    node_labels:
+      service: grafana

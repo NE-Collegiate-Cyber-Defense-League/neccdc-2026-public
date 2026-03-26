@@ -1,0 +1,13 @@
+---
+- name: Restart kiosk to update menu
+  hosts: kiosk
+  become: true
+  tasks:
+    - name: Restart nginx
+      ansible.builtin.service:
+        name: nginx
+        state: restarted
+      become: true
+      become_user: root
+      tags:
+        - nginx

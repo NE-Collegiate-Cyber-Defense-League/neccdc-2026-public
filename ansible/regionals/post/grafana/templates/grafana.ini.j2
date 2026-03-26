@@ -1,0 +1,48 @@
+[server]
+enable_gzip = true
+root_url: "https://grafana.teleport.{{ team_number }}.chefops.tech/"
+
+[database]
+type = "postgres"
+host = "db:5432"
+ssl_mode = "disable"
+user = "grafana"
+password = "grafana"
+
+[security]
+admin_user = "admin"
+admin_password = "adminpassword"
+disable_gravatar = true
+
+[log]
+mode = "console"
+level = "warn"
+
+[profile]
+enabled = disable
+
+[news]
+news_feed_enabled = false
+
+[plugins]
+preinstall_sync = fifemon-graphql-datasource,vertamedia-clickhouse-datasource,yesoreyeram-infinity-datasource,fetzerch-sunandmoon-datasource,grafana-clock-panel
+
+[users]
+allow_sign_up = true
+auto_assign_org_role = "Admin"
+
+[auth.generic_oauth]
+enabled = true
+name = Keycloak-OAuth
+allow_sign_up = true
+client_id = grafana
+client_secret = fDkjsTd9ltjfqVlKOhdrunsT2I6kqNf2
+scopes = "openid email profile offline_access roles groups"
+email_attribute_path = email
+login_attribute_path = username
+name_attribute_path = full_name
+auth_url = https://keycloak.{{ team_number }}.chefops.tech/realms/chefops/protocol/openid-connect/auth
+token_url = https://keycloak.{{ team_number }}.chefops.tech/realms/chefops/protocol/openid-connect/token
+api_url = https://keycloak.{{ team_number }}.chefops.tech/realms/chefops/protocol/openid-connect/userinfo
+role_attribute_path = contains(groups[*], 'Executive') && 'GrafanaAdmin' || contains(groups[*], 'System Admins') && 'GrafanaAdmin' || contains(groups[*], 'Operations') && 'Admin' || contains(groups[*], 'Sales') && 'Editor' || 'Viewer'
+allow_assign_grafana_admin = true

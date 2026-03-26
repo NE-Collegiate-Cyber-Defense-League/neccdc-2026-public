@@ -1,0 +1,310 @@
+---
+- name: Configure Corp Teleport
+  hosts: teleport_corp
+  become: true
+  vars:
+    team_number: "{{ hostvars[inventory_hostname]['team'] }}"
+  tasks:
+    - name: Copy TLS certificate
+      ansible.builtin.copy:
+        src: "../../../../documents/blue_team/regionals/chefops/team_{{ team_number }}/certificates/fullchain.crt"
+        dest: /var/lib/teleport/fullchain.crt
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Restart Teleport
+      tags:
+        - server
+
+    - name: Copy TLS key
+      ansible.builtin.copy:
+        src: "../../../../documents/blue_team/regionals/chefops/team_{{ team_number }}/certificates/private.key"
+        dest: /var/lib/teleport/private.key
+        owner: root
+        group: root
+        mode: "0600"
+      notify: Restart Teleport
+      tags:
+        - server
+
+    - name: Update Teleport public address
+      ansible.builtin.replace:
+        path: /etc/teleport.yaml
+        regexp: 'teleport\.chefops\.tech'
+        replace: "teleport.{{ team_number }}.chefops.tech"
+      notify: Restart Teleport
+      tags:
+        - server
+
+  handlers:
+    - name: Restart Teleport
+      ansible.builtin.service:
+        name: teleport
+        state: restarted
+      tags:
+        - server
+
+- name: Configure Branch Teleport
+  hosts: teleport_branch
+  become: true
+  vars:
+    team_number: "{{ hostvars[inventory_hostname]['team'] }}"
+  tasks:
+    - name: Copy TLS certificate
+      ansible.builtin.copy:
+        src: "../../../../documents/blue_team/regionals/ock/team_{{ team_number }}/certificates/fullchain.crt"
+        dest: /var/lib/teleport/fullchain.crt
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Restart Teleport
+      tags:
+        - server
+
+    - name: Copy TLS key
+      ansible.builtin.copy:
+        src: "../../../../documents/blue_team/regionals/ock/team_{{ team_number }}/certificates/private.key"
+        dest: /var/lib/teleport/private.key
+        owner: root
+        group: root
+        mode: "0600"
+      notify: Restart Teleport
+      tags:
+        - server
+
+    - name: Update Teleport public address
+      ansible.builtin.replace:
+        path: /etc/teleport.yaml
+        regexp: 'teleport\.oceancrests\.kitchen'
+        replace: "teleport.{{ team_number }}.oceancrests.kitchen"
+      notify: Restart Teleport
+      tags:
+        - server
+
+  handlers:
+    - name: Restart Teleport
+      ansible.builtin.service:
+        name: teleport
+        state: restarted
+      tags:
+        - server
+
+- name: Update Teleport Branch Client Information
+  hosts: teleport_branch_clients
+  become: true
+  vars:
+    team_number: "{{ hostvars[inventory_hostname]['team'] }}"
+  tasks:
+    - name: Update Teleport public address
+      ansible.builtin.replace:
+        path: /etc/teleport.yaml
+        regexp: "example.com"
+        replace: "{{ team_number }}.oceancrests.kitchen"
+      notify: Restart Teleport
+      tags:
+        - client
+
+    - name: Enable and start Teleport
+      ansible.builtin.service:
+        name: teleport
+        enabled: true
+        state: started
+      tags:
+        - client
+
+  handlers:
+    - name: Restart Teleport
+      ansible.builtin.service:
+        name: teleport
+        state: restarted
+      tags:
+        - client
+
+- name: Update Teleport Corp Client Information
+  hosts: teleport_corp_clients
+  become: true
+  vars:
+    team_number: "{{ hostvars[inventory_hostname]['team'] }}"
+  tasks:
+    - name: Update Teleport public address
+      ansible.builtin.replace:
+        path: /etc/teleport.yaml
+        regexp: "example.com"
+        replace: "{{ team_number }}.chefops.tech"
+      notify: Restart Teleport
+      tags:
+        - client
+
+    - name: Enable and start Teleport
+      ansible.builtin.service:
+        name: teleport
+        enabled: true
+        state: started
+      tags:
+        - client
+
+  handlers:
+    - name: Restart Teleport
+      ansible.builtin.service:
+        name: teleport
+        state: restarted
+      tags:
+        - client
+
+- name: Generate Teleport database certificates
+  hosts: teleport_corp
+  become: true
+  tasks:
+    - name: Run tctl auth sign command
+      ansible.builtin.command:
+        cmd: tctl auth sign --overwrite --format=db --host=localhost --out=server --ttl=7d
+        chdir: /tmp
+      tags:
+        - database
+
+    - name: Fetch server.cas file from Teleport
+      ansible.builtin.fetch:
+        src: /tmp/server.cas
+        dest: "/tmp/teleport-certs/{{ team }}/"
+        flat: true
+      tags:
+        - database
+
+    - name: Fetch server.key file from Teleport
+      ansible.builtin.fetch:
+        src: /tmp/server.key
+        dest: "/tmp/teleport-certs/{{ team }}/"
+        flat: true
+      tags:
+        - database
+
+    - name: Fetch server.crt file from Teleport
+      ansible.builtin.fetch:
+        src: /tmp/server.crt
+        dest: "/tmp/teleport-certs/{{ team }}/"
+        flat: true
+      tags:
+        - database
+
+- name: Copy certificates to Wordpress server
+  hosts: wordpress
+  become: true
+  tasks:
+    - name: Copy server.cas to Wordpress
+      ansible.builtin.copy:
+        src: "/tmp/teleport-certs/{{ team }}/server.cas"
+        dest: /opt/mariadb/certs/server.cas
+        owner: root
+        group: mysql
+        mode: "0644"
+      notify: Restart MariaDB
+      tags:
+        - database
+
+    - name: Copy server.key to Wordpress
+      ansible.builtin.copy:
+        src: "/tmp/teleport-certs/{{ team }}/server.key"
+        dest: /opt/mariadb/certs/server.key
+        owner: root
+        group: mysql
+        mode: "0644"
+      notify: Restart MariaDB
+      tags:
+        - database
+
+    - name: Copy server.crt to Wordpress
+      ansible.builtin.copy:
+        src: "/tmp/teleport-certs/{{ team }}/server.crt"
+        dest: /opt/mariadb/certs/server.crt
+        owner: root
+        group: mysql
+        mode: "0644"
+      notify: Restart MariaDB
+      tags:
+        - database
+
+  handlers:
+    - name: Restart MariaDB
+      ansible.builtin.service:
+        name: mariadb
+        state: restarted
+      tags:
+        - database
+
+- name: Copy certificates to Gitea Postgres server
+  hosts: gitea
+  become: true
+  tasks:
+    - name: Copy server.cas to Wordpress
+      ansible.builtin.copy:
+        src: "/tmp/teleport-certs/{{ team }}/server.cas"
+        dest: /opt/postgres/certs/server.cas
+        owner: root
+        group: postgres
+        mode: "0640"
+      notify: Restart Postgres
+      tags:
+        - database
+
+    - name: Copy server.key to Wordpress
+      ansible.builtin.copy:
+        src: "/tmp/teleport-certs/{{ team }}/server.key"
+        dest: /opt/postgres/certs/server.key
+        owner: root
+        group: postgres
+        mode: "0640"
+      notify: Restart Postgres
+      tags:
+        - database
+
+    - name: Copy server.crt to Wordpress
+      ansible.builtin.copy:
+        src: "/tmp/teleport-certs/{{ team }}/server.crt"
+        dest: /opt/postgres/certs/server.crt
+        owner: root
+        group: postgres
+        mode: "0640"
+      notify: Restart Postgres
+      tags:
+        - database
+
+  handlers:
+    - name: Restart Postgres
+      ansible.builtin.service:
+        name: postgresql-18
+        state: restarted
+      tags:
+        - database
+
+- name: Join Branch to Teleport Cluster
+  hosts: teleport_branch
+  become: true
+  tasks:
+    # https://goteleport.com/docs/zero-trust-access/deploy-a-cluster/trustedclusters/#step-36-establish-trust-between-clusters
+    - name: Copy trusted cluster template
+      ansible.builtin.template:
+        src: templates/trusted_cluster.yaml.j2
+        dest: /tmp/trusted_cluster.yaml
+        mode: "0644"
+        owner: root
+        group: root
+        backup: false
+      vars:
+        teleport_token: UTMEIAKFBYJDVQTICDNB
+      tags:
+        - leaf
+
+    # https://goteleport.com/docs/zero-trust-access/deploy-a-cluster/trustedclusters/#step-46-create-the-trusted-cluster-resource
+    - name: Run trusted cluster resource
+      ansible.builtin.command:
+        cmd: /usr/local/bin/tctl create /tmp/trusted_cluster.yaml --force
+        chdir: /tmp
+      tags:
+        - leaf
+
+    - name: Clean up temporary file
+      ansible.builtin.file:
+        path: /tmp/trusted_cluster.yaml
+        state: absent
+      tags:
+        - leaf

@@ -1,0 +1,50 @@
+---
+- name: Add Grafama key
+  ansible.builtin.apt_key:
+    url: https://packages.grafana.com/gpg.key
+    state: present
+  tags:
+    - alloy
+
+- name: Add Grafana APT repo
+  ansible.builtin.apt_repository:
+    repo: "deb https://apt.grafana.com stable main"
+    filename: grafana
+    mode: '0644'
+    state: present
+  tags:
+    - alloy
+
+- name: Install Alloy
+  ansible.builtin.apt:
+    name: alloy
+    state: present
+    update_cache: true
+  tags:
+    - alloy
+
+- name: Setup Alloy configuration
+  ansible.builtin.template:
+    src: templates/config.alloy.j2
+    dest: /etc/alloy/config.alloy
+    mode: '0644'
+    owner: root
+    group: root
+  tags:
+    - alloy
+
+- name: Stop and disable Alloy service
+  ansible.builtin.systemd:
+    name: alloy
+    enabled: false
+    state: stopped
+  tags:
+    - alloy
+
+- name: Patch Alloy systemd file to use root
+  ansible.builtin.replace:
+    path: /usr/lib/systemd/system/alloy.service
+    regexp: '^User=alloy$'
+    replace: 'User=root'
+  tags:
+    - alloy

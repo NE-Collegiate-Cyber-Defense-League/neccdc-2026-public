@@ -1,0 +1,4 @@
+#SPDX-License-Identifier: MIT-0
+---
+# defaults file for bginfo
+bginfo_destination: "C:\\Windows\\SYSVOL\\domain\\scripts"

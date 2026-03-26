@@ -1,0 +1,53 @@
+---
+# Task file for Alloy; intended for include_tasks
+
+- name: Validate mode variable
+  ansible.builtin.assert:
+    that:
+      - mode is defined
+      - mode in ['pre', 'post']
+    fail_msg: "mode must be either 'pre' or 'post', got: {{ mode | default('<undefined>') }}"
+  tags:
+    - alloy
+
+- name: Setup Alloy
+  when: mode == 'pre'
+  block:
+    - name: Install Alloy
+      ansible.builtin.include_tasks:
+        file: "tasks/setup-{{ ansible_facts['os_family'] }}.yaml"
+      tags:
+        - alloy
+
+    - name: Setup Alloy configuration
+      ansible.builtin.template:
+        src: templates/config.alloy.j2
+        dest: /etc/alloy/config.alloy
+        mode: "0644"
+        owner: root
+        group: root
+      tags:
+        - alloy
+
+    - name: Don't start Alloy service yet
+      ansible.builtin.systemd:
+        name: alloy
+        enabled: false
+        state: stopped
+      tags:
+        - alloy
+
+    - name: Patch Alloy systemd file to use root
+      ansible.builtin.replace:
+        path: /usr/lib/systemd/system/alloy.service
+        regexp: "^User=alloy$"
+        replace: "User=root"
+      tags:
+        - alloy
+
+- name: Include post tasks
+  ansible.builtin.include_tasks:
+    file: tasks/post.yaml
+  when: mode == 'post'
+  tags:
+    - alloy

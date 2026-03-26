@@ -1,0 +1,8 @@
+load_plugins: [nginx]
+
+plugins:
+  - name: nginx
+    library_path: /usr/share/falco/plugins/libfalco-nginx-plugin.so
+    init_config:
+      log_paths:
+        - /var/log/nginx/access.log

@@ -1,0 +1,15 @@
+kind: role
+version: v7
+metadata:
+  name: employee
+  description: General access granted to all employees to internal development systems
+spec:
+  options:
+    create_host_user_mode: keep
+  allow:
+    app_labels:
+      system: internal
+    logins:
+      - '{{internal.logins}}'
+    node_labels:
+      system: internal

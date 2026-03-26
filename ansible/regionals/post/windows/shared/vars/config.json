@@ -1,0 +1,881 @@
+{
+    "lab": {
+        "ad.chefops.local": {
+            "dc": "windows-dc01",
+            "netbios_name": "CHEFOPS",
+            "upns": [ "chefops.tech" ],
+            "trust": "ad.oceancrests.local",
+            "dn": "DC=ad,DC=chefops,DC=local",
+            "dns_servers": [
+                "{{ team_address.firewall_corp_private.ipv6 }}",
+                "fd00:ec2::253"
+            ],
+            "orginization_units": {
+                "chefops": {
+                    "protect_from_deletion": true,
+                    "description": "ChefOps organizational structure and hierarchy",
+                    "path": "DC=ad,DC=chefops,DC=local"
+                },
+                "users": {
+                    "description": "ChefOps users and personnel accounts",
+                    "path": "OU=chefops,DC=ad,DC=chefops,DC=local"
+                }
+            },
+            "gmsa": { },
+            "service_accounts": {
+                "svc-keycloak": {
+                    "upn": "svc-keycloak@ad.chefops.local",
+                    "description": "Service account for Keycloak",
+                    "password": "Keycloak123!",
+                    "path": "CN=Managed Service Accounts,DC=ad,DC=chefops,DC=local"
+                },
+                "svc-ldap": {
+                    "upn": "svc-ldap@ad.chefops.local",
+                    "description": "Service account for LDAP",
+                    "password": "ldap123",
+                    "path": "CN=Managed Service Accounts,DC=ad,DC=chefops,DC=local"
+                }
+            },
+            "acls": {
+                "svc_keycloak_full_chefops_control": {
+                    "for": "svc-keycloak",
+                    "to": "OU=chefops,DC=ad,DC=chefops,DC=local",
+                    "right": "GenericAll",
+                    "inheritance": "All"
+                }
+            },
+            "groups": {
+                "Executive": {
+                    "description": "Executive leadership and C-suite",
+                    "path": "OU=chefops,DC=ad,DC=chefops,DC=local",
+                    "manager": "mjensen"
+                },
+                "Support": {
+                    "description": "Customer support and technical assistance team",
+                    "path": "OU=chefops,DC=ad,DC=chefops,DC=local",
+                    "manager": "mfoster"
+                },
+                "Finance": {
+                    "description": "Financial and accounting department",
+                    "path": "OU=chefops,DC=ad,DC=chefops,DC=local",
+                    "manager": "ljenkins"
+                },
+                "Security": {
+                    "description": "Security and compliance specialists",
+                    "path": "OU=chefops,DC=ad,DC=chefops,DC=local",
+                    "manager": "mnichols"
+                },
+                "Facilities": {
+                    "description": "Facilities and operations management",
+                    "path": "OU=chefops,DC=ad,DC=chefops,DC=local",
+                    "manager": "rstevens"
+                },
+                "Engineering": {
+                    "description": "Engineering and infrastructure team",
+                    "path": "OU=chefops,DC=ad,DC=chefops,DC=local",
+                    "manager": "omelvins"
+                },
+                "Operations": {
+                    "description": "Operations and service delivery",
+                    "path": "OU=chefops,DC=ad,DC=chefops,DC=local",
+                    "manager": "mfoster"
+                },
+                "Sales": {
+                    "description": "Sales and business development",
+                    "path": "OU=chefops,DC=ad,DC=chefops,DC=local",
+                    "manager": "dwebb"
+                },
+                "System Admins": {
+                    "description": "System administration and infrastructure management",
+                    "memberOf": [ "Domain Admins" ],
+                    "path": "OU=chefops,DC=ad,DC=chefops,DC=local",
+                    "manager": "omelvins"
+                },
+                "Network Admins": {
+                    "description": "Network administration and infrastructure",
+                    "memberOf": [ "Domain Admins" ],
+                    "path": "OU=chefops,DC=ad,DC=chefops,DC=local",
+                    "manager": "omelvins"
+                },
+                "Security Admins": {
+                    "description": "Security administration and policy enforcement",
+                    "memberOf": [ "Domain Admins" ],
+                    "path": "OU=chefops,DC=ad,DC=chefops,DC=local",
+                    "manager": "mnichols"
+                }
+            },
+            "users": {
+                "mjensen": {
+                    "firstname": "Malou",
+                    "surname": "Jensen",
+                    "upn": "mjensen@chefops.tech",
+                    "email": "mjensen@chefops.tech",
+                    "password": "password123",
+                    "totp_secret": "XWKWHXDUONDKIQNVMHVWVTGVLZQOFJG6",
+                    "department": "Executive",
+                    "position": "CEO",
+                    "employee_id": "0",
+                    "manager_id": "0",
+                    "groups": [
+                        "Executive"
+                    ],
+                    "spns": [ ],
+                    "path": "OU=users,OU=chefops,DC=ad,DC=chefops,DC=local"
+                },
+                "mnichols": {
+                    "firstname": "Meghan",
+                    "surname": "Nichols",
+                    "email": "mnichols@chefops.tech",
+                    "password": "chuckie",
+                    "totp_secret": "ZA3A43SB65LM4HNAW7P7OKBSVRITFYNL",
+                    "department": "Executive",
+                    "position": "CISO",
+                    "employee_id": "1",
+                    "manager_id": "0",
+                    "groups": [
+                        "Executive",
+                        "Security Admins",
+                        "System Admins",
+                        "Enterprise Admins"
+                    ],
+                    "upn": "mnichols@chefops.tech",
+                    "spns": [ ],
+                    "manager": "mjensen",
+                    "path": "OU=users,OU=chefops,DC=ad,DC=chefops,DC=local"
+                },
+                "ljenkins": {
+                    "firstname": "Leeroy",
+                    "surname": "Jenkins",
+                    "email": "ljenkins@chefops.tech",
+                    "password": "classical",
+                    "totp_secret": "RXW22QESSBYXZ6AM53PUTH56TXOKEOH6",
+                    "department": "Executive",
+                    "position": "CFO",
+                    "employee_id": "2",
+                    "manager_id": "0",
+                    "groups": [
+                        "Executive"
+                    ],
+                    "upn": "ljenkins@chefops.tech",
+                    "spns": [ ],
+                    "manager": "mjensen",
+                    "path": "OU=users,OU=chefops,DC=ad,DC=chefops,DC=local"
+                },
+                "omelvins": {
+                    "firstname": "Oliver",
+                    "surname": "Melvins",
+                    "email": "omelvins@chefops.tech",
+                    "password": "wannabe",
+                    "totp_secret": "VTGLCR25KPMRREGQF2VMBUWXJZAHD7PZ",
+                    "department": "Executive",
+                    "position": "CTO",
+                    "employee_id": "17",
+                    "manager_id": "3",
+                    "groups": [
+                        "Executive",
+                        "Network Admins",
+                        "System Admins",
+                        "Enterprise Admins"
+                    ],
+                    "upn": "omelvins@chefops.tech",
+                    "spns": [ ],
+                    "manager": "nandersen",
+                    "path": "OU=users,OU=chefops,DC=ad,DC=chefops,DC=local"
+                },
+                "fmuller": {
+                    "firstname": "Fabien",
+                    "surname": "Muller",
+                    "email": "fmuller@chefops.tech",
+                    "password": "rockstar",
+                    "totp_secret": "BILTNRGCE3H4KZXJFXIVRLJKL6V4HLJV",
+                    "department": "Executive",
+                    "position": "People Ops",
+                    "employee_id": "20",
+                    "manager_id": "0",
+                    "groups": [
+                        "Executive"
+                    ],
+                    "upn": "fmuller@chefops.tech",
+                    "spns": [ ],
+                    "manager": "mjensen",
+                    "path": "OU=users,OU=chefops,DC=ad,DC=chefops,DC=local"
+                },
+                "nandersen": {
+                    "firstname": "Nicklas",
+                    "surname": "Andersen",
+                    "email": "nandersen@chefops.tech",
+                    "password": "qwerty",
+                    "totp_secret": "KAOYVM2B5EAPYMADPYBL7TQZYWL5YGHL",
+                    "department": "Executive",
+                    "position": "COO",
+                    "employee_id": "3",
+                    "manager_id": "0",
+                    "groups": [
+                        "Executive"
+                    ],
+                    "upn": "nandersen@chefops.tech",
+                    "spns": [ ],
+                    "manager": "mjensen",
+                    "path": "OU=users,OU=chefops,DC=ad,DC=chefops,DC=local"
+                },
+                "fkristensen": {
+                    "firstname": "Frida",
+                    "surname": "Kristensen",
+                    "email": "fkristensen@chefops.tech",
+                    "password": "asdfghjkl",
+                    "totp_secret": "N472RQABL53DSYQGRKUKBVRTUT2GIJMR",
+                    "department": "Support",
+                    "position": "Repair Technician",
+                    "employee_id": "5",
+                    "manager_id": "21",
+                    "groups": [
+                        "Support"
+                    ],
+                    "upn": "fkristensen@chefops.tech",
+                    "spns": [ ],
+                    "manager": "mfoster",
+                    "path": "OU=users,OU=chefops,DC=ad,DC=chefops,DC=local"
+                },
+                "ahernandez": {
+                    "firstname": "Angela",
+                    "surname": "Hernandez",
+                    "email": "ahernandez@chefops.tech",
+                    "password": "000000",
+                    "totp_secret": "EX62T2OJKY5LL3RSMTC3LP43DFOQNTKZ",
+                    "department": "Support",
+                    "position": "Customer Ops",
+                    "employee_id": "6",
+                    "manager_id": "21",
+                    "groups": [
+                        "Support"
+                    ],
+                    "upn": "ahernandez@chefops.tech",
+                    "spns": [ ],
+                    "manager": "mfoster",
+                    "path": "OU=users,OU=chefops,DC=ad,DC=chefops,DC=local"
+                },
+                "aclement": {
+                    "firstname": "Alicia",
+                    "surname": "Clement",
+                    "email": "aclement@chefops.tech",
+                    "password": "torres",
+                    "totp_secret": "UEFES4PD4J3ZAHGXSOXQEH7E7GP5EJJA",
+                    "department": "Support",
+                    "position": "Customer Ops",
+                    "employee_id": "7",
+                    "manager_id": "21",
+                    "groups": [
+                        "Support"
+                    ],
+                    "upn": "aclement@chefops.tech",
+                    "spns": [ ],
+                    "manager": "mfoster",
+                    "path": "OU=users,OU=chefops,DC=ad,DC=chefops,DC=local"
+                },
+                "mharvey": {
+                    "firstname": "Martha",
+                    "surname": "Harvey",
+                    "email": "mharvey@chefops.tech",
+                    "password": "3N3wJ8czQDYY",
+                    "totp_secret": "VKKOUJXQQN6BMUNLXREGVOTOFXJ3DES2",
+                    "department": "Finance",
+                    "position": "Accounting",
+                    "employee_id": "8",
+                    "manager_id": "2",
+                    "groups": [
+                        "Finance"
+                    ],
+                    "upn": "mharvey@chefops.tech",
+                    "spns": [ ],
+                    "manager": "ljenkins",
+                    "path": "OU=users,OU=chefops,DC=ad,DC=chefops,DC=local"
+                },
+                "dmitchelle": {
+                    "firstname": "Donna",
+                    "surname": "Mitchelle",
+                    "email": "dmitchelle@chefops.tech",
+                    "password": "BnC2d4ET1IYX",
+                    "totp_secret": "QDLLEX6GJNBD3SXGBUB7YJOWQF6AGUEF",
+                    "department": "Security",
+                    "position": "Security Specialist",
+                    "employee_id": "9",
+                    "manager_id": "1",
+                    "groups": [
+                        "Security",
+                        "Security Admins"
+                    ],
+                    "upn": "dmitchelle@chefops.tech",
+                    "spns": [ ],
+                    "manager": "mnichols",
+                    "path": "OU=users,OU=chefops,DC=ad,DC=chefops,DC=local"
+                },
+                "rstevens": {
+                    "firstname": "Roger",
+                    "surname": "Stevens",
+                    "email": "rstevens@chefops.tech",
+                    "password": "clippy",
+                    "totp_secret": "X4GJM7RPLC735BAHHROPHFGSM7PS7ELC",
+                    "department": "Facilities",
+                    "position": "Chief Cleanliness Officer",
+                    "employee_id": "10",
+                    "manager_id": "0",
+                    "groups": [
+                        "Facilities"
+                    ],
+                    "upn": "rstevens@chefops.tech",
+                    "spns": [ ],
+                    "manager": "mjensen",
+                    "path": "OU=users,OU=chefops,DC=ad,DC=chefops,DC=local"
+                },
+                "staylor": {
+                    "firstname": "Susie",
+                    "surname": "Taylor",
+                    "email": "staylor@chefops.tech",
+                    "password": "Oe86sV1OqK7W",
+                    "totp_secret": "URHXOWX5QLVO4HIE65DDT5PE2YOCRG3I",
+                    "department": "Engineering",
+                    "position": "Network Technician",
+                    "employee_id": "11",
+                    "manager_id": "17",
+                    "groups": [
+                        "Engineering",
+                        "Network Admins"
+                    ],
+                    "upn": "staylor@chefops.tech",
+                    "spns": [ ],
+                    "manager": "omelvins",
+                    "path": "OU=users,OU=chefops,DC=ad,DC=chefops,DC=local"
+                },
+                "areed": {
+                    "firstname": "Alyssa",
+                    "surname": "Reed",
+                    "email": "areed@chefops.tech",
+                    "password": "R6m4knh8tSDB",
+                    "totp_secret": "EPOMGRMLIGFTWFLSMJ7S4WBDLL5A75NY",
+                    "department": "Engineering",
+                    "position": "System Admin",
+                    "employee_id": "13",
+                    "manager_id": "17",
+                    "groups": [
+                        "Engineering",
+                        "System Admins",
+                        "Network Admins",
+                        "Enterprise Admins"
+                    ],
+                    "upn": "areed@chefops.tech",
+                    "spns": [ ],
+                    "manager": "omelvins",
+                    "path": "OU=users,OU=chefops,DC=ad,DC=chefops,DC=local"
+                },
+                "rbeck": {
+                    "firstname": "Ross",
+                    "surname": "Beck",
+                    "email": "rbeck@chefops.tech",
+                    "password": "KKF9F5YUYDL9",
+                    "totp_secret": "ZVX56NSCCIICEW746R6BGXYSULHQQSH7",
+                    "department": "Operations",
+                    "position": "Systems Engineer",
+                    "employee_id": "14",
+                    "manager_id": "21",
+                    "groups": [
+                        "Operations"
+                    ],
+                    "upn": "rbeck@chefops.tech",
+                    "spns": [ ],
+                    "manager": "mfoster",
+                    "path": "OU=users,OU=chefops,DC=ad,DC=chefops,DC=local"
+                },
+                "dwebb": {
+                    "firstname": "Dan",
+                    "surname": "Webb",
+                    "email": "dwebb@chefops.tech",
+                    "password": "61mx086nyzql",
+                    "totp_secret": "V73M2WGS7YERT2JNMQJLZHGVTOMBBAS7",
+                    "department": "Sales",
+                    "position": "Director of Sales",
+                    "employee_id": "15",
+                    "manager_id": "2",
+                    "groups": [
+                        "Sales"
+                    ],
+                    "upn": "dwebb@chefops.tech",
+                    "spns": [ ],
+                    "manager": "ljenkins",
+                    "path": "OU=users,OU=chefops,DC=ad,DC=chefops,DC=local"
+                },
+                "vnielsen": {
+                    "firstname": "Valdemar",
+                    "surname": "Nielsen",
+                    "email": "vnielsen@chefops.tech",
+                    "password": "1234567",
+                    "totp_secret": "V5VQLRR7CSWAHQ43HMFN4L2LR2OALQOS",
+                    "department": "Sales",
+                    "position": "Sales Representative",
+                    "employee_id": "16",
+                    "manager_id": "15",
+                    "groups": [
+                        "Sales"
+                    ],
+                    "upn": "vnielsen@chefops.tech",
+                    "spns": [ ],
+                    "manager": "dwebb",
+                    "path": "OU=users,OU=chefops,DC=ad,DC=chefops,DC=local"
+                },
+                "cmoore": {
+                    "firstname": "Catherine",
+                    "surname": "Moore",
+                    "email": "cmoore@chefops.tech",
+                    "password": "GQ7MGCWZUHCG5ISLWF5222RGDTOFGG72",
+                    "totp_secret": "GQ7MGCWZUHCG5ISLWF5222RGDTOFGG72",
+                    "department": "Sales",
+                    "position": "Sales Representative",
+                    "employee_id": "18",
+                    "manager_id": "15",
+                    "groups": [
+                        "Sales"
+                    ],
+                    "upn": "cmoore@chefops.tech",
+                    "spns": [ ],
+                    "manager": "dwebb",
+                    "path": "OU=users,OU=chefops,DC=ad,DC=chefops,DC=local"
+                },
+                "mtupaj": {
+                    "firstname": "Marie",
+                    "surname": "Tupaj",
+                    "email": "mtupaj@chefops.tech",
+                    "password": "mustang6",
+                    "totp_secret": "EFSMGBQGKRRTURSDB6CIX3QFBCSALY7D",
+                    "department": "Security",
+                    "position": "Alert Analyst Intern",
+                    "employee_id": "19",
+                    "manager_id": "1",
+                    "groups": [
+                        "Security",
+                        "Security Admins"
+                    ],
+                    "upn": "mtupaj@chefops.tech",
+                    "spns": [ ],
+                    "manager": "mnichols",
+                    "path": "OU=users,OU=chefops,DC=ad,DC=chefops,DC=local"
+                },
+                "mfoster": {
+                    "firstname": "Molly",
+                    "surname": "Foster",
+                    "email": "mfoster@chefops.tech",
+                    "password": "wizard1",
+                    "totp_secret": "AFZ5MXDKBTPYQNZWKNJ66K4RKL46KDXF",
+                    "department": "Operations",
+                    "position": "Director of Service Delivery",
+                    "employee_id": "21",
+                    "manager_id": "3",
+                    "groups": [
+                        "Operations"
+                    ],
+                    "upn": "mfoster@chefops.tech",
+                    "spns": [ ],
+                    "manager": "nandersen",
+                    "path": "OU=users,OU=chefops,DC=ad,DC=chefops,DC=local"
+                },
+                "aroche": {
+                    "firstname": "Adam",
+                    "surname": "Roche",
+                    "email": "aroche@chefops.tech",
+                    "password": "candy1",
+                    "totp_secret": "H2BG5427MLP4EWF2MGPVWQAJANL32KYX",
+                    "department": "Operations",
+                    "position": "Account Manager",
+                    "employee_id": "22",
+                    "manager_id": "3",
+                    "groups": [
+                        "Operations"
+                    ],
+                    "upn": "aroche@chefops.tech",
+                    "spns": [ ],
+                    "manager": "nandersen",
+                    "path": "OU=users,OU=chefops,DC=ad,DC=chefops,DC=local"
+                },
+                "cjennings": {
+                    "firstname": "Craig",
+                    "surname": "Jennings",
+                    "email": "cjennings@chefops.tech",
+                    "password": "lassie",
+                    "totp_secret": "PSUVYKUAJKZMLNBYOQLCRLBSVVIP6SYO",
+                    "department": "Operations",
+                    "position": "Account Manager",
+                    "employee_id": "23",
+                    "manager_id": "3",
+                    "groups": [
+                        "Operations"
+                    ],
+                    "upn": "cjennings@chefops.tech",
+                    "spns": [ ],
+                    "manager": "nandersen",
+                    "path": "OU=users,OU=chefops,DC=ad,DC=chefops,DC=local"
+                },
+                "schristiansen": {
+                    "firstname": "Sara",
+                    "surname": "Christiansen",
+                    "email": "schristiansen@chefops.tech",
+                    "password": "bryan1",
+                    "totp_secret": "6QQOFCTS7CYA24KJKYKSM26ROTYM6QLB",
+                    "department": "Operations",
+                    "position": "System Admin",
+                    "employee_id": "24",
+                    "manager_id": "21",
+                    "groups": [
+                        "Operations",
+                        "System Admins"
+                    ],
+                    "upn": "schristiansen@chefops.tech",
+                    "spns": [ ],
+                    "manager": "mfoster",
+                    "path": "OU=users,OU=chefops,DC=ad,DC=chefops,DC=local"
+                },
+                "inielsen": {
+                    "firstname": "Isabella",
+                    "surname": "Nielsen",
+                    "email": "inielsen@chefops.tech",
+                    "password": "intel",
+                    "totp_secret": "PECRTD6FY7W4OG4GJ2OONGZDM5T45ISP",
+                    "department": "Support",
+                    "position": "Repair Technician Intern",
+                    "employee_id": "25",
+                    "manager_id": "5",
+                    "groups": [
+                        "Support"
+                    ],
+                    "upn": "inielsen@chefops.tech",
+                    "spns": [ ],
+                    "manager": "fkristensen",
+                    "path": "OU=users,OU=chefops,DC=ad,DC=chefops,DC=local"
+                },
+                "mmorel": {
+                    "firstname": "Milo",
+                    "surname": "Morel",
+                    "email": "mmorel@chefops.tech",
+                    "password": "galeries",
+                    "totp_secret": "T6D7NKZXTY3C7NO3RBKWXJYQNWON6FNN",
+                    "department": "Support",
+                    "position": "Help Desk",
+                    "employee_id": "26",
+                    "manager_id": "21",
+                    "groups": [
+                        "Support"
+                    ],
+                    "upn": "mmorel@chefops.tech",
+                    "spns": [ ],
+                    "manager": "mfoster",
+                    "path": "OU=users,OU=chefops,DC=ad,DC=chefops,DC=local"
+                },
+                "spearson": {
+                    "firstname": "Sharon",
+                    "surname": "Pearson",
+                    "email": "spearson@chefops.tech",
+                    "password": "basketball",
+                    "totp_secret": "IFYAB3SR6S3JAUEVTBJNOMSHVQ3YWCBA",
+                    "department": "Engineering",
+                    "position": "System Admin",
+                    "employee_id": "27",
+                    "manager_id": "17",
+                    "groups": [
+                        "Engineering",
+                        "System Admins"
+                    ],
+                    "upn": "spearson@chefops.tech",
+                    "spns": [ ],
+                    "manager": "omelvins",
+                    "path": "OU=users,OU=chefops,DC=ad,DC=chefops,DC=local"
+                },
+                "ahawkins": {
+                    "firstname": "Addison",
+                    "surname": "Hawkins",
+                    "email": "ahawkins@chefops.tech",
+                    "password": "1qazxsw2",
+                    "totp_secret": "TDGGU4PNSIMKVTA7JGIWKJ44PXSNH7UB",
+                    "department": "Support",
+                    "position": "Help Desk",
+                    "employee_id": "4",
+                    "manager_id": "21",
+                    "groups": [
+                        "Support",
+                        "Domain Admins"
+                    ],
+                    "upn": "ahawkins@chefops.tech",
+                    "spns": [ ],
+                    "manager": "mfoster",
+                    "path": "OU=users,OU=chefops,DC=ad,DC=chefops,DC=local"
+                },
+                "jthomsen": {
+                    "firstname": "Josefine",
+                    "surname": "Thomsen",
+                    "email": "jthomsen@chefops.tech",
+                    "password": "abc1989",
+                    "totp_secret": "M2DQP25FBPRVWUDJ4X6MUWKAKE5M7FQ6",
+                    "department": "Engineering",
+                    "position": "System Admin",
+                    "employee_id": "12",
+                    "manager_id": "17",
+                    "groups": [
+                        "Engineering",
+                        "System Admins"
+                    ],
+                    "upn": "jthomsen@chefops.tech",
+                    "spns": [ ],
+                    "manager": "omelvins",
+                    "path": "OU=users,OU=chefops,DC=ad,DC=chefops,DC=local"
+                }
+            },
+            "gpo_mappings": {
+                "fw_adds": "7f4f6440-215c-4cc3-a8eb-f643537454f4"
+            },
+            "adcs": {
+                "common_name": "ChefOps-ADCS",
+                "templates": [ "SSL" ]
+            }
+        },
+        "ad.oceancrests.local": {
+            "dc": "windows-dc02",
+            "netbios_name": "OCEANCRESTS",
+            "upns": ["oceancrests.kitchen"],
+            "trust": "ad.chefops.local",
+            "dn": "DC=ad,DC=oceancrests,DC=local",
+            "dns_servers": [
+                "{{ team_address.firewall_branch_private.ipv4 }}",
+                "{{ team_address.firewall_branch_private.ipv6 }}"
+            ],
+            "orginization_units": {
+                "oceancrests": {
+                    "description": "OceanCrests organizational structure",
+                    "path": "DC=ad,DC=oceancrests,DC=local"
+                },
+                "users": {
+                    "description": "OceanCrests users and personnel accounts",
+                    "path": "OU=oceancrests,DC=ad,DC=oceancrests,DC=local"
+                }
+            },
+            "gmsa": { },
+            "acls": { },
+            "service_accounts": {
+                "svc-ldap": {
+                    "upn": "svc-ldap@ad.oceancrests.local",
+                    "description": "Service account for LDAP",
+                    "password": "ldap123",
+                    "path": "CN=Managed Service Accounts,DC=ad,DC=oceancrests,DC=local"
+                }
+            },
+            "groups": {
+                "Management": {
+                    "description": "Management and leadership",
+                    "memberOf": [ "Domain Admins" ],
+                    "path": "OU=oceancrests,DC=ad,DC=oceancrests,DC=local"
+                },
+                "IT": {
+                    "description": "Information technology and infrastructure",
+                    "memberOf": [ "Domain Admins" ],
+                    "path": "OU=oceancrests,DC=ad,DC=oceancrests,DC=local"
+                },
+                "Operations": {
+                    "description": "Operations and service delivery",
+                    "path": "OU=oceancrests,DC=ad,DC=oceancrests,DC=local"
+                },
+                "front": {
+                    "description": "Front-of-house staff",
+                    "path": "OU=oceancrests,DC=ad,DC=oceancrests,DC=local"
+                },
+                "back": {
+                    "description": "Back-of-house operations staff",
+                    "path": "OU=oceancrests,DC=ad,DC=oceancrests,DC=local"
+                }
+            },
+            "users": {
+                "jlenox": {
+                    "firstname": "Jagger",
+                    "surname": "Lenox",
+                    "email": "jlenox@oceancrests.kitchen",
+                    "password": "aaron1",
+                    "totp_secret": "HY6T4GQI66H5IQ3WT4372RKUURSOCKJY",
+                    "department": "Management",
+                    "position": "Manager",
+                    "employee_id": "0",
+                    "manager_id": "0",
+                    "groups": [
+                        "Management"
+                    ],
+                    "upn": "jlenox@oceancrests.kitchen",
+                    "spns": [ ],
+                    "path": "OU=users,OU=oceancrests,DC=ad,DC=oceancrests,DC=local"
+                },
+                "wrhoda": {
+                    "firstname": "Will",
+                    "surname": "Rhoda",
+                    "email": "wrhoda@oceancrests.kitchen",
+                    "password": "wrhoda",
+                    "totp_secret": "YPPEH4LVY25MPRCEBUSKRGUNIR6D7P6A",
+                    "department": "IT",
+                    "position": "System Administrator",
+                    "employee_id": "1",
+                    "manager_id": "0",
+                    "groups": [
+                        "IT",
+                        "Enterprise Admins"
+                    ],
+                    "upn": "wrhoda@oceancrests.kitchen",
+                    "spns": [ ],
+                    "manager": "jlenox",
+                    "path": "OU=users,OU=oceancrests,DC=ad,DC=oceancrests,DC=local"
+                },
+                "edupuis": {
+                    "firstname": "Edouard",
+                    "surname": "Dupuis",
+                    "email": "edupuis@oceancrests.kitchen",
+                    "password": "reds",
+                    "totp_secret": "T7HDV2OMHZVJ3ME47FCLTDFAEVOPQ7HU",
+                    "department": "IT",
+                    "position": "Frontend Developer",
+                    "employee_id": "2",
+                    "manager_id": "0",
+                    "groups": [
+                        "IT"
+                    ],
+                    "upn": "edupuis@oceancrests.kitchen",
+                    "spns": [ ],
+                    "manager": "jlenox",
+                    "path": "OU=users,OU=oceancrests,DC=ad,DC=oceancrests,DC=local"
+                },
+                "gmckinney": {
+                    "firstname": "Guy",
+                    "surname": "Mckinney",
+                    "email": "gmckinney@oceancrests.kitchen",
+                    "password": "cabbage",
+                    "totp_secret": "Q2J376HQUTQD4MZVK7ESZGDB5ILA4EDH",
+                    "department": "Operations",
+                    "position": "Janitor",
+                    "employee_id": "3",
+                    "manager_id": "0",
+                    "groups": [
+                        "Operations"
+                    ],
+                    "upn": "gmckinney@oceancrests.kitchen",
+                    "spns": [ ],
+                    "manager": "jlenox",
+                    "path": "OU=users,OU=oceancrests,DC=ad,DC=oceancrests,DC=local"
+                },
+                "lfranklin": {
+                    "firstname": "Louis",
+                    "surname": "Franklin",
+                    "email": "lfranklin@oceancrests.kitchen",
+                    "password": "wheels",
+                    "totp_secret": "VBYILADMFJ6OWLYO6O2TXXMDXDPZI66Q",
+                    "department": "front",
+                    "position": "server",
+                    "employee_id": "4",
+                    "manager_id": "0",
+                    "groups": [
+                        "front"
+                    ],
+                    "upn": "lfranklin@oceancrests.kitchen",
+                    "spns": [ ],
+                    "manager": "jlenox",
+                    "path": "OU=users,OU=oceancrests,DC=ad,DC=oceancrests,DC=local"
+                },
+                "lpedersen": {
+                    "firstname": "Lea",
+                    "surname": "Pedersen",
+                    "email": "lpedersen@oceancrests.kitchen",
+                    "password": "erica",
+                    "totp_secret": "BV5MJ3KFLXRMDBGUI37XYOMWR22BZUBY",
+                    "department": "front",
+                    "position": "server",
+                    "employee_id": "5",
+                    "manager_id": "0",
+                    "groups": [
+                        "front"
+                    ],
+                    "upn": "lpedersen@oceancrests.kitchen",
+                    "spns": [ ],
+                    "manager": "jlenox",
+                    "path": "OU=users,OU=oceancrests,DC=ad,DC=oceancrests,DC=local"
+                },
+                "jgarza": {
+                    "firstname": "Jeff",
+                    "surname": "Garza",
+                    "email": "jgarza@oceancrests.kitchen",
+                    "password": "harvey",
+                    "totp_secret": "SUUHTQW3B5FQJK34DFGLT7W3GRC36RJS",
+                    "department": "back",
+                    "position": "line_cook",
+                    "employee_id": "6",
+                    "manager_id": "0",
+                    "groups": [
+                        "back"
+                    ],
+                    "upn": "jgarza@oceancrests.kitchen",
+                    "spns": [ ],
+                    "manager": "jlenox",
+                    "path": "OU=users,OU=oceancrests,DC=ad,DC=oceancrests,DC=local"
+                },
+                "nbertrand": {
+                    "firstname": "Nina",
+                    "surname": "Bertrand",
+                    "email": "nbertrand@oceancrests.kitchen",
+                    "password": "xxxxxxxx",
+                    "totp_secret": "D3RYPYZJLP3W5M5PUOSL7POQC24CWYAG",
+                    "department": "back",
+                    "position": "line_cook",
+                    "employee_id": "7",
+                    "manager_id": "0",
+                    "groups": [
+                        "back"
+                    ],
+                    "upn": "nbertrand@oceancrests.kitchen",
+                    "spns": [ ],
+                    "manager": "jlenox",
+                    "path": "OU=users,OU=oceancrests,DC=ad,DC=oceancrests,DC=local"
+                },
+                "ckyler": {
+                    "firstname": "Creighton",
+                    "surname": "Kyler",
+                    "email": "ckyler@oceancrests.kitchen",
+                    "password": "smokingwings",
+                    "totp_secret": "2RFJHBU5XZFLSI7OCN3HEOS4SM3STAIR",
+                    "department": "front",
+                    "position": "Cashier",
+                    "employee_id": "8",
+                    "manager_id": "0",
+                    "groups": [
+                        "front"
+                    ],
+                    "upn": "ckyler@oceancrests.kitchen",
+                    "spns": [ ],
+                    "manager": "jlenox",
+                    "path": "OU=users,OU=oceancrests,DC=ad,DC=oceancrests,DC=local"
+                },
+                "bwright": {
+                    "firstname": "Barbara",
+                    "surname": "Wright",
+                    "email": "bwright@oceancrests.kitchen",
+                    "password": "rrpass1",
+                    "totp_secret": "WH265QCOAUJUHG7AUOCMXQ36RRB7RFDR",
+                    "department": "front",
+                    "position": "Cashier",
+                    "employee_id": "9",
+                    "manager_id": "0",
+                    "groups": [
+                        "front"
+                    ],
+                    "upn": "bwright@oceancrests.kitchen",
+                    "spns": [ ],
+                    "manager": "jlenox",
+                    "path": "OU=users,OU=oceancrests,DC=ad,DC=oceancrests,DC=local"
+                }
+            },
+            "gpo_mappings": {
+                "fw_adds": "089ff3ea-d689-42b7-8dcb-f5ac35836dbf"
+            },
+            "adcs": {
+                "common_name": "Oceancrests-ADCS",
+                "templates": [ "SSL" ]
+            }
+        }
+    }
+}

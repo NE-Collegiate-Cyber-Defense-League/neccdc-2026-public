@@ -1,0 +1,35 @@
+version: v2
+kind: user
+metadata:
+  name: {{ username }}
+spec:
+  local_auth:
+    mfa:
+    - version: v1
+      kind: mfa_device
+      addedAt: {{ mfa_added_date }}
+      lastUsed: {{ mfa_added_date }}
+      id: {{ uuid }}
+      metadata:
+        Name: TOTP
+        Namespace: default
+      totp:
+        key: {{ totp_token }}
+    password_hash: {{ password | password_hash('bcrypt') | b64encode }}
+  roles:
+  {% for role in teleport_roles %}
+  - {{ role }}
+  {% endfor %}
+{# Have this indented since its getting tabbed over automatically #}
+traits:
+    aws_role_arns: null
+    windows_logins:
+      - {{ username | default('null') }}
+    logins:
+      - {{ username }}
+{% if database_access | default("") == true %}
+    db_names:
+      - '*'
+    db_users:
+      - {{ username }}
+{% endif %}

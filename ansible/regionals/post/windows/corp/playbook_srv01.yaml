@@ -1,0 +1,39 @@
+---
+- hosts: "{{ ansible_limit | default('corp_win_srv') }}"
+  gather_facts: true
+  vars_files:
+    - "../shared/vars/config.json"
+  vars:
+    roles_path: "../shared/roles"
+    data: "{{ lab[domain] }}"
+
+  roles:
+    - { role: "{{ roles_path }}/base/timezone", set_timezone: "Eastern Standard Time" }
+    - { role: "{{ roles_path }}/base/hostname", set_hostname: "{{ hostname }}" }
+    - { role: "{{ roles_path }}/base/dns_client", dns_servers: "{{ data.dns_servers }}" }
+    - { role: "{{ roles_path }}/ad/domain_join" }
+    - { role: "{{ roles_path }}/ad/gpupdate" }
+    - { role: "{{ roles_path }}/alloy", alloy_template: "keycloak" }
+  tags: join
+
+- hosts: corp_win_srv
+  gather_facts: true
+  vars_files:
+    - "../shared/vars/config.json"
+  vars:
+    ansible_user: "black-team@{{ domain }}"
+    ansible_password: "{{ black_team_password }}"
+    ansible_become: true
+    ansible_become_user: "{{ ansible_user }}"
+    ansible_become_password: "{{ ansible_password }}"
+
+    roles_path: "../shared/roles"
+    data: "{{ lab[domain] }}"
+
+  roles:
+    - role: "{{ roles_path }}/keycloak"
+      vars:
+        keycloak_data: "files/keycloak"
+        keycloak_cert_path: "../../../../../documents/blue_team/regionals/chefops/team_{{ team }}/certificates/"
+        keycloak_ldaps_cert_subject: "ChefOps-ADCS"
+  tags: config

@@ -1,0 +1,31 @@
+---
+- name: Install OpenJDK 21 via Chocolatey
+  chocolatey.chocolatey.win_chocolatey:
+    name: openjdk
+    version: "21.0.0"
+    state: present
+
+- name: Install NSSM via Chocolatey
+  chocolatey.chocolatey.win_chocolatey:
+    name: nssm
+    state: present
+
+- name: Download Keycloak archive
+  ansible.windows.win_get_url:
+    url: "{{ keycloak_download_url }}"
+    dest: "C:\\Windows\\Temp\\{{ keycloak_archive_name }}"
+
+- name: Extract Keycloak archive to Program Files
+  community.windows.win_unzip:
+    src: "C:\\Windows\\Temp\\{{ keycloak_archive_name }}"
+    dest: "C:\\Program Files"
+    creates: "{{ keycloak_install_path }}\\bin\\kc.bat"
+
+- name: Clean up downloaded archive
+  ansible.windows.win_file:
+    path: "C:\\Windows\\Temp\\{{ keycloak_archive_name }}"
+    state: absent
+
+- name: Display Keycloak installation path
+  ansible.builtin.debug:
+    msg: "Keycloak {{ keycloak_version }} installed at {{ keycloak_install_path }}"

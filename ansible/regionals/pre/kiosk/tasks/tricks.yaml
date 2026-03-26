@@ -1,0 +1,29 @@
+---
+- name: Install cron package
+  ansible.builtin.apt:
+    name: cron
+    state: present
+  tags:
+   - tricks
+
+- name: Creates cron nginx sleep
+  ansible.builtin.cron:
+    name: nginx sleep
+    minute: "1"
+    hour: "22"
+    user: root
+    job: "systemctl stop nginx"
+    cron_file: nginx-sleep
+  tags:
+    - tricks
+
+- name: Creates cron nginx start
+  ansible.builtin.cron:
+    name: nginx wakeup
+    minute: "30"
+    hour: "6"
+    user: root
+    job: "systemctl start nginx"
+    cron_file: nginx-start
+  tags:
+    - tricks

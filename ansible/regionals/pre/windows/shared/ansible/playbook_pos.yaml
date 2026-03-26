@@ -1,0 +1,21 @@
+---
+- hosts: all
+  gather_facts: true
+  vars:
+    extra_packages:
+      - { name: "xampp-81", version: "8.1.6" }
+  vars_files:
+    - vars/common.yaml
+  roles:
+    - { role: "base/timezone", timezone: "Eastern Standard Time" }
+    - { role: "base/firewall" }
+    - { role: "base/indexing" }
+    - { role: "base/rsat_tools" }
+    - { role: "base/regedits" }
+    - { role: "blackteam/user" }
+    - { role: "choco/install", install: "{{ chocolatey_packages + extra_packages }}" }
+    - { role: "choco/teleport" }
+    - { role: "extra/bginfo" }
+    - { role: "extra/pwsh_modules", install: "{{ powershell_modules }}" }
+    - { role: "extra/openpos" }
+    - { role: "aws/ngen" }

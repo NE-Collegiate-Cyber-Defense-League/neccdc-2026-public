@@ -1,0 +1,62 @@
+---
+- name: Create gitea repository
+  ansible.builtin.uri:
+    url: "{{ gitea_url }}/api/v1/orgs/chefops/repos"
+    method: POST
+    headers:
+      Authorization: "token {{ gitea_token }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      name: "{{ repo_name }}"
+      description: "{{ repo_description }}"
+      private: "{{ repo_private }}"
+      auto_init: false
+      default_branch: main
+    status_code: [201, 409]
+  tags:
+    - gitea
+    - gitea_config
+
+- name: Initialize git repository
+  ansible.builtin.command:
+    cmd: git init
+  args:
+    chdir: /tmp/git_repo/{{ repo_name }}
+  tags:
+    - gitea
+    - gitea_config
+
+- name: Set default branch name
+  ansible.builtin.command:
+    cmd: git branch -M main
+  args:
+    chdir: /tmp/git_repo/{{ repo_name }}
+  ignore_errors: true
+  tags:
+    - gitea
+    - gitea_config
+
+- name: Create initial commit
+  ansible.builtin.shell:
+    cmd: |
+      git add -A
+      git commit -m "Initial repositories"
+  args:
+    chdir: /tmp/git_repo/{{ repo_name }}
+  register: initial_commit
+  failed_when:
+    - initial_commit.rc != 0
+    - "'nothing to commit' not in initial_commit.stdout"
+  tags:
+    - gitea
+    - gitea_config
+
+- name: Push to Gitea repository
+  ansible.builtin.command:
+    cmd: git push http://admin:{{ gitea_token | urlencode }}@localhost:3000/chefops/{{ repo_name }}.git main --force
+  args:
+    chdir: /tmp/git_repo/{{ repo_name }}
+  tags:
+    - gitea
+    - gitea_config

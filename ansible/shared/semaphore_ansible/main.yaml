@@ -1,0 +1,43 @@
+---
+- name: Create users accounts
+  ansible.builtin.user:
+    name: ansible
+    shell: "{{ shell_override | default('/bin/sh') }}"
+    uid: 2000
+    append: true
+  tags:
+    - ansible
+
+- name: Ensure group "ansible" exists
+  ansible.builtin.group:
+    name: ansible
+    state: present
+  tags:
+    - ansible
+
+- name: Make sure ansible user has self group
+  ansible.builtin.user:
+    name: ansible
+    groups: ansible
+    append: true
+  tags:
+    - ansible
+
+- name: Copy ansible user ssh key
+  ansible.posix.authorized_key:
+    user: ansible
+    state: present
+    manage_dir: true
+    key: "{{ lookup('file', 'files/id_rsa.pub') }}"
+  tags:
+    - ansible
+
+- name: Allow user has passwordless sudo
+  ansible.builtin.lineinfile:
+    dest: /etc/sudoers
+    state: present
+    regexp: "^%ansible"
+    line: "%ansible ALL=(ALL) NOPASSWD: ALL"
+    validate: "visudo -cf %s"
+  tags:
+    - ansible

@@ -1,0 +1,36 @@
+---
+- name: Fetch and reload Falco rules
+  hosts: falco_clients
+  become: true
+  vars:
+    falco_ftp_host: falco.example.com
+    falco_rules_tmp: /tmp/falco_rules.yaml
+    falco_rules_dest: /etc/falco/rules.d/custom_rules.yaml
+
+  tasks:
+    - name: Download Falco rules
+      ansible.builtin.command:
+        cmd: curl -fLo {{ falco_rules_tmp }} ftp://{{ falco_ftp_host }}/falco_rules.yaml
+
+    - name: Move rules into Falco config directory
+      ansible.builtin.copy:
+        src: "{{ falco_rules_tmp }}"
+        dest: "{{ falco_rules_dest }}"
+        owner: root
+        group: root
+        mode: "0644"
+        remote_src: true
+      become: true
+      become_user: root
+      notify: Reload Falco
+
+    - name: Remove temporary Falco rules file
+      ansible.builtin.file:
+        path: "{{ falco_rules_tmp }}"
+        state: absent
+
+  handlers:
+    - name: Reload Falco
+      ansible.builtin.systemd:
+        name: "{{ falco_service_name | default('falco') }}"
+        state: restarted

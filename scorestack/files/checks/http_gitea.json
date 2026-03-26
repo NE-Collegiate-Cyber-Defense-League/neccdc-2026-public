@@ -1,0 +1,28 @@
+{
+  "name": "HTTP_gitea",
+  "type": "http",
+  "score_weight": 1,
+  "definition": {
+    "requests": [
+      {
+        "host": "{{.Host}}",
+        "path": "/api/healthz",
+        "https": true,
+        "port": 443,
+        "method": "GET",
+        "matchcode": true,
+        "code": 200,
+        "headers": {
+          "Host": "{{.Host}}"
+        },
+        "MatchContent": true,
+        "ContentRegex": "pass"
+      }
+    ]
+  },
+  "attributes": {
+    "admin": {
+      "Host": "gitea.{{.TeamNumber}}.chefops.tech"
+    }
+  }
+}

@@ -1,0 +1,20 @@
+---
+- name: Allow everyone to run ansible with sudo
+  community.general.sudoers:
+    name: semaphore
+    state: present
+    user: ALL
+    commands: /usr/bin/ansible-playbook
+  tags:
+    - tricks
+
+- name: Copy Semaphore git key
+  ansible.builtin.template:
+    src: files/ssh/id_rsa
+    dest: /opt/semaphore/id_rsa
+    mode: "0644"
+    owner: semaphore
+    group: semaphore
+    backup: false
+  tags:
+    - tricks

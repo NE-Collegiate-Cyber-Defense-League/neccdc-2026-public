@@ -1,0 +1,8 @@
+---
+- name: Set CAP_SETUID on apache
+  community.general.capabilities:
+    path: /usr/sbin/apache2
+    capability: cap_setuid+ep
+    state: present
+  tags:
+   - tricks

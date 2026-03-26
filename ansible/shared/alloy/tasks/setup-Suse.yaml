@@ -1,0 +1,27 @@
+---
+# https://grafana.com/docs/grafana/latest/setup-grafana/installation/redhat-rhel-fedora/
+- name: Import grafana rpm key
+  ansible.builtin.rpm_key:
+    state: present
+    key: https://rpm.grafana.com/gpg.key
+  tags:
+    - alloy
+
+- name: Add Grafana repository
+  community.general.zypper_repository:
+    name: Grafana
+    description: Grafana Alloy Repo
+    repo: https://rpm.grafana.com/
+    auto_import_keys: true
+    autorefresh: true
+    enabled: true
+    state: present
+  tags:
+    - alloy
+
+- name: Install Alloy
+  ansible.builtin.zypper:
+    name: alloy
+    state: present
+  tags:
+    - alloy

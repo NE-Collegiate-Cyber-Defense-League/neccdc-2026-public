@@ -1,0 +1,3 @@
+---
+- name: generate native .NET images for CPU
+  ansible.builtin.win_dotnet_ngen:

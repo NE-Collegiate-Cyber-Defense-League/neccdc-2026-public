@@ -1,0 +1,244 @@
+- name: Setup Grafana Stack Environment
+  hosts: packer
+  become: true
+  vars:
+    server_name: "grafana"
+    users_data: "{{ lookup('file', '../../../../documents/employees/users.yaml') | from_yaml }}"
+  tasks:
+    - name: Set a hostname
+      ansible.builtin.hostname:
+        name: "{{ server_name }}"
+      tags:
+        - hostname
+
+    - name: Install required apt packages
+      ansible.builtin.apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg2
+          - lsb-release
+          - wget
+          - sudo
+          - unzip
+        state: present
+        update_cache: true
+
+    - name: Install Falco
+      ansible.builtin.include_tasks:
+        file: "../../../shared/falco_client/main.yaml"
+      vars:
+        falco_version: "0.38.2"
+      tags:
+        - falco
+
+    - name: Weaken SSH
+      ansible.builtin.include_tasks:
+        file: "../../../shared/weaken_ssh/main.yaml"
+      tags:
+        - ssh
+
+    - name: Set Ansible user
+      ansible.builtin.include_tasks:
+        file: "../../../shared/semaphore_ansible/main.yaml"
+      tags:
+        - ansible
+
+    - name: Download and install amazon-ssm-agent deb package
+      ansible.builtin.apt:
+        deb: "https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/debian_amd64/amazon-ssm-agent.deb"
+
+    - name: Enable Amazon SSM Agent service
+      ansible.builtin.service:
+        enabled: true
+        state: started
+        name: "amazon-ssm-agent"
+
+    # The config generated here gets overwritten in the next task
+    - name: Install Teleport client
+      ansible.builtin.include_tasks:
+        file: "../../../shared/teleport_client/main.yaml"
+      vars:
+        teleport_node_name: "{{ server_name }}"
+        teleport_join_token: STF5Y7KCA80S7IOHEPUNVB6SRMTX1U78
+        teleport_node_label:
+          service: grafana
+        teleport_app_service_enabled: "yes"
+        teleport_apps:
+          - name: grafana
+            uri: "http://localhost:9000"
+            labels:
+              service: grafana
+      tags:
+        - teleport
+
+    - name: Overwrite Teleport Config
+      ansible.builtin.template:
+        src: files/teleport.yaml
+        dest: /etc/teleport.yaml
+        validate: "/usr/local/bin/teleport configure --test %s"
+        mode: "0644"
+      vars:
+        teleport_join_token: STF5Y7KCA80S7IOHEPUNVB6SRMTX1U78
+      tags:
+        - teleport
+
+    - name: Setup black team task
+      ansible.builtin.include_tasks:
+        file: "../../../shared/black_team/main.yaml"
+      vars:
+        root_groups: sudo
+      tags:
+        - black-team
+
+    - name: Ensure old versions of Docker are not installed
+      ansible.builtin.apt:
+        name: ["docker", "docker-engine", "docker.io", "containerd", "runc"]
+        state: absent
+
+    - name: Add Docker Repository
+      ansible.builtin.deb822_repository:
+        name: docker
+        types: [deb]
+        uris: "https://download.docker.com/linux/{{ ansible_facts['distribution'] | lower }}"
+        signed_by: "https://download.docker.com/linux/{{ ansible_facts['distribution'] | lower }}/gpg"
+        suites: ["{{ ansible_facts['distribution_release'] | lower }}"]
+        components: [stable]
+        state: present
+        enabled: yes
+
+    - name: Install Packages
+      ansible.builtin.apt:
+        name:
+          - "docker-compose-plugin"
+          - "docker-ce=5:28.5.2-1~debian.11~bullseye"
+          - "docker-ce-cli=5:28.5.2-1~debian.11~bullseye"
+          - "docker-ce-rootless-extras=5:28.5.2-1~debian.11~bullseye"
+          - "containerd.io"
+          - "docker-buildx-plugin"
+        state: present
+        update_cache: true
+
+    - name: Make sure users in the docker group
+      ansible.builtin.user:
+        name: "{{ item }}"
+        groups: docker
+        append: yes
+      loop:
+        - admin
+        - black-team
+
+    - name: Create grafana directory
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: root
+        group: root
+      with_items:
+        - /opt/grafana
+        - /opt/grafana/ssl
+        - /opt/grafana/config
+        - /opt/grafana/dashboards
+
+    - name: Copy docker-compose file
+      ansible.builtin.copy:
+        src: ./files/{{ item }}
+        dest: /opt/grafana/{{ item }}
+        owner: root
+        group: root
+        mode: "0644"
+      with_items:
+        - compose.yaml
+        - mimir.yaml
+        - loki.yaml
+        - nginx.conf
+        - traefik.yaml
+        - traefik-ssl.yaml
+        - prometheus.yaml
+        - grafana-provisioning-datasources.yaml
+        - grafana-provisioning-dashboards.yaml
+        - grafana.ini
+
+    - name: Copy dashboards
+      ansible.builtin.copy:
+        src: ./files/dashboards/
+        dest: /opt/grafana/dashboards/
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Pull Docker Compose containers
+      ansible.builtin.shell:
+        cmd: docker compose pull
+        chdir: /opt/grafana
+
+    - name: Setup Alloy
+      ansible.builtin.include_tasks:
+        file: "../../../shared/alloy/main.yaml"
+      vars:
+        mode: "pre"
+        include_docker: true
+        extra_config: |
+          prometheus.scrape "nginx" {
+            targets = [
+              {
+                __address__ = "127.0.0.1:9152",
+                instance    = constants.hostname,
+                job         = "nginx",
+              },
+            ]
+            forward_to      = [prometheus.remote_write.remote.receiver]
+            scrape_interval = "30s"
+          }
+      tags:
+        - alloy
+
+    - name: Create Linux Groups
+      ansible.builtin.group:
+        name: "{{ item | regex_replace(' ', '-') | lower }}"
+        state: present
+      with_items:
+        - engineering
+        - security
+      tags:
+        - users
+
+    - name: Create System Admin Engineering Users
+      ansible.builtin.user:
+        name: "{{ item.username | regex_replace(' ', '.') | lower }}"
+        password: "{{ item.password | password_hash('sha512') }}"
+        append: true
+        groups: "engineering,adm,sudo,systemd-journal,docker"
+        shell: "/bin/bash"
+        state: present
+      when: item.position == "System Admin"
+      with_items: "{{ users_data.users }}"
+      tags:
+        - users
+
+    - name: Create Security Users
+      ansible.builtin.user:
+        name: "{{ item.username | regex_replace(' ', '.') | lower }}"
+        password: "{{ item.password | password_hash('sha512') }}"
+        append: true
+        groups: "security,adm,systemd-journal,docker,sudo"
+        shell: "/usr/bin/bash"
+        state: present
+      when: item.department == "Security"
+      with_items: "{{ users_data.users }}"
+      tags:
+        - users
+
+    - name: Create CISO user
+      ansible.builtin.user:
+        name: "{{ item.username | regex_replace(' ', '.') | lower }}"
+        password: "{{ item.password | password_hash('sha512') }}"
+        append: true
+        groups: security,engineering,adm,systemd-journal,docker,sudo
+        shell: "/bin/sh"
+        state: present
+      when: item.position == "CISO"
+      with_items: "{{ users_data.users }}"
+      tags:
+        - users

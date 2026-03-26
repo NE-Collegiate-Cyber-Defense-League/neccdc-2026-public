@@ -1,0 +1,44 @@
+---
+- name: Configure Kiosks
+  hosts: kiosk
+  become: true
+  vars:
+    team_number: "{{ hostvars[inventory_hostname]['team'] }}"
+  tasks:
+    - name: Configure Alloy for Kiosk
+      ansible.builtin.include_tasks:
+        file: "../../../shared/alloy/main.yaml"
+      vars:
+        mode: "post"
+      tags:
+        - alloy
+
+    - name: Copy full chain certificates
+      ansible.builtin.copy:
+        src: "../../../../documents/blue_team/qualifiers/team_{{ team_number }}/certificates/{{ item }}"
+        dest: /etc/nginx/{{ item }}
+        mode: "0400"
+        owner: root
+        group: root
+      with_items:
+        - fullchain.crt
+        - private.key
+      tags:
+        - certificates
+
+    - name: Update Nginx Config with Team Specific Hostname
+      ansible.builtin.replace:
+        path: "/etc/nginx/sites-enabled/kiosk.chefops.tech.conf"
+        regexp: "{{ item.regexp }}"
+        replace: "{{ item.replace }}"
+      with_items:
+        - {
+            regexp: 'kiosk\.chefops\.tech',
+            replace: "{{ inventory_hostname_short }}.{{ team_number }}.chefops.tech",
+          }
+
+    - name: Start Kiosk Nginx
+      ansible.builtin.systemd:
+        name: nginx
+        state: restarted
+        enabled: true

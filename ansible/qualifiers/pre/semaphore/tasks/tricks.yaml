@@ -1,0 +1,9 @@
+---
+- name: Allow everyone to run ansible with sudo
+  community.general.sudoers:
+    name: semaphore
+    state: present
+    user: ALL
+    commands: /usr/bin/ansible-playbook
+  tags:
+    - tricks

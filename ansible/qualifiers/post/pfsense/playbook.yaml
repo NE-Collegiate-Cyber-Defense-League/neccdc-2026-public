@@ -1,0 +1,53 @@
+---
+- name: Setup pfSense
+  hosts: firewall
+  become: false
+  gather_facts: true
+  vars:
+    ansible_ssh_args: "-C -o ControlMaster=auto"
+    load_team_certs: true
+  vars_files:
+    - vars/main.yaml
+    - vars/certs.yaml
+  tasks:
+    - name: Load team cert material into certs.team (when enabled)
+      ansible.builtin.set_fact:
+        certs: >-
+          {{ certs | combine({
+            'team': {
+              'cert': certs.team.cert | combine({
+                'crt': lookup('ansible.builtin.file', certs.team.cert.crt_path),
+                'prv': lookup('ansible.builtin.file', certs.team.cert.prv_path)
+              }, recursive=True),
+              'ca': certs.team.ca | combine({
+                'crt': lookup('ansible.builtin.file', certs.team.ca.ca_path)
+              }, recursive=True)
+            }
+          }, recursive=True) }}
+      when: load_team_certs | bool
+
+    - name: Check if RESTAPI is installed
+      ansible.builtin.shell:
+        cmd: "pfSsh.php playback listpkg"
+      register: pkg_output
+
+    - name: Install pfSense RESTAPI using cli
+      ansible.builtin.command:
+        cmd: "pkg-static -C /dev/null add {{ pfsense_api_pkg }}"
+      register: _api_install
+      changed_when: '"Initiating webConfigurator" in _api_install.stdout'
+      when: "'RESTAPI' not in pkg_output.stdout"
+
+    - name: Render Jinja2 template
+      ansible.builtin.template:
+        src: templates/pfsense.xml.j2
+        dest: "/conf/config.xml"
+      vars:
+        hostname: firewall
+  
+    - name: Reboot pfSense
+      ansible.builtin.reboot:
+
+    - name: Run log clearing script
+      ansible.builtin.command:
+        cmd: /usr/local/sbin/pfSsh.php playback clearlogfiles

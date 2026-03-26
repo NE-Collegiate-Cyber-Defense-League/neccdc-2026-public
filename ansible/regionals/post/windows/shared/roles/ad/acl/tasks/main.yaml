@@ -1,0 +1,12 @@
+- name: set acl 
+  ansible.windows.win_powershell:
+    script: "{{ lookup('file', 'Create-ACL.ps1') }}"
+    parameters:
+      for: "{{item.value.for}}"
+      to: "{{item.value.to}}"
+      right: "{{item.value.right}}"
+      inheritance: "{{item.value.inheritance}}"
+    error_action: stop
+  loop: "{{ ad_acls | default({}) | dict2items }}"
+  when: ad_acls is defined and ad_acls | length > 0
+  

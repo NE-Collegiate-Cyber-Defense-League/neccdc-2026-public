@@ -1,0 +1,84 @@
+---
+- name: Domain Join for ADFS
+  hosts: "{{ ansible_limit | default('windows_adfs') }}"
+  gather_facts: true
+
+  tasks:
+    - name: Include Base Windows Role
+      ansible.builtin.include_role:
+        name: ../roles/base.win
+      vars:
+        set_hostname: "{{ hostname }}"
+        dns_servers:
+          - "{{ team_address.windows_ad.ipv4 }}"
+          - "{{ team_address.windows_ad.ipv6 | default(omit) }}"
+        ntp_resync: true
+        prefer_ipv4_over_ipv6: true
+
+    - name: Join Object to Active Directory Domain
+      microsoft.ad.membership:
+       hostname: "{{ hostname }}"
+       dns_domain_name: "{{ adserver_domain }}"
+       domain_admin_user: "{{ ansible_user }}@{{ adserver_domain }}"
+       domain_admin_password: "{{ ansible_password }}"
+       state: domain
+      register: result_domain
+    
+    - name: Reboot Post Domain Join if Required
+      ansible.windows.win_reboot:
+      when: result_domain.reboot_required
+
+- name: Request ADFS Certificate
+  hosts: "{{ ansible_limit | default('windows_adfs') }}"
+  gather_facts: true
+  vars:
+    ansible_user: "administrator@{{ ad.domain }}"
+    ansible_become: true
+    ansible_become_method: runas
+    ansible_become_user: "{{ ansible_user }}"
+    ansible_become_password: "{{ ansible_password }}"
+
+  tasks:
+    - name: Request ADFS Certificate
+      ansible.windows.win_powershell:
+        script: |
+          Import-Module ActiveDirectory
+          $certPath = "Cert:\LocalMachine\My"
+          $existingCert = gci -Path $certPath | where { $_.Subject -like "*{{hostname}}.{{ ad.domain }}*" }
+
+          $SANs = @(
+            "{{hostname}}.{{ ad.domain }}",
+            "sts.{{ ad.domain }}",
+            "certauth.sts.{{ ad.domain }}"
+          )
+
+          if ($existingCert) {
+              Write-Host "ADFS certificate already exists with thumbprint: $($existingCert.Thumbprint)"
+              $Ansible.Changed = $false
+          } else {
+              Write-Host "No existing ADFS certificate found. Requesting new certificate..."
+              $params = @{
+                  Template          = 'SSLCertificateTemplate'
+                  SubjectName       = 'CN={{hostname}}.{{ ad.domain }}'
+                  DnsName           = $SANs
+                  Url               = 'ldap:'
+                  CertStoreLocation = $certPath
+              }
+              Get-Certificate @params
+              $Ansible.Changed = $true
+          }
+        error_action: stop
+
+    - name: Create KDSRoot Key
+      ansible.windows.win_powershell:
+        script: |
+          $Ansible.Changed = $false
+          if (-not (Get-KdsRootKey)) {
+            Add-KdsRootKey -EffectiveTime ((get-date).addhours(-10)) | Out-Null
+            $Ansible.Changed = $true
+          }
+        error_action: stop
+
+    - name: Include WSUS Role
+      ansible.builtin.include_role:
+        name: ../roles/ludus_wsus

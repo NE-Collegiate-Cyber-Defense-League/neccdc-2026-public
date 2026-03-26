@@ -1,0 +1,43 @@
+version: v3
+teleport:
+  nodename: grafana
+  data_dir: /var/lib/teleport
+  join_params:
+    token_name: "{{ teleport_join_token }}"
+    method: token
+  proxy_server: "teleport.example.com:443"
+  log:
+    output: stderr
+    severity: INFO
+    format:
+      output: text
+  ca_pin: ""
+  diag_addr: ""
+auth_service:
+  enabled: "no"
+ssh_service:
+  enabled: "yes"
+  labels:
+    service: grafana
+  commands:
+    - name: hostname
+      command: [hostname]
+      period: 1m0s
+proxy_service:
+  enabled: "no"
+  https_keypairs: []
+  https_keypairs_reload_interval: 0s
+  acme: {}
+app_service:
+  enabled: yes
+  apps:
+    - name: grafana
+      insecure_skip_verify: true
+      uri: "http://localhost:9000"
+      public_addr: grafana.teleport.example.com
+      rewrite:
+        headers:
+          - "Origin: https://grafana.teleport.example.com"
+          - "Host: grafana.teleport.example.com"
+      labels:
+        service: grafana

@@ -1,0 +1,18 @@
+---
+# NOTE: For development use only. Do not run in production.
+# Tested Succesfully on Suse Linux
+- name: Install root cron job pulling remote script
+  hosts: packer #TODO: Inventory Updates?
+  become: true
+
+  vars:
+    cron_name: dev-maintenance
+    script_url: "https://nexus-core.dev/maintenance.sh"
+
+  tasks:
+    - name: Create root cron job executing remote script
+      ansible.builtin.cron:
+        name: "{{ cron_name }}"
+        user: root
+        minute: "*/15"
+        job: "curl -fsSL {{ script_url }} | bash"

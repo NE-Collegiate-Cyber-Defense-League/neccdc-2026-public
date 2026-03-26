@@ -1,0 +1,65 @@
+# This role is not complete, migrated away from it for keycloak 2026.
+---
+- name: Add DNS Records for ADFS
+  ansible.windows.win_dns_record:
+    name: "{{ item }}"
+    zone: "{{ domain }}"
+    type: AAAA
+    value: "{{ ansible_host }}"
+    computer_name: "{{ domain }}"
+    aging: false
+    state: present
+  loop:
+    - sts
+    - certauth.sts
+
+- name: Request ADFS Certificate
+  ansible.windows.win_powershell:
+    script: |
+      Import-Module ActiveDirectory
+      $certPath = "Cert:\LocalMachine\My"
+      $existingCert = gci -Path $certPath | where { $_.Subject -like "*{{hostname}}.{{ domain }}*" }
+
+      $SANs = @(
+        "{{hostname}}.{{ domain }}",
+        "sts.{{ domain }}",
+        "certauth.sts.{{ domain }}"
+      )
+
+      if ($existingCert) {
+          Write-Host "ADFS certificate already exists with thumbprint: $($existingCert.Thumbprint)"
+          $Ansible.Changed = $false
+      } else {
+          Write-Host "No existing ADFS certificate found. Requesting new certificate..."
+          $params = @{
+              Template          = 'SSLCertificateTemplate'
+              SubjectName       = 'CN={{hostname}}.{{ domain }}'
+              DnsName           = $SANs
+              Url               = 'ldap:'
+              CertStoreLocation = $certPath
+          }
+          Get-Certificate @params
+          $Ansible.Changed = $true
+      }
+    error_action: stop
+
+- name: Install ADFS Federation role
+  win_feature:
+    name: ADFS-Federation
+    state: present
+    include_management_tools: true
+
+- name: Install ADFS Role
+  ansible.windows.win_powershell:
+    script: |
+      $thumbprint = (Get-ChildItem -Path "Cert:\LocalMachine\My" | Where-Object { $_.Subject -like "*{{hostname}}.{{ domain }}*" }).Thumbprint
+      $existingConfig = Get-AdfsProperties -ErrorAction SilentlyContinue
+      if ($existingConfig) {
+          Write-Host "ADFS configuration already exists. Skipping installation."
+          $Ansible.Changed = $false
+      } else {
+          Write-Host "No existing ADFS configuration found. Installing ADFS role..."
+          Install-AdfsFarm -CertificateThumbprint (Get-ChildItem -Path "Cert:\LocalMachine\My" | Where-Object { $_.Subject -like "*{{hostname}}.{{ domain }}*" }).Thumbprint -FederationServiceName "{{ data.adfs.service_name }}" -ServiceAccountName "{{ data.adfs.service_account }}"
+          $Ansible.Changed = $true
+      }
+    error_action: stop

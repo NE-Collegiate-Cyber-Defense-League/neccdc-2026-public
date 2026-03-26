@@ -1,0 +1,42 @@
+---
+- name: WordPress / MariaDB backup
+  hosts: wordpress
+  become: true
+  vars:
+    db_backup_dir: /var/backups/mariadb
+    db_name: wordpress
+    db_user: wpuser
+    db_password: ""
+    backup_retention_days: 7
+
+  tasks:
+    - name: Ensure backup directory exists
+      ansible.builtin.file:
+        path: "{{ db_backup_dir }}"
+        state: directory
+        mode: "0750"
+        owner: root
+        group: root
+
+    - name: Dump MariaDB database
+      ansible.builtin.shell: |
+        mysqldump -u {{ db_user }} -p{{ db_password }} {{ db_name }} | gzip > {{ db_backup_dir }}/wordpress-{{ ansible_date_time.epoch }}.sql.gz
+      args:
+        executable: /bin/bash
+      no_log: true
+      register: dump_result
+      changed_when: dump_result.rc == 0
+
+    - name: Remove backups older than retention
+      ansible.builtin.find:
+        paths: "{{ db_backup_dir }}"
+        patterns: "wordpress-*.sql.gz"
+        age: "{{ backup_retention_days }}d"
+      register: old_backups
+
+    - name: Delete old backup files
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: absent
+      loop: "{{ old_backups.files }}"
+      when: old_backups.matched > 0

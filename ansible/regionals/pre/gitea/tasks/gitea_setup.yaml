@@ -1,0 +1,148 @@
+---
+# key is in pre/semaphore/files/ssh
+- name: Setup admin semaphore ssh key
+  ansible.builtin.uri:
+    url: "{{ gitea_url }}/api/v1/user/keys"
+    method: POST
+    headers:
+      Authorization: "token {{ gitea_token }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      title: Semaphore
+      key: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDQHBxC2y4phM3RNXpp/fN+S9OmbirocQiZ2I9dOYSEfS6t6MijMrhUDZW+zAqb3RGekIYhdnd2oQCXVDbBhGf6LQFo/eIXGoXpnfAQg9hy1fvUC818RslOpMZ9m2CIrNli2WNHndYuQMzRtPTbDwWZvsPE7yO4hWM38RcU0zcvZ5e9F/YyVdmQ1RkwV2hJ9WoYApHh1OSERwlRPHx0qP+syzLsKiWYvH4a/ptMjbUMiUajJy483uoinLKcUhanWfB+6HUmdf5gpGL0naDpH5IBdl68YmyJxnhxhrMv3UeI+YaZpzZ7vRXLQ8RcY9rfo6Fan9eZy0eY9QNEQbnZOggW13Qttp6wIZmTCH8k3XcosP5fctOW9JGStQJzcDC6/2yP2/zE92pkh0amH6IAc0Jq8CfEleGlA+QoG5PxdmPCi1qMWWA6MR3sbQsbSiApuxhAzfZUJRWztSF+8iLRv7uIYL57V6K2he+cFTcZbmcLsKwFqjwo0UJrA/RfYnYpmE0= admin@semaphore"
+    status_code: [201, 422]
+  tags:
+    - gitea
+    - gitea_config
+
+- name: Create organization in Gitea
+  ansible.builtin.uri:
+    url: "{{ gitea_url }}/api/v1/orgs"
+    method: POST
+    headers:
+      Authorization: "token {{ gitea_token }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      username: chefops
+      full_name: ChefOps
+      description: "Internal ChefOps repositories"
+      visibility: public
+      location: "Lowell, Massachusetts"
+      website: "https://chefops.tech"
+    status_code: [201, 422]
+  register: create_org
+  tags:
+    - gitea
+    - gitea_config
+
+- name: Create organization teams in Gitea
+  ansible.builtin.uri:
+    url: "{{ gitea_url }}/api/v1/orgs/chefops/teams"
+    method: POST
+    headers:
+      Authorization: "token {{ gitea_token }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      name: "{{ item.name }}"
+      description: "{{ item.description }}"
+      can_create_org_repo: true
+      includes_all_repositories: true
+      permissions: "{{ item.permissions }}"
+      units: [
+        "repo.actions",
+        "repo.code",
+        "repo.issues",
+        "repo.ext_issues",
+        "repo.wiki",
+        "repo.ext_wiki",
+        "repo.pulls",
+        "repo.releases",
+        "repo.projects",
+        "repo.ext_wiki"
+      ]
+    status_code: [201, 422]
+  register: create_org
+  with_items:
+    - name: security
+      description: "Securing ChefOps"
+      permissions: write
+    - name: engineering
+      description: ""
+      permissions: admin
+    - name: operations
+      description: "Custom Operations"
+      permissions: read
+  tags:
+    - gitea
+    - gitea_config
+
+
+- name: Configure git name & email
+  ansible.builtin.shell:
+    cmd: |
+      git config --global user.email "admin@chefops.tech"
+      git config --global user.name "admin"
+  tags:
+    - gitea
+    - gitea_config
+
+- name: Create a temporary repository directory
+  ansible.builtin.file:
+    path: /tmp/git_repo
+    state: directory
+    mode: '0700'
+  tags:
+    - gitea
+    - gitea_config
+
+- name: Copy repository files
+  ansible.builtin.copy:
+    src: files/repositories/
+    dest: /tmp/git_repo/
+    owner: root
+    group: root
+    mode: '0600'
+  tags:
+    - gitea
+    - gitea_config
+
+- name: Create gitea repos
+  ansible.builtin.include_tasks:
+    file: "tasks/gitea_setup_repo.yaml"
+  vars:
+    repo_name: "{{ item.repo_name }}"
+    repo_description: "{{ item.repo_description }}"
+    repo_private: "{{ item.repo_private }}"
+  with_items:
+    - repo_name: ansible
+      repo_description: "Semaphore Ansible Playbooks"
+      repo_private: false
+    - repo_name: alloy
+      repo_description: "Alloy modules repository"
+      repo_private: false
+    - repo_name: backups
+      repo_description: "Client system backups"
+      repo_private: true
+    - repo_name: customerDocs
+      repo_description: "ChefOps documentation and frequently asked questions"
+      repo_private: false
+    - repo_name: falco
+      repo_description: "Syscall rules and triggers"
+      repo_private: false
+    - repo_name: notes
+      repo_description: "Day-Two-Day Operation Notes"
+      repo_private: true
+  tags:
+    - gitea
+    - gitea_config
+
+- name: Remove the temporary repository directory
+  ansible.builtin.file:
+    path: /tmp/git_repo
+    state: absent
+  tags:
+    - gitea
+    - gitea_config

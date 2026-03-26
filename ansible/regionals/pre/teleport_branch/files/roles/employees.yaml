@@ -1,0 +1,13 @@
+kind: role
+version: v7
+metadata:
+  name: employee
+  description: General access granted to all employees to internal systems
+spec:
+  allow:
+    app_labels:
+      system: internal
+    logins:
+      - '{{internal.logins}}'
+    node_labels:
+      system: internal

@@ -1,0 +1,29 @@
+---
+- name: Domain Join for POS
+  hosts: "{{ ansible_limit | default('windows_pos') }}"
+  gather_facts: true
+
+  tasks:
+    - name: Include Base Windows Role
+      ansible.builtin.include_role:
+        name: ../roles/base.win
+      vars:
+        set_hostname: "{{ hostname }}"
+        dns_servers:
+          - "{{ team_address.windows_ad.ipv4 }}"
+          - "{{ team_address.windows_ad.ipv6 | default(omit) }}"
+        ntp_resync: true
+        prefer_ipv4_over_ipv6: false
+
+    - name: Join Object to Active Directory Domain
+      microsoft.ad.membership:
+       hostname: "{{ hostname }}"
+       dns_domain_name: "{{ adserver_domain }}"
+       domain_admin_user: "{{ ansible_user }}@{{ adserver_domain }}"
+       domain_admin_password: "{{ ansible_password }}"
+       state: domain
+      register: result_domain
+
+    - name: Reboot Post Domain Join if Required
+      ansible.windows.win_reboot:
+      when: result_domain.reboot_required

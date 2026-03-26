@@ -1,0 +1,11 @@
+kind: role
+version: v7
+metadata:
+  name: semaphore
+  description: Semaphore web access
+spec:
+  options:
+    max_session_ttl: 8h
+  allow:
+    app_labels:
+      service: semaphore

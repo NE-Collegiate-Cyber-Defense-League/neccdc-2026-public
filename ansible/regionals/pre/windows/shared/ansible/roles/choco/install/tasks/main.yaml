@@ -1,0 +1,15 @@
+---
+- name: Ensure Chocolatey is installed
+  ansible.builtin.win_chocolatey:
+    name: chocolatey
+    state: present
+
+- name: Install Chocolatey packages
+  ansible.builtin.win_chocolatey:
+    name: "{{ item.name }}"
+    version: "{{ item.version | default(omit) }}"
+    package_params: "{{ item.package_params | default(omit) }}"
+    state: present
+    force: true
+    ignore_checksums: true
+  loop: "{{ install }}"

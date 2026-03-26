@@ -1,0 +1,22 @@
+kind: trusted_cluster
+version: v2
+metadata:
+  name: teleport
+spec:
+  enabled: true
+  token: {{ teleport_token }}
+  tunnel_addr: teleport.{{ team }}.chefops.tech:8443
+  web_proxy_addr: teleport.{{ team }}.chefops.tech:8443
+  role_map:
+    - remote: access
+      local:
+        - access
+    - remote: support
+      local:
+        - external-support
+    - remote: support-linux
+      local:
+        - external-admin
+    - remote: support-windows
+      local:
+        - external-windows

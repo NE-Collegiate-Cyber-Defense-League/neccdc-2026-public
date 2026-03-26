@@ -1,0 +1,49 @@
+---
+- hosts: all
+  gather_facts: false
+  vars_files:
+    - vars/main.yaml
+
+  tasks:
+    - name: Remove packages
+      ansible.builtin.package:
+        name: "{{ packages_remove[pfsense_version] }}"
+        state: absent
+ 
+    - name: Install base packages
+      ansible.builtin.package:
+        name:
+          - "{{ pfsense_sudo_pkg }}"
+          - "{{ pfsense_haproxy_pkg }}"
+        state: present
+
+    - name: Check if RESTAPI is installed
+      ansible.builtin.shell:
+        cmd: "pfSsh.php playback listpkg"
+      register: pkg_output
+
+    - name: Install pfSense RESTAPI using cli
+      ansible.builtin.command:
+        cmd: "pkg-static -C /dev/null add {{ pfsense_api_pkg }}"
+      register: _api_install
+      changed_when: '"Initiating webConfigurator" in _api_install.stdout'
+      when: "'RESTAPI' not in pkg_output.stdout"
+
+    - name: Copy base configuration
+      ansible.builtin.copy:
+        src: "files/config.xml"
+        dest: "/conf/config.xml"
+
+    - name: Reload pfSense
+      ansible.builtin.command:
+        cmd: /etc/rc.reload_all
+
+    - name: Remove startup wizard marker
+      ansible.builtin.file:
+        path: /conf/trigger_initial_wizard
+        state: absent
+
+    - name: Remove Notices
+      ansible.builtin.file:
+        path: /tmp/notices/notices.serial
+        state: absent

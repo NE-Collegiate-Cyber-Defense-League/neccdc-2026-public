@@ -1,0 +1,18 @@
+- name: Establish Active Directory Primary Domain
+  microsoft.ad.domain:
+    dns_domain_name: "{{ domain }}"
+    domain_netbios_name: "{{ netbios }}"
+    safe_mode_password: "{{ ansible_password }}"
+    reboot_timeout: 600
+    reboot: true
+
+- name: Update facts after domain join
+  ansible.builtin.setup:
+
+- name: Wait for SYSVOL share
+  ansible.windows.win_shell: |
+    if (Get-SmbShare -Name SYSVOL -ErrorAction SilentlyContinue) { "ready" }
+  register: sysvol_check
+  retries: 20
+  delay: 30
+  until: sysvol_check.stdout.strip() == "ready"

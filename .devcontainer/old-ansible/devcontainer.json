@@ -1,0 +1,33 @@
+{
+  "name": "ansible-dev-container-old",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "containerUser": "root",
+  "updateRemoteUserUID": true,
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "4ops.packer",
+        "eamodio.gitlens",
+        "nhoizey.gremlins",
+        "redhat.ansible",
+        "redhat.vscode-redhat-account",
+        "wholroyd.jinja"
+      ]
+    },
+    "settings": {
+      "remote.containers.copyGitConfig": false
+    }
+  },
+  "mounts": [
+    // Copy the ssh key into the container
+    "source=${localWorkspaceFolder}/documents/black_team/id_rsa,target=/root/.ssh/id_rsa,type=bind,consistency=cached",
+    // Copy AWS credentials into the container
+    "source=${localEnv:HOME}/.aws,target=/root/.aws,type=bind"
+  ],
+  "containerEnv": {
+    "ANSIBLE_CONFIG": "/workspaces/neccdc-2026/ansible/qualifiers/inventory/ansible.cfg",
+    "AWS_PROFILE": "neccdc"
+  }
+}

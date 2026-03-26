@@ -1,0 +1,100 @@
+---
+- name: Configure Grafana Stack For Team
+  hosts: grafana
+  become: true
+  vars:
+    team_number: "{{ hostvars[inventory_hostname]['team'] }}"
+  tasks:
+    - name: Copy full chain certificates
+      ansible.builtin.copy:
+        src: "../../../../documents/blue_team/regionals/chefops/team_{{ team_number }}/certificates/{{ item }}"
+        dest: /opt/grafana/ssl/{{ item }}
+        mode: "0400"
+        owner: root
+        group: root
+      with_items:
+        - fullchain.crt
+        - private.key
+      tags:
+        - certificates
+
+    - name: Copy Grafana configuration file
+      ansible.builtin.template:
+        src: "templates/grafana.ini.j2"
+        dest: /opt/grafana/grafana.ini
+        mode: "0644"
+        owner: root
+        group: root
+      tags:
+        - grafana
+
+    - name: Configure Alloy
+      ansible.builtin.include_tasks:
+        file: "../../../shared/alloy/main.yaml"
+      vars:
+        mode: "post"
+        mimir_server_name: "http://localhost:9008"
+        loki_server_name: "http://localhost:9009"
+      tags:
+        - alloy
+
+    - name: Update Docker Hostname Names
+      ansible.builtin.replace:
+        path: /opt/grafana/{{ item }}
+        regexp: "<team_number>"
+        replace: "{{ team_number }}"
+      with_items:
+        - compose.yaml
+        - mimir-compose.yaml
+        - loki-compose.yaml
+
+    - name: Update Grafana configuration with Discord Webhook URL
+      ansible.builtin.replace:
+        path: /opt/grafana/grafana-provisioning-contact-points.yaml
+        regexp: "DISCORD_WEBHOOK_URL"
+        replace: "{{ discord_webhook_url[team_number | int] }}"
+
+    - name: Start Grafana Stack
+      community.docker.docker_compose_v2:
+        project_src: /opt/grafana
+        state: present
+
+- name: Configure Alloy Clients
+  hosts: grafana_clients
+  become: true
+  vars:
+    team_number: "{{ hostvars[inventory_hostname]['team'] }}"
+  tasks:
+    - name: Configure Alloy for Kiosk
+      ansible.builtin.include_tasks:
+        file: "../../../shared/alloy/main.yaml"
+      vars:
+        mode: "post"
+      tags:
+        - alloy
+
+    - name: Enable Falco
+      ansible.builtin.service:
+        name: "{{ falco_service_override | default('falco-modern-bpf') }}"
+        enabled: true
+      notify:
+        - Restart Alloy
+        - Restart Falco
+      tags:
+        - falco
+
+  handlers:
+    - name: Restart Alloy
+      ansible.builtin.service:
+        name: alloy
+        state: restarted
+      tags:
+        - alloy
+        - falco
+
+    - name: Restart Falco
+      ansible.builtin.service:
+        name: "{{ falco_service_override | default('falco-modern-bpf') }}"
+        state: restarted
+      tags:
+        - falco

@@ -1,0 +1,67 @@
+---
+- name: Update apt cache and install all packages
+  ansible.builtin.apt:
+    update_cache: true
+    name:
+      - mariadb-server
+      - python3-pymysql
+      - apache2
+      - libapache2-mod-php
+      - php
+      - php-mysql
+      - php-curl
+      - php-zip
+      - php-gd
+      - php-mbstring
+      - php-xml
+      - php-xmlrpc
+      - curl
+      - unzip
+      - rsync
+    state: present
+  become: true
+
+- name: Download WP-CLI
+  ansible.builtin.get_url:
+    url: https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+    dest: "{{ wp_cli_path }}"
+    mode: '0755'
+    force: "{{ reinstall | default(false) }}"
+  become: true
+
+- name: Download WordPress
+  ansible.builtin.get_url:
+    url: https://wordpress.org/wordpress-5.8.3.tar.gz
+    dest: /tmp/wordpress-5.8.3.tar.gz
+    force: "{{ reinstall | default(false) }}"
+    mode: '0660'
+  become: true
+
+- name: Check if WordPress is already extracted
+  ansible.builtin.stat:
+    path: "{{ wordpress_path }}/wp-config-sample.php"
+  register: wp_extracted
+
+- name: Extract WordPress
+  ansible.builtin.unarchive:
+    src: /tmp/wordpress-5.8.3.tar.gz
+    dest: "{{ wordpress_path }}"
+    remote_src: true
+    extra_opts: --strip-components=1
+  become: true
+  when: not wp_extracted.stat.exists or reinstall | default(false)
+
+- name: Set ownership of WordPress directory
+  ansible.builtin.file:
+    path: "{{ wordpress_path }}"
+    owner: www-data
+    group: www-data
+    recurse: true
+  become: true
+
+- name: Set 777 permissions on /var/www for lab use
+  ansible.builtin.file:
+    path: /var/www
+    mode: '0777'
+    recurse: true
+  become: true

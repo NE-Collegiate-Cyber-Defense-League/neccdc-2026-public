@@ -1,0 +1,190 @@
+# https://falco.org/docs/concepts/rules/basic-elements/
+# https://falco.org/docs/reference/rules/default-rules/
+# https://github.com/falcosecurity/rules/tree/main/rules
+
+- macro: inbound_outbound
+  condition: >
+    (((evt.type in (accept,accept4,listen,connect)) and
+     (fd.typechar = 4 or fd.typechar = 6)) and
+     (fd.ip != "0.0.0.0" and fd.net != "127.0.0.0/8") and
+     (evt.rawres >= 0 or evt.res = EINPROGRESS))
+
+- macro: true_always
+  condition: (evt.arg.name endswith "1=1")
+
+- macro: ssh_port
+  condition: fd.sport=22
+
+- rule: SSH Activity
+  desc: Detect any new ssh connection to a host other than those in an allowed group of hosts
+  condition: (inbound_outbound) and ssh_port
+  enabled: true
+  output: Disallowed SSH Connection (command=%proc.cmdline pid=%proc.pid connection=%fd.name user=%user.name user_loginuid=%user.loginuid)
+  priority: NOTICE
+
+- macro: remove
+  condition: (evt.type in (rmdir, unlink, unlinkat))
+
+- rule: Detect crypto miners using the Stratum protocol
+  desc: >
+    Miners commonly specify the mining pool to connect to using a URI that starts with "stratum+tcp". However, this rule is highly specific to
+    this technique, and matching command-line arguments can generally be bypassed quite easily.
+  condition: >
+    spawned_process
+    and (proc.cmdline contains "stratum+tcp" or
+         proc.cmdline contains "stratum2+tcp" or
+         proc.cmdline contains "stratum+ssl" or
+         proc.cmdline contains "stratum2+ssl")
+  output: Possible miner running | evt_type=%evt.type user=%user.name user_uid=%user.uid user_loginuid=%user.loginuid process=%proc.name proc_exepath=%proc.exepath parent=%proc.pname command=%proc.cmdline terminal=%proc.tty exe_flags=%evt.arg.flags
+  priority: WARNING
+
+- list: ssh_binaries
+  items: [
+    sshd, sftp-server, ssh-agent,
+    ssh, scp, sftp,
+    ssh-keygen, ssh-keysign, ssh-keyscan, ssh-add
+    ]
+
+- rule: Adding ssh keys to authorized_keys
+  desc: >
+    After gaining access, attackers can modify the authorized_keys file to maintain persistence on a victim host.
+    Where authorized_keys files are modified via cloud APIs or command line interfaces, an adversary may achieve
+    privilege escalation on the target virtual machine if they add a key to a higher-privileged user.
+    This rules aims at detecting any modification to the authorized_keys file, that is usually located under the .ssh
+    directory in any user's home directory. This rule complements the more generic auditing rule "Read ssh information"
+    by specifically detecting the writing of new, potentially attacker-provided keys.
+  condition: >
+    open_write
+    and (user_ssh_directory or fd.name startswith /root/.ssh)
+    and fd.name endswith authorized_keys
+    and not proc.name in (ssh_binaries)
+  output: Adding ssh keys to authorized_keys | file=%fd.name evt_type=%evt.type user=%user.name user_uid=%user.uid user_loginuid=%user.loginuid process=%proc.name proc_exepath=%proc.exepath parent=%proc.pname command=%proc.cmdline terminal=%proc.tty
+  priority: WARNING
+
+- list: network_tool_binaries
+  items: [nc, ncat, netcat, nmap, dig, tcpdump, tshark, ngrep, telnet, mitmproxy, socat, zmap]
+
+- macro: network_tool_procs
+  condition: (proc.name in (network_tool_binaries))
+
+- macro: user_known_network_tool_activities
+  condition: (never_true)
+
+- rule: Launch Suspicious Network Tool in Container
+  desc: >
+    Detect network tools (like netcat, nmap, tcpdump, socat, and more) launched within containers without any additional filters.
+    This serves as a valuable general detection, but it's recommended to invest engineering effort to fine-tune it and prevent a
+    high volume of legitimate logs. This rule complements the more specific "Netcat Remote Code Execution in Container" rule.
+  condition: >
+    spawned_process
+    and container
+    and network_tool_procs
+    and not user_known_network_tool_activities
+  output: Network tool launched in container | evt_type=%evt.type user=%user.name user_uid=%user.uid user_loginuid=%user.loginuid process=%proc.name proc_exepath=%proc.exepath parent=%proc.pname command=%proc.cmdline terminal=%proc.tty exe_flags=%evt.arg.flags
+  priority: NOTICE
+
+- rule: Launch Suspicious Network Tool on Host
+  desc: >
+    Detect network tools (like netcat, nmap, tcpdump, socat, and more) launched within containers without any additional filters.
+    This serves as a valuable general detection, but it's recommended to invest engineering effort to fine-tune it and prevent a
+    high volume of legitimate logs. The host equivalent of "Launch Suspicious Network Tool in Container.".
+  condition: >
+    spawned_process
+    and not container
+    and network_tool_procs
+    and not user_known_network_tool_activities
+  output: Network tool launched on host | evt_type=%evt.type user=%user.name user_uid=%user.uid user_loginuid=%user.loginuid process=%proc.name proc_exepath=%proc.exepath parent=%proc.pname command=%proc.cmdline terminal=%proc.tty exe_flags=%evt.arg.flags
+  priority: NOTICE
+
+- list: root_paths
+  items: [afs, bin, boot, dev, etc, home, lib, lib64, media, mnt, opt, proc, root, run, sbin, srv, sys, tmp, usr, var]
+
+- macro: user_known_cron_jobs
+  condition: (never_true)
+
+- rule: Schedule Cron Jobs
+  desc: >
+    Detect scheduled cron jobs; this is a highly generic detection and certainly needs adjustments and profiling in your environment before
+    operationalization. Simultaneously, exploiting the functionality of cron jobs is among one of the oldest TTPs used by adversaries.
+  condition: >
+    ((open_write and fd.name startswith /etc/cron) or
+     (spawned_process and proc.name = "crontab"))
+    and not user_known_cron_jobs
+  output: Cron jobs were scheduled to run | file=%fd.name evt_type=%evt.type user=%user.name user_uid=%user.uid user_loginuid=%user.loginuid process=%proc.name proc_exepath=%proc.exepath parent=%proc.pname command=%proc.cmdline terminal=%proc.tty
+  priority: NOTICE
+
+- list: bash_config_filenames
+  items: [.bashrc, .bash_profile, .bash_history, .bash_login, .bash_logout, .inputrc, .profile]
+
+- list: bash_config_files
+  items: [/etc/profile, /etc/bashrc]
+
+# Covers both csh and tcsh
+- list: csh_config_filenames
+  items: [.cshrc, .login, .logout, .history, .tcshrc, .cshdirs]
+
+- list: csh_config_files
+  items: [/etc/csh.cshrc, /etc/csh.login]
+
+- list: zsh_config_filenames
+  items: [.zshenv, .zprofile, .zshrc, .zlogin, .zlogout]
+
+- list: shell_config_filenames
+  items: [bash_config_filenames, csh_config_filenames, zsh_config_filenames]
+
+- list: shell_config_files
+  items: [bash_config_files, csh_config_files]
+
+- list: shell_config_directories
+  items: [/etc/zsh]
+
+- macro: user_known_shell_config_modifiers
+  condition: (never_true)
+
+- rule: Modify Shell Configuration File
+  desc: >
+    Detect attempts to modify shell configuration files, primarily aimed at establishing persistence by automatically inserting
+    commands into scripts executed by shells. The upstream rule excludes shell processes because they often create unnecessary noise.
+    However, this might lead to missed detections. To customize the rule for your situation, you can fine-tune it using enhanced profiling.
+    For example, you might want to only consider interactive shell processes (where proc.tty != 0).
+  condition: >
+    open_write
+    and (fd.filename in (shell_config_filenames) or
+         fd.name in (shell_config_files) or
+         fd.directory in (shell_config_directories))
+    and not proc.name in (shell_binaries)
+    and not user_known_shell_config_modifiers
+  output: A shell configuration file has been modified | file=%fd.name pcmdline=%proc.pcmdline evt_type=%evt.type user=%user.name user_uid=%user.uid user_loginuid=%user.loginuid process=%proc.name proc_exepath=%proc.exepath parent=%proc.pname command=%proc.cmdline terminal=%proc.tty
+  priority: WARNING
+
+- list: package_mgmt_binaries
+  items: [rpm_binaries, deb_binaries, update-alternat, gem, npm, python_package_managers, sane-utils.post, alternatives, chef-client, apk, snapd]
+
+- macro: a
+  condition: (proc.name in (root_paths))
+
+- macro: package_mgmt_procs
+  condition: (proc.name in (package_mgmt_binaries))
+
+- macro: package_mgmt_ancestor_procs
+  condition: (proc.pname in (package_mgmt_binaries) or
+             proc.aname[2] in (package_mgmt_binaries) or
+             proc.aname[3] in (package_mgmt_binaries) or
+             proc.aname[4] in (package_mgmt_binaries))
+
+- rule: Launch Package Management Process
+  desc: >
+    Detect package management processes executed. An excellent auditing rule to monitor system changes.
+  condition: >
+    spawned_process
+    and user.name != "_apt"
+    and package_mgmt_procs
+    and not package_mgmt_ancestor_procs
+  output: Package management process launched | evt_type=%evt.type user=%user.name user_uid=%user.uid user_loginuid=%user.loginuid process=%proc.name proc_exepath=%proc.exepath parent=%proc.pname command=%proc.cmdline terminal=%proc.tty exe_flags=%evt.arg.flags
+  priority: DEBUG
+
+- rule: Suspicious Removal of File
+  desc: File has been written to and should be monitored by someone professional in a centralized logging system.
+  condition: remove and true_always and proc.cmdline contains rm and a and user.name != "root" and evt.arg.name glob '/var/*'
+  output: Suspicious Removal of System File | evt.arg.name=%evt.arg.name file=%fd.name evt_type=%evt.type user=%user.name user_uid=%user.uid user_loginuid=%user.loginuid process=%proc.name proc_exepath=key parent=%proc.pname command=%proc.cmdline terminal=%proc.tty
+  priority: CRITICAL

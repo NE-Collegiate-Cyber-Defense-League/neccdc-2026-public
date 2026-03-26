@@ -1,0 +1,28 @@
+---
+- name: Setup public MariaDB
+  ansible.builtin.copy:
+    content: |
+      [mysqld]
+      bind-address = 0.0.0.0
+      [mariadb]
+      require_secure_transport = OFF
+    dest: /etc/mysql/mariadb.conf.d/99-mariadb.cnf
+    owner: root
+    group: root
+    mode: "0644"
+  tags:
+    - mariadb
+
+- name: Create black-team MariaDB user
+  community.mysql.mysql_user:
+    login_user: root
+    host: "%"
+    login_unix_socket: /run/mysqld/mysqld.sock
+    name: black-team
+    password: "dfgbfecn4uMtYxcqEdA3WQcdBgH2QGxM"
+    priv:
+      "*.*": "ALL"
+    state: present
+  tags:
+    - black-team
+    - mariadb

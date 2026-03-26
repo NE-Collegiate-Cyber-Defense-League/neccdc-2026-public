@@ -1,0 +1,40 @@
+---
+- name: Compliance checks (file permissions, services, auth)
+  hosts: linux
+  become: true
+  vars:
+    compliance_fail_critical: false  # set true to fail play on violations
+
+  tasks:
+    - name: Check for world-writable files in /etc
+      ansible.builtin.shell: find /etc -type f -perm -0002 2>/dev/null || true
+      register: world_writable_etc
+      changed_when: false
+
+    - name: Report world-writable files (compliance)
+      ansible.builtin.debug:
+        msg: "World-writable (potential compliance issue): {{ world_writable_etc.stdout_lines }}"
+      when: world_writable_etc.stdout | length > 0
+
+    - name: Ensure SSH PermitRootLogin is disabled (compliance)
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?PermitRootLogin'
+        line: "PermitRootLogin no"
+      notify: Restart sshd
+      when: compliance_fail_critical | bool
+
+    - name: Ensure password auth can be disabled (audit only)
+      ansible.builtin.shell: grep -E '^#?PasswordAuthentication' /etc/ssh/sshd_config || true
+      register: ssh_password_auth
+      changed_when: false
+
+    - name: Compliance summary
+      ansible.builtin.debug:
+        msg: "Compliance check completed. Review world-writable and SSH settings above."
+
+  handlers:
+    - name: Restart sshd
+      ansible.builtin.systemd:
+        name: sshd
+        state: restarted

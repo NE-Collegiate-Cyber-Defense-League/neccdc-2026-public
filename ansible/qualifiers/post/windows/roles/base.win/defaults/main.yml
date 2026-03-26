@@ -1,0 +1,10 @@
+#SPDX-License-Identifier: MIT-0
+---
+# defaults file for base_win
+ntp_servers: "0.pool.ntp.org 1.pool.ntp.org 2.pool.ntp.org"
+ntp_resync: false
+
+set_hostname:
+dns_servers:
+
+prefer_ipv4_over_ipv6: false

@@ -1,0 +1,77 @@
+---
+- name: Configure Teleport
+  hosts: teleport
+  become: true
+  vars:
+    team_number: "{{ hostvars[inventory_hostname]['team'] }}"
+  tasks:
+    - name: Copy TLS certificate
+      ansible.builtin.copy:
+        src: "../../../../documents/blue_team/qualifiers/team_{{ team_number }}/certificates/fullchain.crt"
+        dest: /var/lib/teleport/fullchain.crt
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Restart Teleport
+      tags:
+        - server
+
+    - name: Copy TLS key
+      ansible.builtin.copy:
+        src: "../../../../documents/blue_team/qualifiers/team_{{ team_number }}/certificates/private.key"
+        dest: /var/lib/teleport/private.key
+        owner: root
+        group: root
+        mode: '0600'
+      notify: Restart Teleport
+      tags:
+        - server
+
+    - name: Update Teleport public address
+      ansible.builtin.replace:
+        path: /etc/teleport.yaml
+        regexp: 'teleport\.chefops\.tech'
+        replace: 'teleport.{{ team_number }}.chefops.tech'
+      notify: Restart Teleport
+      tags:
+        - server
+
+  handlers:
+    - name: Restart Teleport
+      ansible.builtin.service:
+        name: teleport
+        state: restarted
+      tags:
+        - server
+
+
+- name: Update Teleport Client Information
+  hosts: teleport_clients
+  become: true
+  vars:
+    team_number: "{{ hostvars[inventory_hostname]['team'] }}"
+  tasks:
+    - name: Update Teleport public address
+      ansible.builtin.replace:
+        path: /etc/teleport.yaml
+        regexp: 'example.com'
+        replace: '{{ team_number }}.chefops.tech'
+      notify: Restart Teleport
+      tags:
+        - client
+
+    - name: Enable and start Teleport
+      ansible.builtin.service:
+        name: teleport
+        enabled: true
+        state: started
+      tags:
+        - client
+
+  handlers:
+    - name: Restart Teleport
+      ansible.builtin.service:
+        name: teleport
+        state: restarted
+      tags:
+        - client

@@ -1,0 +1,28 @@
+{
+  "sqlite": {
+    "host": "/opt/semaphore/database.sqlite"
+  },
+  "schedule": {
+    "timezone": "America/New_York"
+  },
+  "dialect": "sqlite",
+  "port": "3000",
+  "interface": "0.0.0.0",
+  "max_task_duration_sec": 3600,
+  "max_parallel_tasks": 3,
+  "non_admin_can_create_project": true,
+  "env_vars": {
+    "foo": "bar"
+  },
+  "auth": {
+    "totp": {
+      "enabled": true,
+      "issuer": "Semaphore",
+      "allow_recovery": false
+    }
+  },
+  "tmp_path": "/tmp/semaphore",
+  "cookie_hash": "O6hiGCsDmgleg+D5LdsZKnWnGNzuG5v4VQNrHU5qi8c=",
+  "cookie_encryption": "z9gXImrcfULR9eHtt8PhWxz9MKkIqz8+vaNIo4CxuTU=",
+  "access_key_encryption": "J73mzhpKZvRWXdvUIu97KFmch7m1/8hI92TcFQlRtkw="
+}

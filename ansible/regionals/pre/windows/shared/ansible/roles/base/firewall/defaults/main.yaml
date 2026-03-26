@@ -1,0 +1,9 @@
+firewall_groups:
+  - "Core Networking Diagnostics"
+  - "File and Printer Sharing"
+  - "Remote Desktop"
+  - "Remote Event Log Management"
+  - "Remote Event Monitor"
+  - "Remote Service Management"
+  - "Windows Time Service"
+  - "Windows Remote Management"

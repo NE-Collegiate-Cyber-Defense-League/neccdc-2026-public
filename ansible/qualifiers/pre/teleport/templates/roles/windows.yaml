@@ -1,0 +1,12 @@
+kind: role
+version: v7
+metadata:
+  name: windows
+  description: Windows users
+spec:
+  allow:
+    windows_desktop_logins:
+      - '{{internal.logins}}'
+    node_labels:
+      os: windows
+      service: workstation

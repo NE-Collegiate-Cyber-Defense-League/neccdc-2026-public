@@ -1,0 +1,13 @@
+kind: role
+version: v7
+metadata:
+  name: external-admin
+  description: Remote administration from ChefOps. Granting access to manage our linux systems
+spec:
+  options:
+    max_session_ttl: 1h
+  allow:
+    logins:
+      - root
+    node_labels:
+      os: linux

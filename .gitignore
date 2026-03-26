@@ -1,0 +1,29 @@
+**/*.tfstate*
+**/terraform.tfvars*
+**/.terraform/*
+.terraform
+.terraform.lock.hcl
+
+.DS_Store
+
+**/.ansible/collections
+
+# Local History for Visual Studio Code
+.history/
+
+.vscode/*
+.ansible
+.ansible/
+.venv/
+
+documents/blue_team/qualifiers/*/certificates
+documents/blue_team/regionals/*
+documents/wireguard.zip
+documents/wireguard
+documents/creds/*
+documents/output/*
+
+
+# Local inventory for testing
+ansible/qualifiers/inventory/99-local.yaml
+ansible/regionals/inventory/99-local.yaml

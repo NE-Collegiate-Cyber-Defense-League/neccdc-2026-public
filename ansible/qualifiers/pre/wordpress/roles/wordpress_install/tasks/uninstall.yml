@@ -1,0 +1,88 @@
+---
+- name: Stop and disable Apache
+  ansible.builtin.service:
+    name: apache2
+    state: stopped
+    enabled: no
+  become: true
+  failed_when: false
+
+- name: Stop and disable MariaDB
+  ansible.builtin.service:
+    name: mariadb
+    state: stopped
+    enabled: no
+  become: true
+  failed_when: false
+
+- name: Remove WebDAV uploads block from Apache vhost
+  ansible.builtin.blockinfile:
+    path: /etc/apache2/sites-available/000-default.conf
+    block: |
+      <Directory /var/www/html/wp-content/uploads>
+          Dav On
+          Options +Indexes
+      </Directory>
+    insertafter: "<VirtualHost *:80>"
+    state: absent
+  become: true
+  failed_when: false
+
+- name: Remove RFI PHP config
+  ansible.builtin.file:
+    path: /etc/php/7.4/apache2/conf.d/rfi.ini
+    state: absent
+  become: true
+  failed_when: false
+
+- name: Drop WordPress database (if accessible)
+  ansible.builtin.command:
+    cmd: mysql -u root -p{{ mysql_root_password }} -e "DROP DATABASE IF EXISTS {{ mysql_database }};"
+  become: true
+  failed_when: false
+
+- name: Drop WordPress DB user (if accessible)
+  ansible.builtin.command:
+    cmd: mysql -u root -p{{ mysql_root_password }} -e "DROP USER IF EXISTS '{{ mysql_user }}'@'localhost'; FLUSH PRIVILEGES;"
+  become: true
+  failed_when: false
+
+- name: Check if WordPress appears to be installed
+  ansible.builtin.stat:
+    path: "{{ wordpress_path }}/wp-config.php"
+  register: wp_config_present
+
+- name: Remove WordPress directory
+  ansible.builtin.file:
+    path: "{{ wordpress_path }}"
+    state: absent
+  become: true
+  when: wp_config_present.stat.exists
+
+- name: Remove WP-CLI binary
+  ansible.builtin.file:
+    path: "{{ wp_cli_path }}"
+    state: absent
+  become: true
+  failed_when: false
+
+- name: Uninstall packages
+  ansible.builtin.apt:
+    name:
+      - mariadb-server
+      - python3-pymysql
+      - apache2
+      - php
+      - php-mysql
+      - php-curl
+      - php-zip
+      - php-gd
+      - php-mbstring
+      - php-xml
+      - php-xmlrpc
+      - curl
+      - unzip
+    state: absent
+    purge: yes
+    autoremove: yes
+  become: true

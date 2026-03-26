@@ -1,0 +1,24 @@
+---
+- name: Import Teleport GPG key
+  ansible.builtin.rpm_key:
+    state: present
+    key: https://apt.releases.teleport.dev/gpg
+  tags:
+    - teleport
+
+- name: Add Teleport repository
+  community.general.zypper_repository:
+    description: Teleport
+    repo: https://zypper.releases.teleport.dev/sles/{{ ansible_facts['distribution_major_version'] }}/Teleport/{{ ansible_facts['architecture'] }}/stable/{{ teleport_major_version }}/teleport-zypper.repo
+    auto_import_keys: true
+    autorefresh: true
+    enabled: true
+  tags:
+    - teleport
+
+- name: Install Teleport
+  ansible.builtin.zypper:
+    name: teleport
+    state: present
+  tags:
+    - teleport

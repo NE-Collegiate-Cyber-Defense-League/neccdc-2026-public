@@ -1,0 +1,14 @@
+---
+- name: Run tasks/01_dc.yaml
+  ansible.builtin.import_playbook: tasks/01_dc.yaml
+  tags: [dc]
+
+- name: Run tasks/02_adfs.yaml
+  ansible.builtin.import_playbook: tasks/02_adfs.yaml
+  tags: [adfs]
+
+- name: Run tasks/03_pos.yaml
+  ansible.builtin.import_playbook: tasks/03_pos.yaml
+  tags: [pos]
+
+

@@ -1,0 +1,71 @@
+---
+# https://github.com/falcosecurity/falcosidekick?tab=readme-ov-file#with-systemd
+- name: Download and extract falcosidekick
+  vars:
+    falcosidekick_version: "2.32.0"
+  ansible.builtin.unarchive:
+    src: https://github.com/falcosecurity/falcosidekick/releases/download/{{ falcosidekick_version }}/falcosidekick_{{ falcosidekick_version }}_linux_arm64.tar.gz
+    dest: /tmp
+    remote_src: true
+    creates: /tmp/falcosidekick
+  tags:
+    - falcosidekick
+
+- name: Move falcosidekick to /usr/local/bin
+  ansible.builtin.copy:
+    src: /tmp/falcosidekick
+    dest: /usr/local/bin/falcosidekick
+    mode: '0755'
+    remote_src: true
+  become: true
+  tags:
+    - falcosidekick
+
+- name: Clean up temporary file
+  ansible.builtin.file:
+    path: /tmp/falcosidekick
+    state: absent
+  tags:
+    - falcosidekick
+
+- name: Check falcosidekick config directory permissions
+  ansible.builtin.file:
+    dest: /etc/falcosidekick
+    state: directory
+    mode: '0700'
+  tags:
+    - falcosidekick
+
+- name: Configure falcosidekick
+  ansible.builtin.template:
+    src: templates/falcosidekick.yaml.j2
+    dest: /etc/falcosidekick/config.yaml
+    owner: root
+    group: root
+    mode: '0600'
+  tags:
+    - falcosidekick
+
+- name: Configure falcosidekick systemd service
+  ansible.builtin.template:
+    src: templates/falcosidekick.service.j2
+    dest: /etc/systemd/system/falcosidekick.service
+    owner: root
+    group: root
+    mode: '0664'
+  tags:
+    - falcosidekick
+
+- name: Reload systemd daemon
+  ansible.builtin.systemd:
+    daemon_reload: true
+  tags:
+    - falcosidekick
+
+- name: Start and enable falcosidekick
+  ansible.builtin.service:
+    name: falcosidekick
+    state: restarted
+    enabled: true
+  tags:
+    - falcosidekick

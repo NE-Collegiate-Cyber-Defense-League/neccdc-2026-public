@@ -1,0 +1,10 @@
+- name: DNS - Debug Primary Domain Controller
+  ansible.builtin.debug:
+    msg: "Skipping DNS configuration on Primary Domain Controller"
+  when: ansible_facts["windows_domain_role"] == 'Primary domain controller'
+
+- name: DNS - Set Windows Client DNS Servers
+  ansible.windows.win_dns_client:
+    adapter_names: "*"
+    dns_servers: "{{ dns_servers }}"
+  when: ansible_facts["windows_domain_role"] != 'Primary domain controller'

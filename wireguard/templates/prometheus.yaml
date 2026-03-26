@@ -1,0 +1,20 @@
+global:
+  scrape_interval: 15s
+
+# https://wg-easy.github.io/wg-easy/latest/advanced/metrics/prometheus/
+scrape_configs:
+  - job_name: "wg-easy"
+    scrape_interval: 30s
+    metrics_path: /metrics/prometheus
+    static_configs:
+      - targets:
+          - "wireguard-black-team:51999"
+{% if red_team %}
+          - "wireguard-red-team:51998"
+{% endif %}
+{% for team in range(0, number_of_teams + 1) %}
+          - "wireguard-blue-{{ team }}-team:519{{ '%02d' | format(team | int) }}"
+{% endfor %}
+    authorization:
+      type: Bearer
+      credentials: "{{ wireguard_metrics_password }}"

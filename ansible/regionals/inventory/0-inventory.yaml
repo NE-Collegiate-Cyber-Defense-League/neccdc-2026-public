@@ -1,0 +1,635 @@
+branch_win_dc:
+  hosts:
+    2600:1f26:001d:8b01::f00d:
+      ipv4: 10.100.0.64
+      ipv6: 2600:1f26:001d:8b01::f00d
+      team: 0
+    2600:1f26:001d:8b11::f00d:
+      ipv4: 10.100.1.64
+      ipv6: 2600:1f26:001d:8b11::f00d
+      team: 1
+    2600:1f26:001d:8b21::f00d:
+      ipv4: 10.100.2.64
+      ipv6: 2600:1f26:001d:8b21::f00d
+      team: 2
+    2600:1f26:001d:8b31::f00d:
+      ipv4: 10.100.3.64
+      ipv6: 2600:1f26:001d:8b31::f00d
+      team: 3
+    2600:1f26:001d:8b41::f00d:
+      ipv4: 10.100.4.64
+      ipv6: 2600:1f26:001d:8b41::f00d
+      team: 4
+    2600:1f26:001d:8b51::f00d:
+      ipv4: 10.100.5.64
+      ipv6: 2600:1f26:001d:8b51::f00d
+      team: 5
+    2600:1f26:001d:8b61::f00d:
+      ipv4: 10.100.6.64
+      ipv6: 2600:1f26:001d:8b61::f00d
+      team: 6
+    2600:1f26:001d:8b71::f00d:
+      ipv4: 10.100.7.64
+      ipv6: 2600:1f26:001d:8b71::f00d
+      team: 7
+    2600:1f26:001d:8b81::f00d:
+      ipv4: 10.100.8.64
+      ipv6: 2600:1f26:001d:8b81::f00d
+      team: 8
+    2600:1f26:001d:8b91::f00d:
+      ipv4: 10.100.9.64
+      ipv6: 2600:1f26:001d:8b91::f00d
+      team: 9
+    2600:1f26:001d:8ba1::f00d:
+      ipv4: 10.100.10.64
+      ipv6: 2600:1f26:001d:8ba1::f00d
+      team: 10
+  vars:
+    hostname: windows-dc02
+branch_win_pos:
+  hosts:
+    2600:1f26:001d:8b01::cafe:
+      ipv4: 10.100.0.37
+      ipv6: 2600:1f26:001d:8b01::cafe
+      team: 0
+    2600:1f26:001d:8b11::cafe:
+      ipv4: 10.100.1.37
+      ipv6: 2600:1f26:001d:8b11::cafe
+      team: 1
+    2600:1f26:001d:8b21::cafe:
+      ipv4: 10.100.2.37
+      ipv6: 2600:1f26:001d:8b21::cafe
+      team: 2
+    2600:1f26:001d:8b31::cafe:
+      ipv4: 10.100.3.37
+      ipv6: 2600:1f26:001d:8b31::cafe
+      team: 3
+    2600:1f26:001d:8b41::cafe:
+      ipv4: 10.100.4.37
+      ipv6: 2600:1f26:001d:8b41::cafe
+      team: 4
+    2600:1f26:001d:8b51::cafe:
+      ipv4: 10.100.5.37
+      ipv6: 2600:1f26:001d:8b51::cafe
+      team: 5
+    2600:1f26:001d:8b61::cafe:
+      ipv4: 10.100.6.37
+      ipv6: 2600:1f26:001d:8b61::cafe
+      team: 6
+    2600:1f26:001d:8b71::cafe:
+      ipv4: 10.100.7.37
+      ipv6: 2600:1f26:001d:8b71::cafe
+      team: 7
+    2600:1f26:001d:8b81::cafe:
+      ipv4: 10.100.8.37
+      ipv6: 2600:1f26:001d:8b81::cafe
+      team: 8
+    2600:1f26:001d:8b91::cafe:
+      ipv4: 10.100.9.37
+      ipv6: 2600:1f26:001d:8b91::cafe
+      team: 9
+    2600:1f26:001d:8ba1::cafe:
+      ipv4: 10.100.10.37
+      ipv6: 2600:1f26:001d:8ba1::cafe
+      team: 10
+  vars:
+    hostname: windows-pos
+corp_win_dc:
+  hosts:
+    2600:1f26:001d:8a02::ad:
+      ipv6: 2600:1f26:001d:8a02::ad
+      team: 0
+    2600:1f26:001d:8a12::ad:
+      ipv6: 2600:1f26:001d:8a12::ad
+      team: 1
+    2600:1f26:001d:8a22::ad:
+      ipv6: 2600:1f26:001d:8a22::ad
+      team: 2
+    2600:1f26:001d:8a32::ad:
+      ipv6: 2600:1f26:001d:8a32::ad
+      team: 3
+    2600:1f26:001d:8a42::ad:
+      ipv6: 2600:1f26:001d:8a42::ad
+      team: 4
+    2600:1f26:001d:8a52::ad:
+      ipv6: 2600:1f26:001d:8a52::ad
+      team: 5
+    2600:1f26:001d:8a62::ad:
+      ipv6: 2600:1f26:001d:8a62::ad
+      team: 6
+    2600:1f26:001d:8a72::ad:
+      ipv6: 2600:1f26:001d:8a72::ad
+      team: 7
+    2600:1f26:001d:8a82::ad:
+      ipv6: 2600:1f26:001d:8a82::ad
+      team: 8
+    2600:1f26:001d:8a92::ad:
+      ipv6: 2600:1f26:001d:8a92::ad
+      team: 9
+    2600:1f26:001d:8aa2::ad:
+      ipv6: 2600:1f26:001d:8aa2::ad
+      team: 10
+  vars:
+    hostname: windows-dc01
+corp_win_srv:
+  hosts:
+    2600:1f26:001d:8a02::adf5:
+      ipv6: 2600:1f26:001d:8a02::adf5
+      team: 0
+    2600:1f26:001d:8a12::adf5:
+      ipv6: 2600:1f26:001d:8a12::adf5
+      team: 1
+    2600:1f26:001d:8a22::adf5:
+      ipv6: 2600:1f26:001d:8a22::adf5
+      team: 2
+    2600:1f26:001d:8a32::adf5:
+      ipv6: 2600:1f26:001d:8a32::adf5
+      team: 3
+    2600:1f26:001d:8a42::adf5:
+      ipv6: 2600:1f26:001d:8a42::adf5
+      team: 4
+    2600:1f26:001d:8a52::adf5:
+      ipv6: 2600:1f26:001d:8a52::adf5
+      team: 5
+    2600:1f26:001d:8a62::adf5:
+      ipv6: 2600:1f26:001d:8a62::adf5
+      team: 6
+    2600:1f26:001d:8a72::adf5:
+      ipv6: 2600:1f26:001d:8a72::adf5
+      team: 7
+    2600:1f26:001d:8a82::adf5:
+      ipv6: 2600:1f26:001d:8a82::adf5
+      team: 8
+    2600:1f26:001d:8a92::adf5:
+      ipv6: 2600:1f26:001d:8a92::adf5
+      team: 9
+    2600:1f26:001d:8aa2::adf5:
+      ipv6: 2600:1f26:001d:8aa2::adf5
+      team: 10
+  vars:
+    hostname: windows-srv01
+firewall_branch:
+  hosts:
+    2600:1f26:001d:8b00:ffff:ffff:ffff:fffe:
+      ipv4: 10.100.0.254
+      ipv6: 2600:1f26:001d:8b00:ffff:ffff:ffff:fffe
+      team: 0
+    2600:1f26:001d:8b10:ffff:ffff:ffff:fffe:
+      ipv4: 10.100.1.254
+      ipv6: 2600:1f26:001d:8b10:ffff:ffff:ffff:fffe
+      team: 1
+    2600:1f26:001d:8b20:ffff:ffff:ffff:fffe:
+      ipv4: 10.100.2.254
+      ipv6: 2600:1f26:001d:8b20:ffff:ffff:ffff:fffe
+      team: 2
+    2600:1f26:001d:8b30:ffff:ffff:ffff:fffe:
+      ipv4: 10.100.3.254
+      ipv6: 2600:1f26:001d:8b30:ffff:ffff:ffff:fffe
+      team: 3
+    2600:1f26:001d:8b40:ffff:ffff:ffff:fffe:
+      ipv4: 10.100.4.254
+      ipv6: 2600:1f26:001d:8b40:ffff:ffff:ffff:fffe
+      team: 4
+    2600:1f26:001d:8b50:ffff:ffff:ffff:fffe:
+      ipv4: 10.100.5.254
+      ipv6: 2600:1f26:001d:8b50:ffff:ffff:ffff:fffe
+      team: 5
+    2600:1f26:001d:8b60:ffff:ffff:ffff:fffe:
+      ipv4: 10.100.6.254
+      ipv6: 2600:1f26:001d:8b60:ffff:ffff:ffff:fffe
+      team: 6
+    2600:1f26:001d:8b70:ffff:ffff:ffff:fffe:
+      ipv4: 10.100.7.254
+      ipv6: 2600:1f26:001d:8b70:ffff:ffff:ffff:fffe
+      team: 7
+    2600:1f26:001d:8b80:ffff:ffff:ffff:fffe:
+      ipv4: 10.100.8.254
+      ipv6: 2600:1f26:001d:8b80:ffff:ffff:ffff:fffe
+      team: 8
+    2600:1f26:001d:8b90:ffff:ffff:ffff:fffe:
+      ipv4: 10.100.9.254
+      ipv6: 2600:1f26:001d:8b90:ffff:ffff:ffff:fffe
+      team: 9
+    2600:1f26:001d:8ba0:ffff:ffff:ffff:fffe:
+      ipv4: 10.100.10.254
+      ipv6: 2600:1f26:001d:8ba0:ffff:ffff:ffff:fffe
+      team: 10
+  vars:
+    hostname: firewall
+firewall_corp:
+  hosts:
+    10.7.0.254:
+      ipv4: 10.7.0.254
+      ipv6: 2600:1f26:001d:8a00:ffff:ffff:ffff:fffe
+      team: 0
+    10.7.1.254:
+      ipv4: 10.7.1.254
+      ipv6: 2600:1f26:001d:8a10:ffff:ffff:ffff:fffe
+      team: 1
+    10.7.10.254:
+      ipv4: 10.7.10.254
+      ipv6: 2600:1f26:001d:8aa0:ffff:ffff:ffff:fffe
+      team: 10
+    10.7.2.254:
+      ipv4: 10.7.2.254
+      ipv6: 2600:1f26:001d:8a20:ffff:ffff:ffff:fffe
+      team: 2
+    10.7.3.254:
+      ipv4: 10.7.3.254
+      ipv6: 2600:1f26:001d:8a30:ffff:ffff:ffff:fffe
+      team: 3
+    10.7.4.254:
+      ipv4: 10.7.4.254
+      ipv6: 2600:1f26:001d:8a40:ffff:ffff:ffff:fffe
+      team: 4
+    10.7.5.254:
+      ipv4: 10.7.5.254
+      ipv6: 2600:1f26:001d:8a50:ffff:ffff:ffff:fffe
+      team: 5
+    10.7.6.254:
+      ipv4: 10.7.6.254
+      ipv6: 2600:1f26:001d:8a60:ffff:ffff:ffff:fffe
+      team: 6
+    10.7.7.254:
+      ipv4: 10.7.7.254
+      ipv6: 2600:1f26:001d:8a70:ffff:ffff:ffff:fffe
+      team: 7
+    10.7.8.254:
+      ipv4: 10.7.8.254
+      ipv6: 2600:1f26:001d:8a80:ffff:ffff:ffff:fffe
+      team: 8
+    10.7.9.254:
+      ipv4: 10.7.9.254
+      ipv6: 2600:1f26:001d:8a90:ffff:ffff:ffff:fffe
+      team: 9
+  vars:
+    hostname: firewall
+gitea:
+  hosts:
+    2600:1f26:001d:8a02::feed:
+      ipv6: 2600:1f26:001d:8a02::feed
+      team: 0
+    2600:1f26:001d:8a12::feed:
+      ipv6: 2600:1f26:001d:8a12::feed
+      team: 1
+    2600:1f26:001d:8a22::feed:
+      ipv6: 2600:1f26:001d:8a22::feed
+      team: 2
+    2600:1f26:001d:8a32::feed:
+      ipv6: 2600:1f26:001d:8a32::feed
+      team: 3
+    2600:1f26:001d:8a42::feed:
+      ipv6: 2600:1f26:001d:8a42::feed
+      team: 4
+    2600:1f26:001d:8a52::feed:
+      ipv6: 2600:1f26:001d:8a52::feed
+      team: 5
+    2600:1f26:001d:8a62::feed:
+      ipv6: 2600:1f26:001d:8a62::feed
+      team: 6
+    2600:1f26:001d:8a72::feed:
+      ipv6: 2600:1f26:001d:8a72::feed
+      team: 7
+    2600:1f26:001d:8a82::feed:
+      ipv6: 2600:1f26:001d:8a82::feed
+      team: 8
+    2600:1f26:001d:8a92::feed:
+      ipv6: 2600:1f26:001d:8a92::feed
+      team: 9
+    2600:1f26:001d:8aa2::feed:
+      ipv6: 2600:1f26:001d:8aa2::feed
+      team: 10
+  vars:
+    hostname: gitea
+grafana:
+  hosts:
+    '2600:1f26:001d:8a02:0:ace::':
+      ipv6: '2600:1f26:001d:8a02:0:ace::'
+      team: 0
+    '2600:1f26:001d:8a12:0:ace::':
+      ipv6: '2600:1f26:001d:8a12:0:ace::'
+      team: 1
+    '2600:1f26:001d:8a22:0:ace::':
+      ipv6: '2600:1f26:001d:8a22:0:ace::'
+      team: 2
+    '2600:1f26:001d:8a32:0:ace::':
+      ipv6: '2600:1f26:001d:8a32:0:ace::'
+      team: 3
+    '2600:1f26:001d:8a42:0:ace::':
+      ipv6: '2600:1f26:001d:8a42:0:ace::'
+      team: 4
+    '2600:1f26:001d:8a52:0:ace::':
+      ipv6: '2600:1f26:001d:8a52:0:ace::'
+      team: 5
+    '2600:1f26:001d:8a62:0:ace::':
+      ipv6: '2600:1f26:001d:8a62:0:ace::'
+      team: 6
+    '2600:1f26:001d:8a72:0:ace::':
+      ipv6: '2600:1f26:001d:8a72:0:ace::'
+      team: 7
+    '2600:1f26:001d:8a82:0:ace::':
+      ipv6: '2600:1f26:001d:8a82:0:ace::'
+      team: 8
+    '2600:1f26:001d:8a92:0:ace::':
+      ipv6: '2600:1f26:001d:8a92:0:ace::'
+      team: 9
+    '2600:1f26:001d:8aa2:0:ace::':
+      ipv6: '2600:1f26:001d:8aa2:0:ace::'
+      team: 10
+  vars:
+    hostname: grafana
+kiosks:
+  hosts:
+    2600:1f26:001d:8b01:200::1:
+      id: 1
+      ipv4: 10.100.0.201
+      ipv6: 2600:1f26:001d:8b01:200::1
+      team: 0
+    2600:1f26:001d:8b01:200::2:
+      id: 2
+      ipv4: 10.100.0.202
+      ipv6: 2600:1f26:001d:8b01:200::2
+      team: 0
+    2600:1f26:001d:8b11:200::1:
+      id: 1
+      ipv4: 10.100.1.201
+      ipv6: 2600:1f26:001d:8b11:200::1
+      team: 1
+    2600:1f26:001d:8b11:200::2:
+      id: 2
+      ipv4: 10.100.1.202
+      ipv6: 2600:1f26:001d:8b11:200::2
+      team: 1
+    2600:1f26:001d:8b21:200::1:
+      id: 1
+      ipv4: 10.100.2.201
+      ipv6: 2600:1f26:001d:8b21:200::1
+      team: 2
+    2600:1f26:001d:8b21:200::2:
+      id: 2
+      ipv4: 10.100.2.202
+      ipv6: 2600:1f26:001d:8b21:200::2
+      team: 2
+    2600:1f26:001d:8b31:200::1:
+      id: 1
+      ipv4: 10.100.3.201
+      ipv6: 2600:1f26:001d:8b31:200::1
+      team: 3
+    2600:1f26:001d:8b31:200::2:
+      id: 2
+      ipv4: 10.100.3.202
+      ipv6: 2600:1f26:001d:8b31:200::2
+      team: 3
+    2600:1f26:001d:8b41:200::1:
+      id: 1
+      ipv4: 10.100.4.201
+      ipv6: 2600:1f26:001d:8b41:200::1
+      team: 4
+    2600:1f26:001d:8b41:200::2:
+      id: 2
+      ipv4: 10.100.4.202
+      ipv6: 2600:1f26:001d:8b41:200::2
+      team: 4
+    2600:1f26:001d:8b51:200::1:
+      id: 1
+      ipv4: 10.100.5.201
+      ipv6: 2600:1f26:001d:8b51:200::1
+      team: 5
+    2600:1f26:001d:8b51:200::2:
+      id: 2
+      ipv4: 10.100.5.202
+      ipv6: 2600:1f26:001d:8b51:200::2
+      team: 5
+    2600:1f26:001d:8b61:200::1:
+      id: 1
+      ipv4: 10.100.6.201
+      ipv6: 2600:1f26:001d:8b61:200::1
+      team: 6
+    2600:1f26:001d:8b61:200::2:
+      id: 2
+      ipv4: 10.100.6.202
+      ipv6: 2600:1f26:001d:8b61:200::2
+      team: 6
+    2600:1f26:001d:8b71:200::1:
+      id: 1
+      ipv4: 10.100.7.201
+      ipv6: 2600:1f26:001d:8b71:200::1
+      team: 7
+    2600:1f26:001d:8b71:200::2:
+      id: 2
+      ipv4: 10.100.7.202
+      ipv6: 2600:1f26:001d:8b71:200::2
+      team: 7
+    2600:1f26:001d:8b81:200::1:
+      id: 1
+      ipv4: 10.100.8.201
+      ipv6: 2600:1f26:001d:8b81:200::1
+      team: 8
+    2600:1f26:001d:8b81:200::2:
+      id: 2
+      ipv4: 10.100.8.202
+      ipv6: 2600:1f26:001d:8b81:200::2
+      team: 8
+    2600:1f26:001d:8b91:200::1:
+      id: 1
+      ipv4: 10.100.9.201
+      ipv6: 2600:1f26:001d:8b91:200::1
+      team: 9
+    2600:1f26:001d:8b91:200::2:
+      id: 2
+      ipv4: 10.100.9.202
+      ipv6: 2600:1f26:001d:8b91:200::2
+      team: 9
+    2600:1f26:001d:8ba1:200::1:
+      id: 1
+      ipv4: 10.100.10.201
+      ipv6: 2600:1f26:001d:8ba1:200::1
+      team: 10
+    2600:1f26:001d:8ba1:200::2:
+      id: 2
+      ipv4: 10.100.10.202
+      ipv6: 2600:1f26:001d:8ba1:200::2
+      team: 10
+  vars:
+    hostname: kiosk
+semaphore:
+  hosts:
+    2600:1f26:001d:8a02:d09:ca7:b15d:f158:
+      ipv6: 2600:1f26:001d:8a02:d09:ca7:b15d:f158
+      team: 0
+    2600:1f26:001d:8a12:d09:ca7:b15d:f158:
+      ipv6: 2600:1f26:001d:8a12:d09:ca7:b15d:f158
+      team: 1
+    2600:1f26:001d:8a22:d09:ca7:b15d:f158:
+      ipv6: 2600:1f26:001d:8a22:d09:ca7:b15d:f158
+      team: 2
+    2600:1f26:001d:8a32:d09:ca7:b15d:f158:
+      ipv6: 2600:1f26:001d:8a32:d09:ca7:b15d:f158
+      team: 3
+    2600:1f26:001d:8a42:d09:ca7:b15d:f158:
+      ipv6: 2600:1f26:001d:8a42:d09:ca7:b15d:f158
+      team: 4
+    2600:1f26:001d:8a52:d09:ca7:b15d:f158:
+      ipv6: 2600:1f26:001d:8a52:d09:ca7:b15d:f158
+      team: 5
+    2600:1f26:001d:8a62:d09:ca7:b15d:f158:
+      ipv6: 2600:1f26:001d:8a62:d09:ca7:b15d:f158
+      team: 6
+    2600:1f26:001d:8a72:d09:ca7:b15d:f158:
+      ipv6: 2600:1f26:001d:8a72:d09:ca7:b15d:f158
+      team: 7
+    2600:1f26:001d:8a82:d09:ca7:b15d:f158:
+      ipv6: 2600:1f26:001d:8a82:d09:ca7:b15d:f158
+      team: 8
+    2600:1f26:001d:8a92:d09:ca7:b15d:f158:
+      ipv6: 2600:1f26:001d:8a92:d09:ca7:b15d:f158
+      team: 9
+    2600:1f26:001d:8aa2:d09:ca7:b15d:f158:
+      ipv6: 2600:1f26:001d:8aa2:d09:ca7:b15d:f158
+      team: 10
+  vars:
+    hostname: semaphore
+teleport_branch:
+  hosts:
+    10.100.0.100:
+      ipv4: 10.100.0.100
+      ipv6: 2600:1f26:001d:8b01::beef
+      team: 0
+    10.100.1.100:
+      ipv4: 10.100.1.100
+      ipv6: 2600:1f26:001d:8b11::beef
+      team: 1
+    10.100.10.100:
+      ipv4: 10.100.10.100
+      ipv6: 2600:1f26:001d:8ba1::beef
+      team: 10
+    10.100.2.100:
+      ipv4: 10.100.2.100
+      ipv6: 2600:1f26:001d:8b21::beef
+      team: 2
+    10.100.3.100:
+      ipv4: 10.100.3.100
+      ipv6: 2600:1f26:001d:8b31::beef
+      team: 3
+    10.100.4.100:
+      ipv4: 10.100.4.100
+      ipv6: 2600:1f26:001d:8b41::beef
+      team: 4
+    10.100.5.100:
+      ipv4: 10.100.5.100
+      ipv6: 2600:1f26:001d:8b51::beef
+      team: 5
+    10.100.6.100:
+      ipv4: 10.100.6.100
+      ipv6: 2600:1f26:001d:8b61::beef
+      team: 6
+    10.100.7.100:
+      ipv4: 10.100.7.100
+      ipv6: 2600:1f26:001d:8b71::beef
+      team: 7
+    10.100.8.100:
+      ipv4: 10.100.8.100
+      ipv6: 2600:1f26:001d:8b81::beef
+      team: 8
+    10.100.9.100:
+      ipv4: 10.100.9.100
+      ipv6: 2600:1f26:001d:8b91::beef
+      team: 9
+  vars:
+    hostname: teleport
+teleport_corp:
+  hosts:
+    10.3.0.128:
+      ipv4: 10.3.0.128
+      ipv6: 2600:1f26:001d:8a01::c0de
+      team: 0
+    10.3.1.128:
+      ipv4: 10.3.1.128
+      ipv6: 2600:1f26:001d:8a11::c0de
+      team: 1
+    10.3.10.128:
+      ipv4: 10.3.10.128
+      ipv6: 2600:1f26:001d:8aa1::c0de
+      team: 10
+    10.3.2.128:
+      ipv4: 10.3.2.128
+      ipv6: 2600:1f26:001d:8a21::c0de
+      team: 2
+    10.3.3.128:
+      ipv4: 10.3.3.128
+      ipv6: 2600:1f26:001d:8a31::c0de
+      team: 3
+    10.3.4.128:
+      ipv4: 10.3.4.128
+      ipv6: 2600:1f26:001d:8a41::c0de
+      team: 4
+    10.3.5.128:
+      ipv4: 10.3.5.128
+      ipv6: 2600:1f26:001d:8a51::c0de
+      team: 5
+    10.3.6.128:
+      ipv4: 10.3.6.128
+      ipv6: 2600:1f26:001d:8a61::c0de
+      team: 6
+    10.3.7.128:
+      ipv4: 10.3.7.128
+      ipv6: 2600:1f26:001d:8a71::c0de
+      team: 7
+    10.3.8.128:
+      ipv4: 10.3.8.128
+      ipv6: 2600:1f26:001d:8a81::c0de
+      team: 8
+    10.3.9.128:
+      ipv4: 10.3.9.128
+      ipv6: 2600:1f26:001d:8a91::c0de
+      team: 9
+  vars:
+    hostname: teleport
+wordpress:
+  hosts:
+    10.3.0.200:
+      ipv4: 10.3.0.200
+      ipv6: 2600:1f26:001d:8a01::be57:bad0
+      team: 0
+    10.3.1.200:
+      ipv4: 10.3.1.200
+      ipv6: 2600:1f26:001d:8a11::be57:bad0
+      team: 1
+    10.3.10.200:
+      ipv4: 10.3.10.200
+      ipv6: 2600:1f26:001d:8aa1::be57:bad0
+      team: 10
+    10.3.2.200:
+      ipv4: 10.3.2.200
+      ipv6: 2600:1f26:001d:8a21::be57:bad0
+      team: 2
+    10.3.3.200:
+      ipv4: 10.3.3.200
+      ipv6: 2600:1f26:001d:8a31::be57:bad0
+      team: 3
+    10.3.4.200:
+      ipv4: 10.3.4.200
+      ipv6: 2600:1f26:001d:8a41::be57:bad0
+      team: 4
+    10.3.5.200:
+      ipv4: 10.3.5.200
+      ipv6: 2600:1f26:001d:8a51::be57:bad0
+      team: 5
+    10.3.6.200:
+      ipv4: 10.3.6.200
+      ipv6: 2600:1f26:001d:8a61::be57:bad0
+      team: 6
+    10.3.7.200:
+      ipv4: 10.3.7.200
+      ipv6: 2600:1f26:001d:8a71::be57:bad0
+      team: 7
+    10.3.8.200:
+      ipv4: 10.3.8.200
+      ipv6: 2600:1f26:001d:8a81::be57:bad0
+      team: 8
+    10.3.9.200:
+      ipv4: 10.3.9.200
+      ipv6: 2600:1f26:001d:8a91::be57:bad0
+      team: 9
+  vars:
+    hostname: wordpress

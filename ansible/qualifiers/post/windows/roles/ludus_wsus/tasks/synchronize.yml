@@ -1,0 +1,73 @@
+---
+
+- name: Start WSUS initial synchronization
+  ansible.windows.win_powershell:
+    script: |
+      $wsus = Get-WsusServer
+      $subscription = $wsus.GetSubscription()
+      
+      if ($subscription.GetSynchronizationStatus() -eq 'NotProcessing') {
+        $subscription.StartSynchronization()
+        [PSCustomObject]@{
+          Started = $true
+          Status = 'Running'
+        }
+      } else {
+        [PSCustomObject]@{
+          Started = $false
+          Status = $subscription.GetSynchronizationStatus()
+        }
+      }
+  register: wsus_sync_start
+  changed_when: wsus_sync_start.output[0].Started
+  when: ludus_wsus_initial_sync | bool
+
+- name: Display synchronization status
+  ansible.builtin.debug:
+    msg: "WSUS synchronization {{ 'started' if wsus_sync_start.output[0].Started else 'already running' }}"
+  when: 
+    - ludus_wsus_initial_sync | bool
+    - ludus_wsus_wait_for_sync | bool
+
+- name: Wait for WSUS synchronization to complete
+  ansible.windows.win_powershell:
+    script: |
+      $wsus = Get-WsusServer
+      $subscription = $wsus.GetSubscription()
+      $status = $subscription.GetSynchronizationStatus()
+      
+      [PSCustomObject]@{
+        Status = $status.ToString()
+        Complete = ($status -eq 'NotProcessing')
+      }
+  register: wsus_sync_wait
+  until: wsus_sync_wait.output[0].Complete
+  retries: "{{ (ludus_wsus_sync_timeout | int / 60) | int }}"
+  delay: 60
+  when:
+    - ludus_wsus_initial_sync | bool
+    - ludus_wsus_wait_for_sync | bool
+  ignore_errors: true
+
+- name: Display final synchronization status
+  ansible.builtin.debug:
+    msg: 
+      - "WSUS Synchronization completed successfully"
+      - "Final status: {{ wsus_sync_wait.output[0].Status }}"
+  when:
+    - ludus_wsus_initial_sync | bool
+    - ludus_wsus_wait_for_sync | bool
+    - wsus_sync_wait is defined
+    - not wsus_sync_wait.failed | default(false)
+
+- name: Display synchronization timeout warning
+  ansible.builtin.debug:
+    msg:
+      - "WARNING: WSUS synchronization did not complete within {{ ludus_wsus_sync_timeout }} seconds"
+      - "Status: {{ wsus_sync_wait.output[0].Status if wsus_sync_wait.output is defined else 'Unknown' }}"
+      - "Synchronization will continue in the background"
+  when:
+    - ludus_wsus_initial_sync | bool
+    - ludus_wsus_wait_for_sync | bool
+    - wsus_sync_wait is defined
+    - wsus_sync_wait.failed | default(false)

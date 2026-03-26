@@ -1,0 +1,7 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for bginfo
+- name: Copy BGInfo to target host
+  ansible.windows.win_copy:
+    src: files/BGInfo
+    dest: "{{ bginfo_destination }}"

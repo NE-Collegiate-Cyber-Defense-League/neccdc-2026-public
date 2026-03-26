@@ -1,0 +1,181 @@
+packer:
+  hosts:
+    1.1.1.1: {}
+  vars:
+    ansible_user: ec2-user
+    ansible_private_key_file: ../../../../documents/black_team/id_rsa
+
+wireguard:
+  hosts:
+    vpn.chefops.tech: {}
+  vars:
+    ansible_user: ubuntu
+    ansible_private_key_file: ../documents/black_team/id_rsa
+
+scorestack:
+  hosts:
+    score.chefops.tech: {}
+  vars:
+    ansible_user: ubuntu
+    ansible_private_key_file: ../documents/black_team/id_rsa
+
+grafana:
+  vars:
+    discord_webhook_url:
+      0: "https://discord.com/api/webhooks/0123456789/qwertyuiop"
+      1: "https://discord.com/api/webhooks/0123456789/qwertyuiop"
+
+semaphore:
+  vars:
+    ansible_python_interpreter: /usr/bin/python3.11
+
+teleport_corp:
+  vars:
+    ansible_python_interpreter: /usr/local/bin/python3.9
+    falco_service_override: falco-kmod
+
+falco_clients:
+  children:
+    gitea:
+    grafana:
+    kiosks:
+    semaphore:
+    teleport_corp:
+    teleport_branch:
+    wordpress:
+
+grafana_clients:
+  children:
+    gitea:
+    kiosks:
+    semaphore:
+    teleport_corp:
+    teleport_branch:
+    wordpress:
+
+teleport_corp_clients:
+  children:
+    gitea:
+    grafana:
+    semaphore:
+    wordpress:
+
+teleport_branch_clients:
+  children:
+    kiosks:
+
+firewall:
+  children:
+    firewall_corp:
+    firewall_branch:
+  vars:
+    ansible_user: admin
+    ansible_private_key_file: ../../../../documents/black_team/id_rsa
+    ansible_port: 22
+
+corp_windows:
+  children:
+    corp_win_dc:
+    corp_win_srv:
+  vars:
+    domain: ad.chefops.local
+    netbios: CHEFOPS
+
+branch_windows:
+  children:
+    branch_win_dc:
+    branch_win_pos:
+  vars:
+    domain: ad.oceancrests.local
+    netbios: OCEANCRESTS
+
+windows:
+  children:
+    corp_windows:
+    branch_windows:
+  vars:
+    ansible_user: Administrator
+    ansible_password: Admin@1231
+    ansible_become_method: runas
+
+    ansible_connection: psrp
+    ansible_winrm_transport: credssp
+    ansible_winrm_server_cert_validation: ignore
+    ansible_psrp_auth: credssp
+    ansible_psrp_cert_validation: ignore
+
+linux:
+  children:
+    gitea:
+    grafana:
+    kiosks:
+    semaphore:
+    teleport_corp:
+    teleport_branch:
+    wordpress:
+  vars:
+    ansible_user: black-team
+    ansible_private_key_file: ../../../../documents/black_team/id_rsa
+    ansible_port: 22
+
+all:
+  vars:
+    black_team_password: dfgbfecn4uMtYxcqEdA3WQcdBgH2QGxM
+
+    domains:
+      corp:
+        public: chefops.tech
+        team: "{{ team }}.chefops.tech"
+        local: chefops.local
+        ad: ad.chefops.local
+      branch:
+        public: oceancrests.kitchen
+        team: "{{ team }}.oceancrests.kitchen"
+        local: oceancrests.local
+        ad: ad.oceancrests.local
+
+    team_address:
+      firewall_corp_public:
+        ipv4: "10.7.{{ team }}.254"
+        ipv6: "2600:1f26:1d:8a{{ '%01x' | format(team) }}0:ffff:ffff:ffff:fffe"
+      firewall_corp_private:
+        ipv6: "2600:1f26:1d:8a{{ '%01x' | format(team) }}2:ffff:ffff:ffff:fffe"
+      firewall_corp_dmz:
+        ipv4: "10.3.{{ team }}.254"
+        ipv6: "2600:1f26:1d:8a{{ '%01x' | format(team) }}1:ffff:ffff:ffff:fffe"
+      firewall_branch_public:
+        ipv6: "2600:1f26:1d:8b{{ '%01x' | format(team) }}0:ffff:ffff:ffff:fffe"
+      firewall_branch_private:
+        ipv4: "10.100.{{ team }}.254"
+        ipv6: "2600:1f26:1d:8b{{ '%01x' | format(team) }}1:ffff:ffff:ffff:fffe"
+      teleport_corp:
+        ipv4: "10.3.{{ team }}.128"
+        ipv6: "2600:1f26:001d:8a{{ '%01x' | format(team) }}1::c0de"
+      wordpress:
+        ipv4: "10.3.{{ team }}.200"
+        ipv6: "2600:1f26:001d:8a{{ '%01x' | format(team) }}1::be57:bad0"
+      teleport_branch:
+        ipv4: "10.100.{{ team }}.100"
+        ipv6: "2600:1f26:001d:8b{{ '%01x' | format(team) }}1::beef"
+      kiosk_1:
+        ipv4: "10.100.{{ team }}.201"
+        ipv6: "2600:1f26:001d:8b{{ '%01x' | format(team) }}1:200::1"
+      kiosk_2:
+        ipv4: "10.100.{{ team }}.202"
+        ipv6: "2600:1f26:001d:8b{{ '%01x' | format(team) }}1:200::2"
+      branch_win_pos:
+        ipv4: "10.100.{{ team }}.37"
+        ipv6: "2600:1f26:001d:8b{{ '%01x' | format(team) }}1::cafe"
+      branch_win_dc:
+        ipv4: "10.100.{{ team }}.64"
+        ipv6: "2600:1f26:001d:8b{{ '%01x' | format(team) }}1::f00d"
+      corp_win_srv:
+        ipv6: "2600:1f26:001d:8a{{ '%01x' | format(team) }}2::adf5"
+      corp_win_dc:
+        ipv6: "2600:1f26:001d:8a{{ '%01x' | format(team) }}2::ad"
+      gitea:
+        ipv6: "2600:1f26:001d:8a{{ '%01x' | format(team) }}2::feed"
+      grafana:
+        ipv6: "2600:1f26:001d:8a{{ '%01x' | format(team) }}2:0:ace::"
+      semaphore:
+        ipv6: "2600:1f26:001d:8a{{ '%01x' | format(team) }}2:d09:ca7:b15d:f158"

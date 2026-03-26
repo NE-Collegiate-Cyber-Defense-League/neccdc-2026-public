@@ -1,0 +1,70 @@
+---
+- name: Open firewall for development testing
+  hosts: wordpress
+  become: true
+
+  vars:
+    firewall_backup_dir: /var/lib/firewalld/dev-backups
+    firewall_backup_path: "{{ firewall_backup_dir }}/firewalld"
+
+  tasks:
+    - name: Ensure firewalld is installed
+      ansible.builtin.package:
+        name: firewalld
+        state: present
+
+    - name: Ensure firewalld is running
+      ansible.builtin.service:
+        name: firewalld
+        state: started
+        enabled: true
+
+    - name: Ensure firewall backup directory exists
+      ansible.builtin.file:
+        path: "{{ firewall_backup_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Check if firewalld backup already exists
+      ansible.builtin.stat:
+        path: "{{ firewall_backup_path }}"
+      register: firewalld_backup_stat
+
+    - name: Backup firewalld configuration (once)
+      ansible.builtin.copy:
+        src: /etc/firewalld
+        dest: "{{ firewall_backup_path }}"
+        remote_src: true
+      when: not firewalld_backup_stat.stat.exists
+
+    - name: Enable trusted zone for development access (runtime only)
+      ansible.posix.firewalld:
+        zone: trusted
+        state: enabled
+        permanent: false
+        immediate: true
+
+    - name: Ensure HTTP (port 80) is open
+      ansible.posix.firewalld:
+        service: http
+        permanent: true
+        state: enabled
+        immediate: true
+
+    - name: Ensure HTTPS (port 443) is open
+      ansible.posix.firewalld:
+        service: https
+        permanent: true
+        state: enabled
+        immediate: true
+
+    - name: Reload firewalld
+      ansible.builtin.service:
+        name: firewalld
+        state: reloaded
+
+    - name: Log firewall dev-open state
+      ansible.builtin.debug:
+        msg: "Firewall opened for development testing"

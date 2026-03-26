@@ -1,0 +1,21 @@
+{
+  "name": "SSH_semaphore",
+  "type": "ssh",
+  "score_weight": 1,
+  "definition": {
+    "Host": "[{{.Host}}]",
+    "Username": "{{.Username}}",
+    "Password": "{{.Password}}",
+    "Cmd": "systemctl is-active tbot",
+    "MatchContent": "true",
+    "ContentRegex": "active",
+    "Port": "22"
+  },
+  "attributes": {
+    "admin": {
+      "Host": "2600:1f26:1d:8a{{.TeamHex}}2:d09:ca7:b15d:f158",
+      "Username": "black-team",
+      "Password": "dfgbfecn4uMtYxcqEdA3WQcdBgH2QGxM"
+    }
+  }
+}

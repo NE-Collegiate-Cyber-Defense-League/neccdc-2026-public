@@ -1,0 +1,44 @@
+---
+- name: Set Falco Driver
+  ansible.builtin.set_fact:
+    falco_driver_type: "{{ falco_driver_override | default('modern_ebpf') }}"
+  tags:
+    - falco
+
+- name: Install Falco
+  ansible.builtin.include_tasks:
+    file: "tasks/setup-{{ ansible_os_family }}.yaml"
+  tags:
+    - falco
+
+- name: Check falco config directory permissions
+  ansible.builtin.file:
+    dest: /etc/falco
+    state: directory
+    mode: '0755'
+  tags:
+    - falco
+
+- name: Configure falco
+  ansible.builtin.template:
+    src: falco.yaml.j2
+    dest: /etc/falco/falco.yaml
+    mode: '0644'
+    backup: false
+    validate: 'falco -c %s -L'
+  tags:
+    - falco
+
+- name: Reload systemd daemon
+  ansible.builtin.systemd:
+    daemon_reload: true
+  tags:
+    - falco
+
+- name: Disable and Stop Falco
+  ansible.builtin.service:
+    name: falco-modern-bpf
+    state: stopped
+    enabled: false
+  tags:
+    - falco

@@ -1,0 +1,102 @@
+---
+- name: Parent Domain creation
+  hosts: "{{ ansible_limit | default('windows_ad') }}"
+  gather_facts: true
+  gather_subset: "!all,system"
+
+  tasks:
+    - name: Include Base Windows Role
+      ansible.builtin.include_role:
+        name: ../roles/base.win
+      vars:
+        set_hostname: "{{ hostname }}"
+        dns_servers:
+          - "{{ team_address.firewall_private.ipv4 }}"
+          - "{{ team_address.firewall_private.ipv6 | default(omit) }}"
+        ntp_resync: true
+        prefer_ipv4_over_ipv6: true
+
+    - name: Establish Active Directory Primary Domain
+      microsoft.ad.domain:
+        dns_domain_name: "{{ ad.domain }}"
+        domain_netbios_name: "{{ ad.netbios }}"
+        safe_mode_password: "{{ ansible_password }}"
+        reboot_timeout: 600
+        reboot: true
+
+    - name: Update facts after domain join
+      ansible.builtin.setup:
+
+    - name: Create black-team user
+      microsoft.ad.user:
+        name: black-team
+        firstname: Black
+        lastname: Team
+        display_name: Black Team
+        description: DO NOT TOUCH THIS ACCOUNT
+        sam_account_name: black-team
+        upn: "black-team@{{ ad.domain }}"
+        password: "{{ black_team_password }}"
+        groups:
+          set:
+          - Domain Admins
+          - Domain Users
+          - Enterprise Admins
+        state: present
+      register: domain_create_user_result
+      retries: 30
+      delay: 15
+      until: domain_create_user_result is successful
+
+    - name: Create ssm-user user
+      microsoft.ad.user:
+        name: ssm-user
+        firstname: SSM
+        lastname: User
+        display_name: SSM User
+        description: DO NOT TOUCH THIS ACCOUNT
+        sam_account_name: ssm-user
+        upn: "ssm-user@{{ ad.domain }}"
+        password: "{{ black_team_password }}"
+        groups:
+          set:
+          - Domain Admins
+          - Domain Users
+          - Enterprise Admins
+        state: present
+
+- name: Automated Setup of Active Directory Users and Groups
+  hosts: "{{ ansible_limit | default('windows_ad') }}"
+  gather_facts: true
+  vars:
+    ansible_user: "administrator@{{ ad.domain }}"
+    ansible_become: true
+    ansible_become_method: runas
+    ansible_become_user: "{{ ansible_user }}"
+    ansible_become_password: "{{ ansible_password }}"
+
+  tasks:
+    - name: Include populate.users role
+      ansible.builtin.include_role:
+        name: ../roles/populate.users
+      vars:
+        users_source_csv: "../files/users/users.csv"
+
+    - name: Include adcs role
+      ansible.builtin.include_role:
+        name: ../roles/adcs
+      vars:
+        domain_username: "administrator@{{ ad.domain }}"
+        domain_password: "{{ ansible_password }}"
+        ca_common_name: "{{ ad.netbios }}-CA"
+
+    - name: Create DNS records for ADFS
+      ansible.windows.win_dns_record:
+        name: "{{ item }}"
+        type: A
+        value: "{{ team_address.windows_adfs.ipv4 }}"
+        zone: "{{ ad.domain }}"
+        state: present
+      loop:
+        - "sts"
+        - "certauth.sts"

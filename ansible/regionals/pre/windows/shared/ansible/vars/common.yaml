@@ -1,0 +1,24 @@
+black_team_password: dfgbfecn4uMtYxcqEdA3WQcdBgH2QGxM
+
+powershell_modules:
+  - ADCSTemplate
+  - PSPKI
+
+chocolatey_packages:
+  - name: everything
+    version: "1.4.11029"
+  - name: git
+    version: "2.52.0"
+    package_params: "'/NoShellIntegration'"
+  - name: python
+    version: "3.14.2"
+  - name: runinbash
+    version: "0.1.1"
+  - name: powershell-core
+    version: "7.5.4"
+  - name: sysinternals
+    version: "2025.12.16"
+  - name: systeminformer-nightlybuilds
+  - name: vscode
+  - name: grafana-alloy
+    version: "1.13.2"

@@ -1,0 +1,20 @@
+{
+  "name": "GIT_gitea",
+  "type": "git",
+  "score_weight": 1,
+  "definition": {
+    "host": "{{.Host}}",
+    "repository": "chefops/customerDocs",
+    "branch": "main",
+    "port": 443,
+    "https": true,
+    "HttpsValidate": true,
+    "CommitHashMatch": true,
+    "CommitHash": "f26aea7132b1e721fc51750c1a0500d639417a9c"
+  },
+  "attributes": {
+    "admin": {
+      "Host": "gitea.{{.TeamNumber}}.chefops.tech"
+    }
+  }
+}

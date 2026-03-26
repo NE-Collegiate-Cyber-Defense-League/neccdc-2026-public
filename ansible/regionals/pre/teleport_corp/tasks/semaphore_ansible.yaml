@@ -1,0 +1,31 @@
+# Not using the shared since the sudoers module is not supported in this python version
+---
+- name: Ensure "ansible" group exists
+  ansible.builtin.group:
+    name: ansible
+    gid: 2000
+    state: present
+  tags:
+    - ansible
+
+- name: Ensure "ansible" user exists
+  ansible.builtin.user:
+    name: ansible
+    group: ansible
+    shell: "{{ shell_override | default('/bin/sh') }}"
+    comment: User account for Semaphore to run automations
+    uid: 2000
+    create_home: false
+    system: true
+  tags:
+    - ansible
+
+- name: Allow user has passwordless sudo
+  ansible.builtin.lineinfile:
+    dest: /etc/sudoers
+    state: present
+    regexp: "^%ansible"
+    line: "%ansible ALL=(ALL) NOPASSWD: ALL"
+    validate: "visudo -cf %s"
+  tags:
+    - ansible

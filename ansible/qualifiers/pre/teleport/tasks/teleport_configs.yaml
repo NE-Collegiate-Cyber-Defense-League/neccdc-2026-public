@@ -1,0 +1,60 @@
+---
+- name: Create teleport users directory
+  ansible.builtin.file:
+    path: /teleport/users
+    state: directory
+    recurse: true
+    owner: root
+    group: root
+    mode: '0744'
+  tags:
+    - teleport_users
+    - teleport_misc
+
+- name: Create teleport roles directory
+  ansible.builtin.file:
+    path: /teleport/roles
+    state: directory
+    owner: root
+    group: root
+    mode: '0744'
+  tags:
+    - teleport_misc
+
+- name: Teleport roles
+  block:
+    - name: Copy config file
+      ansible.builtin.copy:
+        src: templates/roles/{{ item }}.yaml
+        dest: "/teleport/roles/{{ item }}.yaml"
+        mode: "0644"
+        owner: root
+        group: root
+      with_items:
+        - employees
+        - monitoring
+        - security
+        - support
+        - system-admin
+        - windows-admin
+        - windows
+        - wordpress-admin
+        - wordpress
+      tags:
+        - teleport_misc
+
+    - name: Create teleport config resources
+      ansible.builtin.command:
+        cmd: "/usr/local/bin/tctl create -f /teleport/roles/{{ item }}.yaml"
+      with_items:
+        - employees
+        - monitoring
+        - security
+        - support
+        - system-admin
+        - windows-admin
+        - windows
+        - wordpress-admin
+        - wordpress
+      tags:
+        - teleport_misc

@@ -1,0 +1,9 @@
+kind: role
+version: v7
+metadata:
+  name: external-support
+  description: General access granted to ChefOps to support internal systems
+spec:
+  allow:
+    app_labels:
+      system: internal

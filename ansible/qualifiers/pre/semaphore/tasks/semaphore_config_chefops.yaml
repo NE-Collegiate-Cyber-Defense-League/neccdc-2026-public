@@ -1,0 +1,373 @@
+---
+- name: Insert Semaphore project
+  ttafsir.sqlite_utils.insert:
+    db_path: /opt/semaphore/database.sqlite
+    table: project
+    replace: true
+    records:
+      id: "1"
+      created: '{{ lookup(''pipe'', ''date -u "+%Y-%m-%d %H:%M:%S %z UTC"'') }}'
+      name: ChefOps
+  tags:
+    - semaphore
+    - semaphore_config
+
+- name: Insert Semaphore project users
+  ttafsir.sqlite_utils.insert:
+    db_path: /opt/semaphore/database.sqlite
+    table: project__user
+    replace: true
+    records:
+      project_id: "1"
+      user_id: "0"
+      role: owner
+  tags:
+    - semaphore
+    - semaphore_config
+
+- name: Insert Semaphore NoAuth key
+  ttafsir.sqlite_utils.insert:
+    db_path: /opt/semaphore/database.sqlite
+    table: access_key
+    replace: true
+    records:
+      id: "1"
+      name: NoAuth
+      type: none
+      project_id: "1"
+  tags:
+    - semaphore
+    - semaphore_config
+
+- name: Insert Semaphore project env vars
+  ttafsir.sqlite_utils.insert:
+    db_path: /opt/semaphore/database.sqlite
+    table: project__environment
+    replace: true
+    records:
+      id: "1"
+      project_id: "1"
+      json: "{}"
+      name: "systemEnvs"
+      env: "{{ env | ansible.builtin.to_json(separators=(',', ':')) }}"
+  vars:
+    env:
+      ANSIBLE_HOST_KEY_CHECKING: "False"
+      DEFAULT_ASK_VAULT_PASS: "False"
+      DEFAULT_BECOME: "False"
+  tags:
+    - semaphore
+    - semaphore_config
+
+- name: Insert Semaphore project env vars x2
+  ttafsir.sqlite_utils.insert:
+    db_path: /opt/semaphore/database.sqlite
+    table: project__environment
+    replace: true
+    records:
+      id: "2"
+      project_id: "1"
+      json: "{}"
+      name: "system-envs"
+      env: "{{ env | ansible.builtin.to_json(separators=(',', ':')) }}"
+  vars:
+    env:
+      ANSIBLE_HOST_KEY_CHECKING: "False"
+      ANSIBLE_LOG_PATH: /tmp/logs
+  tags:
+    - semaphore
+    - semaphore_config
+
+- name: Insert Semaphore project env vars x3
+  ttafsir.sqlite_utils.insert:
+    db_path: /opt/semaphore/database.sqlite
+    table: project__environment
+    replace: true
+    records:
+      id: "3"
+      project_id: "1"
+      json: "{}"
+      name: "system_envs"
+      env: "{{ env | ansible.builtin.to_json(separators=(',', ':')) }}"
+  vars:
+    env:
+      ANSIBLE_HOST_KEY_CHECKING: "False"
+      COLOR_CHANGED: green
+      COLOR_CONSOLE_PROMPT: red
+      COLOR_DEBUG: blue
+      COLOR_DEPRECATE: white
+  tags:
+    - semaphore
+    - semaphore_config
+
+- name: Insert Semaphore project env vars x4
+  ttafsir.sqlite_utils.insert:
+    db_path: /opt/semaphore/database.sqlite
+    table: project__environment
+    replace: true
+    records:
+      id: "3"
+      project_id: "1"
+      json: "{}"
+      name: "system envs"
+      env: "{{ env | ansible.builtin.to_json(separators=(',', ':')) }}"
+  vars:
+    env:
+      ANSIBLE_HOST_KEY_CHECKING: "False"
+  tags:
+    - semaphore
+    - semaphore_config
+
+- name: Copy Semaphore inventory
+  ansible.builtin.template:
+    src: templates/inventories/chefops.yaml
+    dest: /opt/semaphore/orgs/inventory.yaml
+    mode: "0644"
+    owner: semaphore
+    group: semaphore
+    backup: false
+  tags:
+    - semaphore
+    - semaphore_config
+
+- name: Insert Semaphore inventory
+  ttafsir.sqlite_utils.insert:
+    db_path: /opt/semaphore/database.sqlite
+    table: project__inventory
+    replace: true
+    records:
+      id: "1"
+      project_id: "1"
+      type: file
+      ssh_key_id: "1"
+      inventory: "/opt/semaphore/orgs/inventory.yaml"
+      name: inventory
+  tags:
+    - semaphore
+    - semaphore_config
+
+- name: Insert Semaphore repository
+  ttafsir.sqlite_utils.insert:
+    db_path: /opt/semaphore/database.sqlite
+    table: project__repository
+    replace: true
+    records:
+      id: "1"
+      project_id: "1"
+      git_url: /opt/semaphore/playbooks
+      ssh_key_id: "1"
+      name: Local
+  tags:
+    - semaphore
+    - semaphore_config
+
+- name: Insert pipeline templates
+  block:
+    - name: Insert pipeline template | Debug
+      ttafsir.sqlite_utils.insert:
+        db_path: /opt/semaphore/database.sqlite
+        table: project__template
+        replace: true
+        records:
+          id: "1"
+          project_id: "1"
+          inventory_id: "1"
+          repository_id: "1"
+          environment_id: "1"
+          playbook: debug.yaml
+          arguments: "[]"
+          name: "debug"
+          description: "Gets host system information"
+          app: ansible
+          task_params: "{}"
+      tags:
+        - semaphore
+        - semaphore_config
+
+    - name: Insert pipeline template | Falco
+      ttafsir.sqlite_utils.insert:
+        db_path: /opt/semaphore/database.sqlite
+        table: project__template
+        replace: true
+        records:
+          id: "2"
+          project_id: "1"
+          inventory_id: "1"
+          repository_id: "1"
+          environment_id: "1"
+          playbook: falco-update.yaml
+          arguments: "[]"
+          name: "falco-update-rules"
+          description: "Updates falco clients host rules"
+          app: ansible
+          task_params: "{}"
+      tags:
+        - semaphore
+        - semaphore_config
+
+    - name: Insert pipeline template | Firewall Open
+      ttafsir.sqlite_utils.insert:
+        db_path: /opt/semaphore/database.sqlite
+        table: project__template
+        replace: true
+        records:
+          id: "3"
+          project_id: "1"
+          inventory_id: "1"
+          repository_id: "1"
+          environment_id: "1"
+          playbook: firewall-dev-open.yaml
+          arguments: "[]"
+          name: "firewall-open"
+          description: "Update firewall to make sure its accessible"
+          app: ansible
+          task_params: "{}"
+      tags:
+        - semaphore
+        - semaphore_config
+
+    - name: Insert pipeline template | Firewall Close
+      ttafsir.sqlite_utils.insert:
+        db_path: /opt/semaphore/database.sqlite
+        table: project__template
+        replace: true
+        records:
+          id: "4"
+          project_id: "1"
+          inventory_id: "1"
+          repository_id: "1"
+          environment_id: "1"
+          playbook: firewall-dev-close.yaml
+          arguments: "[]"
+          name: "firewall-close"
+          description: "Update firewall to make sure its not accessible"
+          app: ansible
+          task_params: "{}"
+      tags:
+        - semaphore
+        - semaphore_config
+
+    - name: Insert pipeline template | Developer Access
+      ttafsir.sqlite_utils.insert:
+        db_path: /opt/semaphore/database.sqlite
+        table: project__template
+        replace: true
+        records:
+          id: "5"
+          project_id: "1"
+          inventory_id: "1"
+          repository_id: "1"
+          environment_id: "3"
+          playbook: quick-dev-access.yaml
+          arguments: "[]"
+          name: "developer-access"
+          description: "Make sure developers are not blocked by obscure security requirements"
+          app: ansible
+          task_params: "{}"
+      tags:
+        - semaphore
+        - semaphore_config
+
+    - name: Insert pipeline template | Reset Ansible
+      ttafsir.sqlite_utils.insert:
+        db_path: /opt/semaphore/database.sqlite
+        table: project__template
+        replace: true
+        records:
+          id: "6"
+          project_id: "1"
+          inventory_id: "1"
+          repository_id: "1"
+          environment_id: "1"
+          playbook: reset-password.yaml
+          arguments: "[]"
+          name: "reset-ansible"
+          description: "Reloads ansible user configuration"
+          app: ansible
+          task_params: "{}"
+      tags:
+        - semaphore
+        - semaphore_config
+
+- name: Insert schedule cron
+  block:
+    - name: Insert schedule cron | Debug
+      ttafsir.sqlite_utils.insert:
+        db_path: /opt/semaphore/database.sqlite
+        table: project__schedule
+        replace: true
+        records:
+          id: "1"
+          template_id: "1"
+          project_id: "1"
+          cron_format: "*/13 * * * *"
+          name: "DebugSchedule"
+          active: "1"
+      notify: Restart Semaphore
+      tags:
+        - semaphore
+        - semaphore_config
+
+    - name: Insert schedule cron | Falco
+      ttafsir.sqlite_utils.insert:
+        db_path: /opt/semaphore/database.sqlite
+        table: project__schedule
+        replace: true
+        records:
+          id: "2"
+          template_id: "2"
+          project_id: "1"
+          cron_format: "10 * * * *"
+          name: "FalcoRules"
+          active: "1"
+      notify: Restart Semaphore
+      tags:
+        - semaphore
+        - semaphore_config
+
+- name: Insert integration parameters
+  ttafsir.sqlite_utils.insert:
+    db_path: /opt/semaphore/database.sqlite
+    table: project__task_params
+    replace: true
+    records:
+      id: "1"
+      environment: "{}"
+      project_id: "1"
+      params: '{"debug_level":4,"dry_run":false}'
+      message: ""
+  tags:
+    - semaphore
+    - semaphore_config
+
+- name: Insert integration
+  ttafsir.sqlite_utils.insert:
+    db_path: /opt/semaphore/database.sqlite
+    table: project__integration
+    replace: true
+    records:
+      id: "1"
+      name: "TriggerJob"
+      project_id: "1"
+      template_id: "6"
+      auth_method: ""
+      auth_header: ""
+      task_params_id: "1"
+  tags:
+    - semaphore
+    - semaphore_config
+
+# http://localhost:3000/api/integrations/abc
+- name: Insert integration trigger
+  ttafsir.sqlite_utils.insert:
+    db_path: /opt/semaphore/database.sqlite
+    table: project__integration_alias
+    replace: true
+    records:
+      id: "1"
+      alias: "abc"
+      project_id: "1"
+      integration_id: "1"
+  tags:
+    - semaphore
+    - semaphore_config

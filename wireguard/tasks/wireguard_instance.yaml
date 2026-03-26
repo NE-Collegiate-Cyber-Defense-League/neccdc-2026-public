@@ -1,0 +1,235 @@
+---
+- name: Create docker network
+  community.docker.docker_network:
+    name: "{{ wg_name }}"
+    enable_ipv4: true
+    enable_ipv6: true
+    ipam_config:
+      - subnet: "{{ internal_ipv4_range | ansible.utils.ipsubnet(24, item) }}"
+      - subnet: "{{ internal_ipv6_range | ansible.utils.ipsubnet(64, item) }}"
+  tags:
+    - wireguard
+    - base
+
+- name: Allow egress to teams subnet
+  when: iptables
+  block:
+    # iptables -I DOCKER-USER 1 -s 192.168.0.0/24 -d 10.0.99.0/24 -j ACCEPT
+    - name: IPv4 CIDR | Corp Public
+      ansible.builtin.iptables:
+        ip_version: ipv4
+        chain: DOCKER-USER
+        source: "{{ internal_ipv4_range | ansible.utils.ipsubnet(24, item) }}"
+        destination: "{{ corp_public_ipv4_range | ansible.utils.ipsubnet(24, item) }}"
+        jump: ACCEPT
+      tags:
+        - iptables
+        - base
+
+    - name: IPv4 CIDR | Corp DMZ
+      ansible.builtin.iptables:
+        ip_version: ipv4
+        chain: DOCKER-USER
+        source: "{{ internal_ipv4_range | ansible.utils.ipsubnet(24, item) }}"
+        destination: "{{ corp_dmz_ipv4_range | ansible.utils.ipsubnet(24, item) }}"
+        jump: ACCEPT
+      tags:
+        - iptables
+        - base
+
+    - name: IPv4 CIDR | Branch Private
+      ansible.builtin.iptables:
+        ip_version: ipv4
+        chain: DOCKER-USER
+        source: "{{ internal_ipv4_range | ansible.utils.ipsubnet(24, item) }}"
+        destination: "{{ corp_private_ipv4_range | ansible.utils.ipsubnet(24, item) }}"
+        jump: ACCEPT
+      tags:
+        - iptables
+        - base
+
+    - name: IPv6 CIDR | Corp
+      ansible.builtin.iptables:
+        ip_version: ipv6
+        chain: DOCKER-USER
+        source: "{{ internal_ipv6_range | ansible.utils.ipsubnet(64, item) }}"
+        destination: "{{ corp_ipv6_range | ansible.utils.ipsubnet(60, item) }}"
+        jump: ACCEPT
+      tags:
+        - iptables
+        - base
+
+    - name: IPv6 CIDR | Branch
+      ansible.builtin.iptables:
+        ip_version: ipv6
+        chain: DOCKER-USER
+        source: "{{ internal_ipv6_range | ansible.utils.ipsubnet(64, item) }}"
+        destination: "{{ branch_ipv6_range | ansible.utils.ipsubnet(60, item) }}"
+        jump: ACCEPT
+      tags:
+        - iptables
+        - base
+
+# https://github.com/wg-easy/wg-easy
+- name: Setup Wireguard
+  community.docker.docker_container:
+    name: "wireguard-{{ wg_name }}"
+    image: ghcr.io/wg-easy/wg-easy:15.2.2
+    restart_policy: always
+    networks: "{{ [{'name': wg_name}] + ([] if not monitoring | default(false) | bool else [{'name': 'monitoring'}]) }}"
+    capabilities:
+      - NET_ADMIN
+      - SYS_MODULE
+    sysctls:
+      "net.ipv4.ip_forward": 1
+      "net.ipv4.conf.all.src_valid_mark": 1
+      "net.ipv6.conf.all.disable_ipv6": 0
+      "net.ipv6.conf.all.forwarding": 1
+      "net.ipv6.conf.default.forwarding": 1
+    volumes:
+      - "/opt/wireguard/wireguard-{{ wg_name }}:/etc/wireguard"
+      - "/lib/modules:/lib/modules:ro"
+    ports:
+      - "0.0.0.0:{{ udp_port }}:{{ udp_port }}/udp"
+      - "0.0.0.0:{{ tcp_port }}:{{ tcp_port }}/tcp"
+      - "[::]:{{ udp_port }}:{{ udp_port }}/udp"
+      - "[::]:{{ tcp_port }}:{{ tcp_port }}/tcp"
+    env:
+      # https://wg-easy.github.io/wg-easy/latest/advanced/config/optional-config/
+      PORT: "{{ tcp_port | string }}"
+      HOST: "0.0.0.0"
+      INSECURE: "true" # So we don't have to deal with tls
+      DISABLE_IPV6: "false"
+      # https://wg-easy.github.io/wg-easy/latest/advanced/config/unattended-setup/
+      INIT_ENABLED: "true"
+      INIT_USERNAME: black-team
+      INIT_PASSWORD: "{{ wireguard_admin_password }}"
+      INIT_HOST: "{{ inventory_hostname }}"
+      INIT_PORT: "{{ udp_port | string }}"
+      INIT_DNS: "{{ wireguard_client_dns }}"
+  tags:
+    - wireguard
+    - base
+
+- name: Wait until ready
+  ansible.builtin.uri:
+    url: "http://localhost:{{ tcp_port }}/api/admin/userconfig"
+    method: GET
+    status_code:
+      - 401
+  register: api_status
+  until: api_status.status == 401
+  retries: 30
+  delay: 10
+  failed_when: api_status.status != 401
+  tags:
+    - client
+    - base
+
+- name: Create Clients
+  when: create_clients | default(true)
+  block:
+    - name: Enable Prometheus Metrics
+      when: monitoring | bool
+      ansible.builtin.uri:
+        url: "http://localhost:{{ tcp_port }}/api/admin/general"
+        method: POST
+        force_basic_auth: true
+        url_username: "{{ wireguard_admin_username }}"
+        url_password: "{{ wireguard_admin_password }}"
+        body_format: json
+        status_code: 200
+        body:
+          metricsJson: false
+          metricsPassword: "{{ wireguard_metrics_password }}"
+          metricsPrometheus: true
+          sessionTimeout: 3600
+      tags:
+        - base
+        - wireguard
+
+    - name: Configure Wireguard instance settings
+      ansible.builtin.uri:
+        url: "http://localhost:{{ tcp_port }}/api/admin/userconfig"
+        method: POST
+        force_basic_auth: true
+        url_username: "{{ wireguard_admin_username }}"
+        url_password: "{{ wireguard_admin_password }}"
+        body_format: json
+        status_code: 200
+        body: "{{ wg_config | to_json }}"
+      vars:
+        wg_config:
+          id: wg0
+          defaultMtu: 1420
+          defaultPersistentKeepalive: 3600
+          defaultDns:
+            - 1.1.1.1
+          defaultAllowedIps: "{{ wireguard_allowed_ips }}"
+          host: "{{ inventory_hostname }}"
+          port: "{{ udp_port | int }}"
+          defaultJC: 7
+          defaultJMax: 1000
+          defaultJMin: 10
+          defaultI1: null
+          defaultI2: null
+          defaultI3: null
+          defaultI4: null
+          defaultI5: null
+      tags:
+        - client
+
+    - name: Create wireguard client directory
+      ansible.builtin.file:
+        path: "/opt/wireguard/wireguard-{{ wg_name }}/clients/"
+        state: directory
+        mode: "0755"
+      tags:
+        - client
+
+    - name: Create wireguard client
+      ansible.builtin.uri:
+        url: "http://localhost:{{ tcp_port }}/api/client"
+        method: POST
+        force_basic_auth: true
+        url_username: "{{ wireguard_admin_username }}"
+        url_password: "{{ wireguard_admin_password }}"
+        body_format: json
+        body:
+          name: "{{ item }}-{{ client_item }}"
+          expiresAt: null
+        status_code: 200
+      loop: "{{ clients }}"
+      loop_control:
+        loop_var: client_item
+      tags:
+        - client
+
+    - name: Get wireguard client ids
+      ansible.builtin.uri:
+        url: "http://localhost:{{ tcp_port }}/api/client"
+        method: GET
+        force_basic_auth: true
+        url_username: "{{ wireguard_admin_username }}"
+        url_password: "{{ wireguard_admin_password }}"
+        status_code: 200
+      register: wg_clients
+      tags:
+        - client
+
+    - name: Download wireguard client certificate file
+      when: wg_clients.json is defined
+      ansible.builtin.uri:
+        url: "http://localhost:{{ tcp_port }}/api/client/{{ wg_client_item.id }}/configuration"
+        method: GET
+        force_basic_auth: true
+        url_username: "{{ wireguard_admin_username }}"
+        url_password: "{{ wireguard_admin_password }}"
+        dest: "/opt/wireguard/wireguard-{{ wg_name }}/clients/{{ wg_client_item.name }}.conf"
+        return_content: true
+        status_code: 200
+      loop: "{{ wg_clients.json }}"
+      loop_control:
+        loop_var: wg_client_item
+      tags:
+        - client

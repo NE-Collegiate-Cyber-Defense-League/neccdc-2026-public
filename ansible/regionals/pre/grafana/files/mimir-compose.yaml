@@ -1,0 +1,41 @@
+services:
+  mimir-1: &mimir
+    image: grafana/mimir:3
+    command: ["-config.file=/etc/mimir.yaml"]
+    restart: always
+    hostname: mimir-1
+    volumes:
+      - ./mimir.yaml:/etc/mimir.yaml
+      - mimir-1-data:/data
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.mimir.rule=Host(`mimir.<team_number>.chefops.tech`)"
+      - "traefik.http.services.mimir.loadbalancer.server.port=8080"
+      - "traefik.http.routers.mimir.entrypoints=websecure"
+      - "traefik.http.services.mimir.loadbalancer.healthcheck.path=/ready"
+    depends_on:
+      storage:
+        condition: service_started
+      memcached:
+        condition: service_healthy
+    networks:
+      - monitoring
+
+  mimir-2:
+    <<: *mimir
+    hostname: mimir-2
+    volumes:
+      - ./mimir.yaml:/etc/mimir.yaml
+      - mimir-2-data:/data
+
+  mimir-3:
+    <<: *mimir
+    hostname: mimir-3
+    volumes:
+      - ./mimir.yaml:/etc/mimir.yaml
+      - mimir-3-data:/data
+
+volumes:
+  mimir-1-data:
+  mimir-2-data:
+  mimir-3-data:

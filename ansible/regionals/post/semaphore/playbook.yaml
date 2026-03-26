@@ -1,0 +1,56 @@
+- name: Configure Semaphore
+  hosts: semaphore
+  become: true
+  vars:
+    team_number: "{{ hostvars[inventory_hostname]['team'] }}"
+  tasks:
+    - name: Copy ChefOps inventory
+      ansible.builtin.template:
+        src: templates/inventory.yaml.j2
+        dest: /opt/semaphore/inventory.yaml
+        mode: "0644"
+        owner: semaphore
+        group: semaphore
+        backup: false
+      tags:
+        - ansible
+
+    - name: Update tbot Teleport address
+      ansible.builtin.replace:
+        path: /etc/tbot.yaml
+        regexp: "example.com"
+        replace: "{{ team_number }}.chefops.tech"
+      notify: Restart tbot
+      tags:
+        - tbot
+
+    - name: Enable and start tbot
+      ansible.builtin.service:
+        name: tbot
+        enabled: true
+      tags:
+        - tbot
+
+    - name: Update OIDC url
+      ansible.builtin.replace:
+        path: /opt/semaphore/config.json
+        regexp: "example.com"
+        replace: "{{ team_number }}.chefops.tech"
+      notify: Restart Semaphore
+      tags:
+        - semaphore
+
+  handlers:
+    - name: Restart tbot
+      ansible.builtin.service:
+        name: tbot
+        state: restarted
+      tags:
+        - tbot
+
+    - name: Restart Semaphore
+      ansible.builtin.service:
+        name: semaphore
+        state: restarted
+      tags:
+        - semaphore

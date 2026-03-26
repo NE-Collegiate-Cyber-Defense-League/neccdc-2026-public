@@ -1,0 +1,29 @@
+---
+# https://www.redhat.com/en/blog/dns-configuration-ansible
+- name: Make sure line 'dns=none' is set in NetworkManager
+  community.general.ini_file:
+    path: /etc/NetworkManager/NetworkManager.conf
+    state: present
+    no_extra_spaces: true
+    section: main
+    option: dns
+    value: none
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+
+- name: Deploy resolv.conf template
+  ansible.builtin.template:
+    src: ../templates/resolv.conf.j2
+    dest: /etc/resolv.conf
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+
+- name: Reload NetworkManager
+  ansible.builtin.service:
+    name: NetworkManager
+    state: restarted
+    enabled: true

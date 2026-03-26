@@ -1,0 +1,6 @@
+---
+- name: Configure DNS Server
+  ansible.builtin.include_tasks:
+    file: "tasks/setup-{{ ansible_os_family }}.yaml"
+  tags:
+    - dns

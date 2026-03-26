@@ -1,0 +1,73 @@
+---
+- name: Create mariadb config directory
+  ansible.builtin.file:
+    path: "/opt/mariadb/certs"
+    state: directory
+    owner: root
+    group: root
+  tags:
+    - mariadb
+    - teleport
+
+# These ones are placeholders from my local Teleport server. Will need to run this in post and copy them over
+# tctl auth sign --format=db --host=localhost --out=server --ttl=2160h
+- name: Copy Teleport certificates and keys
+  ansible.builtin.copy:
+    src: files/{{ item }}
+    dest: /opt/mariadb/certs/{{ item }}
+    owner: root
+    group: root
+    mode: "0644"
+  with_items:
+    - server.cas
+    - server.crt
+    - server.key
+  tags:
+    - mariadb
+    - teleport
+
+- name: Copy MariaDB config
+  ansible.builtin.copy:
+    src: files/mariadb.cnf
+    dest: /etc/mysql/conf.d/mysql.cnf
+    owner: root
+    group: root
+    mode: "0644"
+  tags:
+    - mariadb
+    - teleport
+
+- name: Create MariaDB user
+  community.mysql.mysql_user:
+    login_user: root
+    host: "%"
+    login_unix_socket: /run/mysqld/mysqld.sock
+    name: "{{ item.username }}"
+    priv: "{{ item.priv }}"
+    tls_requires:
+      subject: "/CN={{ item.username }}"
+    state: present
+  loop:
+    - username: admin
+      priv:
+        "%.*": "ALL,GRANT"
+    - username: areed # System Admin
+      priv:
+        "%.*": "ALL,GRANT"
+    - username: spearson # System Admin
+      priv:
+        "%.*": "ALL,GRANT"
+    - username: jthomsen # Former System Admin
+      priv:
+        "%.*": "ALL,GRANT"
+    - username: rbeck # Systems Engineer
+      priv:
+        "wordpress.*": "ALL"
+        "mysql.*": "SELECT"
+    - username: rstevens # Chief Cleanliness Officer
+      priv:
+        "sys.*": "ALL"
+        "mysql.*": "ALL"
+  tags:
+    - mariadb
+    - teleport

@@ -1,0 +1,47 @@
+---
+- name: Gather facts
+  ansible.builtin.setup:
+
+- name: Install Feature RSAT Tools
+  ansible.windows.win_feature:
+    name:
+      - RSAT-Role-Tools
+      - RSAT-AD-Tools
+      - RSAT-DNS-Server
+      - GPMC
+    state: present
+    include_sub_features: true
+    include_management_tools: true
+
+- name: Install ADCS RSAT Tools
+  ansible.windows.win_feature:
+    name:
+      - RSAT-ADCS
+    state: present
+    include_sub_features: true
+    include_management_tools: true
+  when: not install_core_tools
+
+# - name: Add Server Core Compatibility Tools
+#   ansible.windows.win_shell: |
+#     Add-WindowsCapability -Online -Name "ServerCore.AppCompatibility~~~~0.0.1.0"
+#   when: install_core_tools
+#   register: result
+#   retries: 3
+#   delay: 20
+#   until: result.rc == 0
+#   become: true
+#   become_method: runas
+#   become_user: System
+
+# - name: Add Server Core Browser Tools
+#   ansible.windows.win_shell: |
+#     Add-WindowsCapability -Online -Name "Browser.InternetExplorer~~~~0.0.11.0"
+#   when: install_core_tools
+#   register: result
+#   retries: 3
+#   delay: 20
+#   until: result.rc == 0
+#   become: true
+#   become_method: runas
+#   become_user: System

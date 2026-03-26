@@ -1,0 +1,67 @@
+{# Interfaces and gateways configuration #}
+<gateways>
+    <gateway_item>
+        <interface>wan</interface>
+        <gateway>dynamic</gateway>
+        <name>PUBLIC_DHCP</name>
+        <weight>1</weight>
+        <ipprotocol>inet</ipprotocol>
+        <interval></interval>
+        <descr><![CDATA[Interface WAN_DHCP Gateway]]></descr>
+        <default_gw></default_gw>
+    </gateway_item>
+    <gateway_item>
+        <interface>wan</interface>
+        <gateway>dynamic</gateway>
+        <name>PUBLIC_DHCP6</name>
+        <weight>1</weight>
+        <ipprotocol>inet6</ipprotocol>
+        <descr><![CDATA[Interface PUBLIC_DHCP6 Gateway]]></descr>
+        <action_disable></action_disable>
+        <gw_down_kill_states></gw_down_kill_states>
+        <monitor>2606:4700:4700::1111</monitor>
+    </gateway_item>
+</gateways>
+<interfaces>
+    <wan>
+        <descr><![CDATA[{{ interfaces.public.descr }}]]></descr>
+        <if>{{ interfaces.public.interface }}</if>
+        <enable></enable>
+        <ipaddr>dhcp</ipaddr>
+        <ipaddrv6>dhcp6</ipaddrv6>
+    </wan>
+    <lan>
+        <descr><![CDATA[{{ interfaces.private.descr }}]]></descr>
+        <if>{{ interfaces.private.interface }}</if>
+        <enable></enable>
+        <ipaddr>{{ interfaces.private.ipv4_address }}</ipaddr>
+        <subnet>{{ interfaces.private.ipv4_prefixlen }}</subnet>
+        <ipaddrv6>{{ interfaces.private.ipv6_address }}</ipaddrv6>
+        <subnetv6>{{ interfaces.private.ipv6_prefixlen }}</subnetv6>
+    </lan>
+    <opt1>
+        <descr><![CDATA[{{ interfaces.screened.descr }}]]></descr>
+        <if>{{ interfaces.screened.interface }}</if>
+        <enable></enable>
+        <ipaddr>{{ interfaces.screened.ipv4_address }}</ipaddr>
+        <subnet>{{ interfaces.screened.ipv4_prefixlen }}</subnet>
+    </opt1>
+    <opt2>
+        <descr><![CDATA[{{ interfaces.branch.descr }}]]></descr>
+        <if>{{ interfaces.branch.interface }}</if>
+        <enable></enable>
+        <ipaddrv6>{{ interfaces.branch.ipv6_address }}</ipaddrv6>
+        <subnetv6>{{ interfaces.branch.ipv6_prefixlen }}</subnetv6>
+    </opt2>
+</interfaces>
+<virtualip>
+    <vip>
+        <mode>ipalias</mode>
+        <interface>lan</interface>
+        <uniqid>695fd21044d73</uniqid>
+        <descr><![CDATA[VIP interface for pfSense Web GUI]]></descr>
+        <type>single</type>
+        <subnet_bits>{{ interfaces.private.ipv4_prefixlen }}</subnet_bits>
+        <subnet>{{ team_address.firewall_vip.ipv4 }}</subnet>
+    </vip>
+</virtualip>

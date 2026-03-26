@@ -1,0 +1,35 @@
+---
+- name: Copy playbook files
+  ansible.builtin.copy:
+    src: files/playbooks
+    dest: /opt/semaphore/
+    owner: semaphore
+    group: semaphore
+    mode: "0755"
+  tags:
+    - semaphore
+    - semaphore_config
+
+- name: Copy Semaphore inventory
+  ansible.builtin.template:
+    src: files/inventory.yaml
+    dest: /opt/semaphore/inventory.yaml
+    mode: "0644"
+    owner: semaphore
+    group: semaphore
+    backup: false
+  tags:
+    - semaphore
+    - semaphore_config
+
+- name: Enable ansible tasks
+  ttafsir.sqlite_utils.insert:
+    db_path: /opt/semaphore/database.sqlite
+    table: option
+    replace: true
+    records:
+      key: apps.ansible.active
+      value: "true"
+  tags:
+    - semaphore
+    - semaphore_config

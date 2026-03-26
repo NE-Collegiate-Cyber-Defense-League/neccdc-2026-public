@@ -1,0 +1,40 @@
+---
+- name: MySQL Create firewall rule to allow MySQL access
+  community.windows.win_firewall_rule:
+    name: Allow MySQL
+    localport: 3306
+    action: allow
+    direction: in
+    protocol: tcp
+    enabled: true
+    state: present
+
+- name: MySQL Install MySQL Service
+  ansible.windows.win_command:
+    cmd: 'C:\xampp\mysql\bin\mysqld.exe --install mysql --defaults-file="C:\xampp\mysql\bin\my.ini"'
+
+- name: Start MySQL Service
+  ansible.windows.win_service:
+    name: mysql
+    state: started
+
+- name: Rebuild and import OSPOS database (packer)
+  ansible.windows.win_powershell:
+    script: "{{ lookup('file', 'files/ospos/sql_import_ospos.ps1') }}"
+    parameters:
+      Database: "{{ ospos_db_name }}"
+
+- name: Create database users and grant privileges (packer)
+  ansible.windows.win_powershell:
+    script: "{{ lookup('file', 'files/ospos/sql_create_user.ps1') }}"
+    parameters:
+      MysqlUsername: "{{ item.user }}"
+      MysqlPassword: "{{ item.password }}"
+  loop:
+    - { user: "{{ ospos_db_user }}", password: "{{ ospos_db_password }}" }
+    - { user: "{{ ansible_user }}", password: "{{ ansible_password }}" }
+
+- name: Restart MySQL Service
+  ansible.windows.win_service:
+    name: mysql
+    state: restarted

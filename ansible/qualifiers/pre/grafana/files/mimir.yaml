@@ -1,0 +1,76 @@
+# Do not use this configuration in production.
+# It is for demonstration purposes only.
+target: all,alertmanager,overrides-exporter
+multitenancy_enabled: false
+common:
+  storage:
+    backend: s3
+    s3:
+      endpoint: minio:9000
+      access_key_id: storageuser
+      secret_access_key: storagepassword
+      bucket_name: mimir
+      insecure: true
+
+
+blocks_storage:
+  backend: s3
+  storage_prefix: Blocks
+  tsdb:
+    dir: /data/ingester
+    retention_period: 4h
+  bucket_store:
+    sync_interval: 5m
+    index_cache:
+      backend: memcached
+      memcached:
+        addresses: memcached:11211
+    chunks_cache:
+      backend: memcached
+      memcached:
+        addresses: memcached:11211
+
+memberlist:
+  join_members: [ mimir-1, mimir-2, mimir-3]
+  rejoin_interval: 10s
+
+ruler:
+  rule_path: /data/ruler
+  alertmanager_url: http://127.0.0.1:8080/alertmanager
+
+ruler_storage:
+  backend: s3
+  storage_prefix: devRuler
+  cache:
+    backend: memcached
+    memcached:
+      addresses: memcached:11211
+
+alertmanager:
+  data_dir: /data/alertmanager
+  external_url: http://load-balancer:9009/alertmanager
+
+alertmanager_storage:
+  backend: s3
+  storage_prefix: devAlertManager
+
+server:
+  log_level: error
+
+frontend:
+  results_cache:
+    backend: memcached
+    memcached:
+      addresses: memcached:11211
+
+store_gateway:
+  sharding_ring:
+   unregister_on_shutdown: false
+
+limits:
+  # Allow ingestion of out-of-order samples up to 5 minutes since the latest received sample for the series.
+  out_of_order_time_window: 4h
+  max_label_names_per_series: 100
+  max_global_series_per_user: 1000000
+  ingestion_rate: 20000
+  ingestion_burst_size: 60000

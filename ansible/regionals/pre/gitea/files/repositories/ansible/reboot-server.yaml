@@ -1,0 +1,22 @@
+---
+- name: Reboot server
+  hosts: "{{ target_hosts | default('all') }}"
+  become: true
+  vars:
+    reboot_timeout_sec: 600
+    connect_timeout_sec: 60
+
+  tasks:
+    - name: Reboot the server
+      ansible.builtin.reboot:
+        msg: "Ansible reboot"
+        connect_timeout: "{{ connect_timeout_sec }}"
+        reboot_timeout: "{{ reboot_timeout_sec }}"
+        pre_reboot_delay: 0
+        post_reboot_delay: 30
+      register: reboot_result
+
+    - name: Wait for system to become reachable
+      ansible.builtin.wait_for_connection:
+        timeout: "{{ reboot_timeout_sec }}"
+      when: reboot_result.rebooted | default(false) | bool

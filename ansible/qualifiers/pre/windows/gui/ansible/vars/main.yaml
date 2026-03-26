@@ -1,0 +1,28 @@
+---
+chocolatey_packages:
+  - name: 7zip
+    version: "25.1.0"
+  - name: everything
+    version: "1.4.11029"
+  - name: firefox
+    version: "147.0.0"
+  - name: git
+    version: "2.52.0"
+  - name: googlechrome
+    version: "144.0.7559.60"
+  - name: putty
+    version: "0.83.0"
+  - name: python
+    version: "3.14.2"
+  - name: runinbash
+    version: "0.1.1"
+  - name: sysinternals
+    version: "2025.12.16"
+  - name: systeminformer
+    version: "3.2.25011"
+  - name: vscode
+    version: "1.107.1"
+  - name: winscp
+    version: "6.5.5"
+  - name: wireshark
+    version: "4.6.2"

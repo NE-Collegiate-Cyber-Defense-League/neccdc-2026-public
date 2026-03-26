@@ -1,0 +1,13 @@
+---
+- name: Update APT packages
+  ansible.builtin.apt:
+    update_cache: true
+  tags:
+    - eic
+
+- name: Install EC2 Instance Connect
+  ansible.builtin.apt:
+    name: ec2-instance-connect
+    state: present
+  tags:
+    - eic

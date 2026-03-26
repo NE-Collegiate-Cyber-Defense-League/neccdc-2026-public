@@ -1,0 +1,529 @@
+---
+- name: Verify UpdateServices PowerShell module is available
+  ansible.windows.win_powershell:
+    script: |
+      $module = Get-Module -ListAvailable -Name UpdateServices
+      if (-not $module) {
+        throw "UpdateServices PowerShell module not found. WSUS installation may have failed."
+      }
+      [PSCustomObject]@{
+        ModuleAvailable = $true
+        Version = $module.Version.ToString()
+      }
+  register: wsus_module_check
+
+- name: Ensure WSUS content directory exists
+  ansible.windows.win_file:
+    path: "{{ ludus_wsus_content_folder }}"
+    state: directory
+
+- name: Ensure WSUS log directory exists
+  ansible.windows.win_file:
+    path: "{{ ludus_wsus_log_folder }}"
+    state: directory
+
+- name: Configure WSUS update languages
+  ansible.windows.win_powershell:
+    script: |
+      $WsusServer = Get-WsusServer
+      $config = $WsusServer.GetConfiguration()
+      
+      $targetLanguages = @("{{ ludus_wsus_update_languages | join('","') }}")
+      $currentLanguages = $config.GetEnabledUpdateLanguages()
+      
+      $changed = $false
+      if ($currentLanguages.Count -ne $targetLanguages.Count -or 
+          (Compare-Object $currentLanguages $targetLanguages)) {
+        $config.AllUpdateLanguagesEnabled = $false
+        $config.SetEnabledUpdateLanguages($targetLanguages)
+        $config.Save()
+        $changed = $true
+      }
+      
+      [PSCustomObject]@{
+        Changed = $changed
+        Languages = $targetLanguages
+      }
+  register: wsus_languages_result
+  changed_when: wsus_languages_result.output[0].Changed
+
+- name: Set WSUS synchronization source
+  ansible.windows.win_powershell:
+    script: |
+      $WsusServer = Get-WsusServer
+      $subscription = $WsusServer.GetSubscription()
+      
+      $changed = $false
+      {% if ludus_wsus_sync_from_mu %}
+      if ($subscription.SyncFromMicrosoftUpdate -ne $true) {
+        Set-WsusServerSynchronization -SyncFromMU | Out-Null
+        $changed = $true
+      }
+      {% else %}
+      if ($subscription.UpstreamServerName -ne "{{ ludus_wsus_upstream_server_name }}") {
+        Set-WsusServerSynchronization -UssServerName "{{ ludus_wsus_upstream_server_name }}" `
+          -PortNumber {{ ludus_wsus_upstream_server_port }} `
+          -UseSsl:${{ ludus_wsus_upstream_server_use_ssl | lower }} `
+          -Replica:${{ ludus_wsus_upstream_server_replica | lower }} | Out-Null
+        $changed = $true
+      }
+      {% endif %}
+      
+      # Refresh subscription object after potential changes
+      $subscription = $WsusServer.GetSubscription()
+      
+      [PSCustomObject]@{
+        Changed = $changed
+        SyncFromMU = $subscription.SyncFromMicrosoftUpdate
+      }
+  register: wsus_sync_source_result
+  changed_when: wsus_sync_source_result.output[0].Changed
+
+- name: Configure WSUS proxy settings
+  ansible.windows.win_powershell:
+    script: |
+      $WsusServer = Get-WsusServer
+      $config = $WsusServer.GetConfiguration()
+      
+      $changed = $false
+      {% if ludus_wsus_proxy_name %}
+      if ($config.ProxyName -ne "{{ ludus_wsus_proxy_name }}" -or 
+          $config.ProxyServerPort -ne {{ ludus_wsus_proxy_port }}) {
+        $config.ProxyName = "{{ ludus_wsus_proxy_name }}"
+        $config.ProxyServerPort = {{ ludus_wsus_proxy_port }}
+        {% if ludus_wsus_proxy_user_name %}
+        $config.ProxyUserName = "{{ ludus_wsus_proxy_user_name }}"
+        $config.ProxyUserDomain = ""
+        $config.SetProxyPassword("{{ ludus_wsus_proxy_password }}")
+        $config.UseProxy = $true
+        $config.AnonymousProxyAccess = $false
+        {% else %}
+        $config.UseProxy = $true
+        $config.AnonymousProxyAccess = $true
+        {% endif %}
+        $config.Save()
+        $changed = $true
+      }
+      {% else %}
+      if ($config.UseProxy -eq $true) {
+        $config.UseProxy = $false
+        $config.Save()
+        $changed = $true
+      }
+      {% endif %}
+      
+      [PSCustomObject]@{
+        Changed = $changed
+        UseProxy = $config.UseProxy
+        ProxyName = $config.ProxyName
+      }
+  register: wsus_proxy_result
+  changed_when: wsus_proxy_result.output[0].Changed
+
+- name: Configure WSUS targeting mode
+  ansible.windows.win_powershell:
+    script: |
+      $WsusServer = Get-WsusServer
+      $config = $WsusServer.GetConfiguration()
+      
+      $targetMode = "{{ ludus_wsus_targeting_mode }}"
+      $changed = $false
+      
+      if ($config.TargetingMode -ne $targetMode) {
+        $config.TargetingMode = $targetMode
+        $config.Save()
+        $changed = $true
+      }
+      
+      [PSCustomObject]@{
+        Changed = $changed
+        TargetingMode = $config.TargetingMode
+      }
+  register: wsus_targeting_result
+  changed_when: wsus_targeting_result.output[0].Changed
+
+- name: Create WSUS computer target groups
+  ansible.windows.win_powershell:
+    script: |
+      $WsusServer = Get-WsusServer
+      $targetGroups = @("{{ ludus_wsus_computer_target_group_list | join('","') }}")
+      
+      $created = @()
+      $existing = @()
+      
+      foreach ($groupName in $targetGroups) {
+        $group = $WsusServer.GetComputerTargetGroups() | Where-Object { $_.Name -eq $groupName }
+        if (-not $group) {
+          $WsusServer.CreateComputerTargetGroup($groupName) | Out-Null
+          $created += $groupName
+        } else {
+          $existing += $groupName
+        }
+      }
+      
+      [PSCustomObject]@{
+        Changed = $created.Count -gt 0
+        Created = $created
+        Existing = $existing
+      }
+  register: wsus_target_groups_result
+  changed_when: wsus_target_groups_result.output[0].Changed
+
+- name: Perform initial synchronization for product categories
+  ansible.windows.win_powershell:
+    script: |
+      $WsusServer = Get-WsusServer
+      $subscription = $WsusServer.GetSubscription()
+      
+      # Check if we need initial sync
+      $lastSync = $subscription.LastSynchronizationTime
+      if ($lastSync.Year -eq 1 -or $lastSync -eq [DateTime]::MinValue) {
+        $subscription.StartSynchronizationForCategoryOnly()
+        
+        # Wait for category sync to complete
+        $timeout = {{ ludus_wsus_category_sync_timeout_minutes }}
+        $elapsed = 0
+        do {
+          Start-Sleep -Seconds 10
+          $elapsed += 10
+          $status = $subscription.GetSynchronizationStatus()
+        } while ($status -eq 'Running' -and $elapsed -lt ($timeout * 60))
+        
+        [PSCustomObject]@{
+          Changed = $true
+          Status = $subscription.GetSynchronizationStatus()
+          LastSync = $subscription.LastSynchronizationTime
+        }
+      } else {
+        [PSCustomObject]@{
+          Changed = $false
+          Status = 'AlreadySynchronized'
+          LastSync = $lastSync
+        }
+      }
+  register: wsus_category_sync_result
+  changed_when: wsus_category_sync_result.output[0].Changed
+  when: ludus_wsus_initial_sync | bool
+
+- name: Configure WSUS update classifications
+  ansible.windows.win_powershell:
+    script: |
+      [array]$current = (Get-WsusServer).GetSubscription().GetUpdateClassifications()
+      [array]$allClassifications = Get-WsusClassification
+      [array]$shouldTitles = @("{{ ludus_wsus_classifications_list | join('","') }}")
+      
+      # If no classifications specified, disable all
+      if ($shouldTitles.Count -eq 0 -or ($shouldTitles.Count -eq 1 -and $shouldTitles[0] -eq '')) {
+        $changed = $false
+        foreach ($classification in $allClassifications) {
+          if ($classification.Classification.Title -and $current.Title -contains $classification.Classification.Title) {
+            $classification | Set-WsusClassification -Disable
+            $changed = $true
+          }
+        }
+        
+        [PSCustomObject]@{
+          Changed = $changed
+          Enabled = @()
+          Message = "No classifications configured - configure manually in GUI or via role_vars"
+        }
+      } else {
+        [array]$should = ($allClassifications | Where-Object { $_.Classification.Title -in $shouldTitles }).Classification
+        
+        if ($null -ne $should) {
+          $diffs = Compare-Object $current $should -Property Id
+          if ($diffs) {
+            foreach ($classification in $diffs) {
+              if ($classification.SideIndicator -eq '<=') {
+                $allClassifications.Where{ $_.Classification.Id -eq $classification.Id } | Set-WsusClassification -Disable
+              }
+              if ($classification.SideIndicator -eq '=>') {
+                $allClassifications.Where{ $_.Classification.Id -eq $classification.Id } | Set-WsusClassification
+              }
+            }
+            
+            [PSCustomObject]@{
+              Changed = $true
+              Enabled = $shouldTitles
+              Message = "Configured $($should.Count) classifications"
+            }
+          } else {
+            [PSCustomObject]@{
+              Changed = $false
+              Enabled = $shouldTitles
+              Message = "Classifications already configured"
+            }
+          }
+        } else {
+          [PSCustomObject]@{
+            Changed = $false
+            Enabled = @()
+            Message = "No matching classifications found"
+          }
+        }
+      }
+  register: wsus_classifications_result
+  changed_when: wsus_classifications_result.output[0].Changed
+
+- name: Configure WSUS products
+  ansible.windows.win_powershell:
+    script: |
+      [array]$current = (Get-WsusServer).GetSubscription().GetUpdateCategories()
+      [array]$allProducts = Get-WSUSProduct
+      [array]$shouldTitles = @("{{ ludus_wsus_products_list | join('","') }}")
+      
+      # If no products specified, disable all
+      if ($shouldTitles.Count -eq 0 -or ($shouldTitles.Count -eq 1 -and $shouldTitles[0] -eq '')) {
+        $changed = $false
+        foreach ($product in $allProducts) {
+          if ($product.Product.Title -and $current.Title -contains $product.Product.Title) {
+            $product | Set-WsusProduct -Disable
+            $changed = $true
+          }
+        }
+        
+        [PSCustomObject]@{
+          Changed = $changed
+          Enabled = @()
+          Verified = @()
+          AvailableProducts = ($allProducts | Where-Object { $_.Product.Title -like "*Server*" } | Select-Object -ExpandProperty Product | Select-Object -ExpandProperty Title | Sort-Object)
+          Message = "No products configured - configure manually in GUI or via role_vars"
+        }
+      } else {
+        [array]$should = ($allProducts | Where-Object { $_.Product.Title -in $shouldTitles }).Product
+        
+        if ($null -ne $should) {
+          $diffs = Compare-Object $current $should -Property Id
+          if ($diffs) {
+            foreach ($product in $diffs) {
+              if ($product.SideIndicator -eq '<=') {
+                $allProducts.Where{ $_.Product.Id -eq $product.Id } | Set-WsusProduct -Disable
+              }
+              if ($product.SideIndicator -eq '=>') {
+                $allProducts.Where{ $_.Product.Id -eq $product.Id } | Set-WsusProduct
+              }
+            }
+            
+            # Fixed: Properly collect all titles into an array
+            $verifiedTitles = @()
+            foreach ($item in $should) {
+              $verifiedTitles += $item.Title
+            }
+            
+            [PSCustomObject]@{
+              Changed = $true
+              Enabled = $shouldTitles
+              Verified = $verifiedTitles
+              AvailableProducts = ($allProducts | Where-Object { $_.Product.Title -like "*Server*" } | Select-Object -ExpandProperty Product | Select-Object -ExpandProperty Title | Sort-Object)
+              Message = "Configured $($should.Count) products"
+            }
+          } else {
+            # No changes needed - properly collect titles
+            $verifiedTitles = @()
+            foreach ($item in $should) {
+              $verifiedTitles += $item.Title
+            }
+            
+            [PSCustomObject]@{
+              Changed = $false
+              Enabled = $shouldTitles
+              Verified = $verifiedTitles
+              AvailableProducts = ($allProducts | Where-Object { $_.Product.Title -like "*Server*" } | Select-Object -ExpandProperty Product | Select-Object -ExpandProperty Title | Sort-Object)
+              Message = "Products already configured"
+            }
+          }
+        } else {
+          [PSCustomObject]@{
+            Changed = $false
+            Enabled = @()
+            NotFound = $shouldTitles
+            Verified = @()
+            AvailableProducts = ($allProducts | Where-Object { $_.Product.Title -like "*Server*" } | Select-Object -ExpandProperty Product | Select-Object -ExpandProperty Title | Sort-Object)
+            Message = "No matching products found. Check AvailableProducts list."
+          }
+        }
+      }
+  register: wsus_products_result
+  changed_when: wsus_products_result.output[0].Changed
+
+- name: Configure automatic synchronization schedule
+  ansible.windows.win_powershell:
+    script: |
+      $WsusServer = Get-WsusServer
+      $subscription = $WsusServer.GetSubscription()
+      
+      $changed = $false
+      {% if ludus_wsus_enable_auto_sync %}
+      # Create local time and convert to UTC
+      # WSUS stores time in UTC, so we must convert local time to UTC
+      $timeSpan = New-TimeSpan -Hours {{ ludus_wsus_sync_daily_time.hour }} -Minutes {{ ludus_wsus_sync_daily_time.minute }}
+      $localSyncHour = [System.DateTime]::Today + $timeSpan
+      $utcTimeSpan = $localSyncHour.ToUniversalTime().TimeOfDay
+      
+      if ($subscription.SynchronizeAutomatically -ne $true -or 
+          $subscription.SynchronizeAutomaticallyTimeOfDay -ne $utcTimeSpan -or
+          $subscription.NumberOfSynchronizationsPerDay -ne {{ ludus_wsus_syncs_per_day }}) {
+        $subscription.SynchronizeAutomatically = $true
+        $subscription.SynchronizeAutomaticallyTimeOfDay = $utcTimeSpan
+        $subscription.NumberOfSynchronizationsPerDay = {{ ludus_wsus_syncs_per_day }}
+        $subscription.Save()
+        $changed = $true
+      }
+      {% else %}
+      if ($subscription.SynchronizeAutomatically -eq $true) {
+        $subscription.SynchronizeAutomatically = $false
+        $subscription.Save()
+        $changed = $true
+      }
+      {% endif %}
+      
+      # Refresh subscription to get actual saved values
+      $subscription = $WsusServer.GetSubscription()
+      
+      [PSCustomObject]@{
+        Changed = $changed
+        AutoSync = $subscription.SynchronizeAutomatically
+      }
+  register: wsus_auto_sync_result
+  changed_when: wsus_auto_sync_result.output[0].Changed
+
+- name: Configure default approval rule
+  ansible.windows.win_powershell:
+    script: |
+      $WsusServer = Get-WsusServer
+      
+      $changed = $false
+      {% if ludus_wsus_enable_default_approval_rule %}
+      $rule = $WsusServer.GetInstallApprovalRules() | Where-Object { $_.Name -eq "Default Automatic Approval Rule" }
+      if (-not $rule.Enabled) {
+        $rule.Enabled = $true
+        $rule.Save()
+        $changed = $true
+      }
+      {% else %}
+      $rule = $WsusServer.GetInstallApprovalRules() | Where-Object { $_.Name -eq "Default Automatic Approval Rule" }
+      if ($rule.Enabled) {
+        $rule.Enabled = $false
+        $rule.Save()
+        $changed = $true
+      }
+      {% endif %}
+      
+      [PSCustomObject]@{
+        Changed = $changed
+        Enabled = $rule.Enabled
+      }
+  register: wsus_approval_rule_result
+  changed_when: wsus_approval_rule_result.output[0].Changed
+
+- name: Mark WSUS OOBE as completed (suppress GUI wizard)
+  ansible.windows.win_powershell:
+    script: |
+      # Load WSUS .NET assembly
+      [void][reflection.assembly]::LoadWithPartialName("Microsoft.UpdateServices.Administration")
+      
+      try {
+        $wsus = [Microsoft.UpdateServices.Administration.AdminProxy]::GetUpdateServer()
+        $config = $wsus.GetConfiguration()
+        
+        $changed = $false
+        if ($config.OobeInitialized -ne $true) {
+          $config.OobeInitialized = $true
+          $config.Save()
+          $changed = $true
+        }
+        
+        [PSCustomObject]@{
+          Changed = $changed
+          OobeInitialized = $config.OobeInitialized
+          Message = "WSUS Out-Of-Box-Experience marked as completed"
+        }
+      } catch {
+        [PSCustomObject]@{
+          Changed = $false
+          Error = $_.Exception.Message
+        }
+      }
+  register: wsus_oobe_result
+  changed_when: wsus_oobe_result.output[0].Changed
+
+- name: Disable Microsoft Update Improvement Program
+  ansible.windows.win_powershell:
+    script: |
+      $WsusServer = Get-WsusServer
+      $config = $WsusServer.GetConfiguration()
+      
+      $changed = $false
+      if ($config.MURollupOptin -ne $false) {
+        $config.MURollupOptin = $false
+        $config.Save()
+        $changed = $true
+      }
+      
+      [PSCustomObject]@{
+        Changed = $changed
+        MURollupOptin = $config.MURollupOptin
+      }
+  register: wsus_improvement_program_result
+  changed_when: wsus_improvement_program_result.output[0].Changed
+
+- name: Wait for WSUS configuration to settle
+  ansible.builtin.pause:
+    seconds: 5
+  when: ludus_wsus_products_list | length > 0 or ludus_wsus_classifications_list | length > 0
+
+- name: Verify WSUS configuration summary
+  ansible.windows.win_powershell:
+    script: |
+      [void][reflection.assembly]::LoadWithPartialName("Microsoft.UpdateServices.Administration")
+      $wsus = [Microsoft.UpdateServices.Administration.AdminProxy]::GetUpdateServer()
+      $config = $wsus.GetConfiguration()
+      $subscription = $wsus.GetSubscription()
+      
+      $subscribedProducts = $subscription.GetUpdateCategories() | Where-Object { $_.IsSubscribed }
+      $subscribedClassifications = $subscription.GetUpdateClassifications() | Where-Object { $_.IsSubscribed }
+      
+      [PSCustomObject]@{
+        OobeInitialized = $config.OobeInitialized
+        MURollupOptin = $config.MURollupOptin
+        SubscribedProducts = $subscribedProducts.Count
+        SubscribedClassifications = $subscribedClassifications.Count
+        TargetingMode = $config.TargetingMode
+        AutoSync = $subscription.SynchronizeAutomatically
+      }
+  register: wsus_config_summary
+  changed_when: false
+
+- name: Display WSUS configuration summary
+  ansible.builtin.debug:
+    msg:
+      - "═══════════════════════════════════════════════════════════"
+      - "WSUS Configuration Summary"
+      - "═══════════════════════════════════════════════════════════"
+      - "Storage:"
+      - "  - Content Folder: {{ ludus_wsus_content_folder }}"
+      - "  - Log Folder: {{ ludus_wsus_log_folder }}"
+      - "-----------------------------------------------------------"
+      - "Update Source:"
+      - "  - Sync From: {{ 'Microsoft Update' if ludus_wsus_sync_from_mu else ludus_wsus_upstream_server_name + ':' + ludus_wsus_upstream_server_port | string + (' (SSL)' if ludus_wsus_upstream_server_use_ssl else ' (HTTP)') }}"
+      - "  - Proxy: {{ ludus_wsus_proxy_name + ':' + ludus_wsus_proxy_port | string if ludus_wsus_proxy_name else 'None' }}"
+      - "-----------------------------------------------------------"
+      - "Content Selection:"
+      - "  - Products: {{ wsus_products_result.output[0].Verified | join(', ') if wsus_products_result.output[0].Verified | default([]) | length > 0 else 'None (configure manually in GUI)' }}"
+      - "  - Classifications: {{ ludus_wsus_classifications_list | join(', ') if ludus_wsus_classifications_list | length > 0 else 'None (configure manually in GUI)' }}"
+      - "  - Languages: {{ ludus_wsus_update_languages | join(', ') }}"
+      - "-----------------------------------------------------------"
+      - "Client Configuration:"
+      - "  - Targeting Mode: {{ wsus_config_summary.output[0].TargetingMode.String }}"
+      - "  - Target Groups: {{ ludus_wsus_computer_target_group_list | join(', ') }}"
+      - "-----------------------------------------------------------"
+      - "Synchronization:"
+      - "  - Auto Sync: {{ 'Enabled' if ludus_wsus_enable_auto_sync else 'Disabled' }}"
+      - "  - Sync Time: {{ ludus_wsus_sync_daily_time.hour }}:{{ '%02d' | format(ludus_wsus_sync_daily_time.minute) }} (Local){{ ' - ' + ludus_wsus_syncs_per_day | string + ' time(s) per day' if ludus_wsus_enable_auto_sync else '' }}"
+      - "-----------------------------------------------------------"
+      - "Server Settings:"
+      - "  - OOBE Initialized: {{ wsus_config_summary.output[0].OobeInitialized }}"
+      - "  - Telemetry: {{ 'Enabled' if wsus_config_summary.output[0].MURollupOptin else 'Disabled' }}"
+      - "  - Default Approval Rule: {{ 'Enabled' if ludus_wsus_enable_default_approval_rule else 'Disabled' }}"
+      - "═══════════════════════════════════════════════════════════"
+  when: wsus_config_summary.output is defined

@@ -1,0 +1,28 @@
+---
+- name: Install Teleport client
+  ansible.builtin.include_tasks:
+    file: "tasks/setup-{{ ansible_os_family }}.yaml"
+  vars:
+    teleport_major_version: "{{ teleport_major_version_override | default('v17') }}"
+  tags:
+    - teleport
+
+# If you service needs extra customed config, it can be copied in a dedicted task in your playbook
+# https://goteleport.com/docs/reference/deployment/config/
+- name: Configure Teleport.
+  ansible.builtin.template:
+    src: templates/teleport.yaml.j2
+    dest: /etc/teleport.yaml
+    validate: '/usr/local/bin/teleport configure --test %s'
+    mode: '0644'
+  tags:
+    - teleport
+
+# Disabling and stopping by default so in post it can be setup with team specifics
+- name: Stop and disable Teleport
+  ansible.builtin.service:
+    name: teleport
+    state: stopped
+    enabled: false
+  tags:
+    - teleport

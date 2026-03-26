@@ -1,0 +1,21 @@
+---
+- name: Ensure Chocolatey bin directory exists
+  ansible.windows.win_file:
+    path: 'C:\ProgramData\chocolatey\bin'
+    state: directory
+
+- name: Download Teleport Windows binaries archive
+  ansible.windows.win_get_url:
+    url: "{{ teleport_download_url }}"
+    dest: "{{ teleport_archive_path }}"
+
+- name: Extract Teleport binaries into Chocolatey bin
+  ansible.builtin.win_unzip:
+    src: "{{ teleport_archive_path }}"
+    dest: 'C:\ProgramData\chocolatey\bin'
+    creates: 'C:\ProgramData\chocolatey\bin\tsh.exe'
+
+- name: Clean up Teleport archive
+  ansible.windows.win_file:
+    path: "{{ teleport_archive_path }}"
+    state: absent

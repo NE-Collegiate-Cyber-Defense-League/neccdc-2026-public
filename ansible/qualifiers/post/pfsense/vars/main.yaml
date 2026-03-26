@@ -1,0 +1,72 @@
+# Define pfSense version
+pfsense_version: "25.11"
+
+# Define mappings for each version
+pfsense_versions:
+  "24.11":
+    api_version: "pfSense-24.11-pkg-RESTAPI.pkg"
+    sudo_version: "0.3_10"
+    haproxy_version: "0.63_9"
+    interface_convention: "ena"
+  "25.11":
+    api_version: "pfSense-25.11-pkg-RESTAPI.pkg"
+    haproxy_version: "0.65.1_1"
+    interface_convention: "ena"
+
+# Select the correct version details dynamically
+pfsense_api_url: "https://github.com/jaredhendrickson13/pfsense-api/releases/latest/download"
+pfsense_api_pkg: "{{ pfsense_api_url }}/{{ pfsense_versions[pfsense_version].api_version }}"
+
+pfsense_sudo_pkg: "pfSense-pkg-sudo-{{ pfsense_versions[pfsense_version].sudo_version }}"
+pfsense_haproxy_pkg: "pfSense-pkg-haproxy-{{ pfsense_versions[pfsense_version].haproxy_version }}"
+
+interfaces:
+  public:
+    interface: "{{ pfsense_versions[pfsense_version].interface_convention }}0"
+    descr: PUBLIC
+    ipv4_type: dhcp
+    ipv6_type: dhcp6
+  private:
+    interface: "{{ pfsense_versions[pfsense_version].interface_convention }}1"
+    descr: PRIVATE
+    ipv4_address: '{{ team_address.firewall_private.ipv4 }}'
+    ipv4_prefixlen: 25
+    ipv6_address: '{{ team_address.firewall_private.ipv6 }}'
+    ipv6_prefixlen: 64
+  screened:
+    interface: "{{ pfsense_versions[pfsense_version].interface_convention }}2"
+    descr: SCREENED
+    ipv4_address: '{{ team_address.firewall_screened.ipv4 }}'
+    ipv4_prefixlen: 26
+  branch:
+    interface: "{{ pfsense_versions[pfsense_version].interface_convention }}3"
+    descr: BRANCH
+    ipv6_address: '{{ team_address.firewall_branch.ipv6 }}'
+    ipv6_prefixlen: 64
+
+unbound_custom_options: |
+  server:
+  private-domain:"{{ ad.domain}}"
+  domain-insecure:"{{ ad.domain}}"
+  local-zone: "{{ team_domain }}" redirect
+  local-data: "{{ team_domain }} 86400 IN A {{ team_address.firewall_vip.ipv4 }}"
+  local-zone: "teleport.{{ team_domain }}" redirect
+  local-data: "teleport.{{ team_domain }} 86400 IN A {{ team_address.teleport.ipv4 }}"
+  local-zone: "falco.{{ team_domain }}" redirect
+  local-data: "falco.{{ team_domain }} 86400 IN A {{ team_address.falco.ipv4 }}"
+  local-data: "falco.{{ team_domain }} 86400 IN AAAA {{ team_address.falco.ipv6 }}"
+  local-zone: "grafana.{{ team_domain }}" redirect
+  local-data: "grafana.{{ team_domain }} 86400 IN A {{ team_address.grafana.ipv4 }}"
+  local-data: "grafana.{{ team_domain }} 86400 IN AAAA {{ team_address.grafana.ipv6 }}"
+  local-zone: "loki.{{ team_domain }}" redirect
+  local-data: "loki.{{ team_domain }} 86400 IN A {{ team_address.grafana.ipv4 }}"
+  local-data: "loki.{{ team_domain }} 86400 IN AAAA {{ team_address.grafana.ipv6 }}"
+  local-zone: "mimir.{{ team_domain }}" redirect
+  local-data: "mimir.{{ team_domain }} 86400 IN A {{ team_address.grafana.ipv4 }}"
+  local-data: "mimir.{{ team_domain }} 86400 IN AAAA {{ team_address.grafana.ipv6 }}"
+  local-zone: "traefik.{{ team_domain }}" redirect
+  local-data: "traefik.{{ team_domain }} 86400 IN A {{ team_address.grafana.ipv4 }}"
+  local-data: "traefik.{{ team_domain }} 86400 IN AAAA {{ team_address.grafana.ipv6 }}"
+  local-zone: "semaphore.{{ team_domain }}" redirect
+  local-data: "semaphore.{{ team_domain }} 86400 IN A {{ team_address.semaphore.ipv4 }}"
+  local-data: "semaphore.{{ team_domain }} 86400 IN AAAA {{ team_address.semaphore.ipv6 }}"

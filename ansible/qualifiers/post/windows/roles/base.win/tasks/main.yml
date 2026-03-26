@@ -1,0 +1,22 @@
+#SPDX-License-Identifier: MIT-0
+---
+- name: Configure DNS
+  ansible.builtin.include_tasks:
+    file: dns.yaml
+  when: dns_servers is defined and dns_servers | length > 0
+
+- name: Configure NTP
+  ansible.builtin.include_tasks:
+    file: ntp.yaml
+  when: ntp_resync == true
+
+- name: Configure IPv4 over IPv6 Preference
+  ansible.builtin.include_tasks:
+    file: ipv4_ipv6.yaml
+  when: prefer_ipv4_over_ipv6 == true
+
+# Should be last since it may require a reboot
+- name: Configure Hostname
+  ansible.builtin.include_tasks:
+    file: hostname.yaml
+  when: set_hostname is defined and set_hostname | length > 0

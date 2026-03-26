@@ -1,0 +1,136 @@
+---
+- name: Update DB_HOST in wp-config.php
+  ansible.builtin.replace:
+    path: "{{ wordpress_path }}/wp-config.php"
+    regexp: "define\\( 'DB_HOST', 'db:3306' \\);"
+    replace: "define( 'DB_HOST', '{{ wordpress_db_host }}' );"
+  become: true
+
+- name: Check if WordPress is installed
+  ansible.builtin.command:
+    cmd: "{{ wp_cli_path }} core is-installed --path={{ wordpress_path }} --allow-root"
+  register: wp_installed
+  failed_when: false
+  become: true
+
+- name: Install WordPress if not installed
+  ansible.builtin.command:
+    cmd: "{{ wp_cli_path }} core install --path={{ wordpress_path }} --url={{ wp_url }} --title={{ wp_title }} --admin_user={{ wp_admin_user }} --admin_password={{ wp_admin_pass }} --admin_email={{ wp_admin_email }} --skip-email --allow-root"
+  when: wp_installed.rc != 0
+  become: true
+
+- name: Check if second admin user exists
+  ansible.builtin.command:
+    cmd: "{{ wp_cli_path }} user exists {{ second_admin_user }} --allow-root --path={{ wordpress_path }}"
+  register: user_exists
+  failed_when: false
+  become: true
+
+- name: Create second admin user if not exists
+  ansible.builtin.command:
+    cmd: "{{ wp_cli_path }} user create {{ second_admin_user }} {{ second_admin_email }} --role=administrator --user_pass={{ second_admin_pass }} --allow-root --path={{ wordpress_path }}"
+  when: user_exists.rc != 0
+  become: true
+
+- name: Check if ChefOps theme is installed
+  ansible.builtin.command:
+    cmd: "{{ wp_cli_path }} theme is-installed chefops-oceancrest --allow-root --path={{ wordpress_path }}"
+  register: theme_installed
+  failed_when: false
+  become: true
+
+- name: Activate ChefOps theme if installed
+  ansible.builtin.command:
+    cmd: "{{ wp_cli_path }} theme activate chefops-oceancrest --allow-root --path={{ wordpress_path }}"
+  when: theme_installed.rc == 0
+  become: true
+
+- name: Activate plugins
+  ansible.builtin.command:
+    cmd: "{{ wp_cli_path }} plugin activate {{ item }} --allow-root --path={{ wordpress_path }}"
+  loop:
+    - sneeit-framework
+    - wp-file-manager
+    - Simple-File-List
+    - classic-editor
+    - health-check
+    - w3-total-cache
+    - wordpress-importer
+    - wpforms-lite
+    - better-search-replace
+    - cloudflare
+    - code-snippets
+    - contact-form-cfdb7
+    - gdpr-cookie-compliance
+    - worker
+    - optinmonster
+    - smart-slider-3
+    - svg-support
+    - wp-consent-api
+  ignore_errors: true
+  become: true
+
+- name: Enable unauthenticated comments
+  ansible.builtin.command:
+    cmd: "{{ wp_cli_path }} option update {{ item.key }} {{ item.value }} --allow-root --path={{ wordpress_path }}"
+  loop:
+    - { key: 'comment_registration', value: '0' }
+    - { key: 'default_comment_status', value: 'open' }
+    - { key: 'comment_moderation', value: '0' }
+  become: true
+
+- name: Enable RFI
+  ansible.builtin.lineinfile:
+    path: /etc/php/7.4/apache2/conf.d/rfi.ini
+    line: "{{ item }}"
+    create: yes
+  loop:
+    - "allow_url_fopen=On"
+    - "allow_url_include=On"
+  become: true
+
+- name: Enable WebDAV modules
+  community.general.apache2_module:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - dav
+    - dav_fs
+  become: true
+  notify: restart apache
+
+- name: Configure WebDAV for uploads
+  ansible.builtin.blockinfile:
+    path: /etc/apache2/sites-available/000-default.conf
+    block: |
+      <Directory /var/www/html/wp-content/uploads>
+          Dav On
+          Options +Indexes
+      </Directory>
+    insertafter: "<VirtualHost *:80>"
+  become: true
+  notify: restart apache
+
+- name: Create wp-config.php backup
+  ansible.builtin.copy:
+    src: "{{ wordpress_path }}/wp-config.php"
+    dest: "{{ wordpress_path }}/wp-config.php.bak"
+    remote_src: yes
+    mode: '0644'
+  become: true
+
+- name: Start Apache service
+  ansible.builtin.service:
+    name: apache2
+    state: started
+    enabled: yes
+  become: true
+
+# Note: Added this since some of the uploads were owned by root
+- name: Recursively change ownership of uploads
+  ansible.builtin.file:
+    path: /var/www/html/wp-content/uploads
+    state: directory
+    recurse: true
+    owner: www-data
+    group: www-data

@@ -1,0 +1,12 @@
+kind: role
+version: v7
+metadata:
+  name: windows-admin
+  description: Administer Windows servers
+spec:
+  allow:
+    windows_desktop_logins:
+      - Administrator
+      - '{{internal.logins}}'
+    node_labels:
+      os: windows

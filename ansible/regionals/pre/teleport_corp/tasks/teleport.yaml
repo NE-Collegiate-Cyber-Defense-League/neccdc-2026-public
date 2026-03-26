@@ -1,0 +1,105 @@
+---
+- name: Ensure teleport.chefops.tech points to localhost
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    state: present
+    regexp: '^127\.0\.0\.1\s+{{ teleport_server_dns_address }}$'
+    line: '127.0.0.1 {{ teleport_server_dns_address }}'
+  tags:
+    - teleport
+
+- name: Teleport apt key
+  ansible.builtin.apt_key:
+    url: https://apt.releases.teleport.dev/gpg
+    state: present
+  tags:
+    - teleport
+
+- name: Add Teleports APT repository
+  ansible.builtin.apt_repository:
+    repo: "deb https://apt.releases.teleport.dev/ubuntu xenial stable/v17"
+    state: present
+    filename: teleport
+  tags:
+    - teleport
+
+# https://www.wiz.io/vulnerability-database/cve/cve-2025-49825
+# https://trust.goteleport.com/resources?s=32t147ja8aawd6px7irxat&name=cve-2025-49825-rca
+- name: Install Teleport
+  ansible.builtin.apt:
+    name: teleport=17.5.1
+    state: present
+  tags:
+    - teleport
+
+- name: Hold the 'teleport' package
+  ansible.builtin.dpkg_selections:
+    name: teleport
+    selection: hold
+  tags:
+    - teleport
+
+- name: Copy teleport configuration template
+  ansible.builtin.template:
+    src: templates/teleport.yaml.j2
+    dest: /etc/teleport.yaml
+    mode: '0664'
+    owner: root
+    group: ubuntu
+  vars:
+    teleport_motd: |-
+      This system is operated and managed by ChefOps.
+
+      Access is granted solely to authorized users for approved business purposes. All activity may be logged, monitored, and audited.
+
+      Unauthorized access, misuse, or violation of access policies is strictly prohibited and may result in:
+      - Immediate access revocation
+      - Disciplinary action
+      - Legal consequences
+
+      By continuing, you acknowledge and consent to these conditions.
+      If you do not have explicit authorization, disconnect immediately.
+  tags:
+    - teleport
+
+- name: Copy temporary certificates
+  block:
+    - name: Copy full chain certificates
+      ansible.builtin.copy:
+        src: '/workspaces/neccdc-2026/documents/black_team/certificates/teleport/fullchain.crt'
+        dest: /var/lib/teleport/fullchain.crt
+        mode: '0400'
+        owner: root
+        group: root
+      tags:
+        - teleport
+
+    - name: Copy private key
+      ansible.builtin.copy:
+        src: '/workspaces/neccdc-2026/documents/black_team/certificates/teleport/private.key'
+        dest: /var/lib/teleport/private.key
+        mode: '0400'
+        owner: root
+        group: root
+      tags:
+        - teleport
+
+- name: Start and enable teleport
+  ansible.builtin.service:
+    name: teleport
+    state: restarted
+    enabled: true
+  tags:
+    - teleport
+
+- name: Wait teleport website is ready
+  ansible.builtin.uri:
+    url: 'https://{{ teleport_server_dns_address }}/webapi/ping'
+    return_content: false
+    status_code: 200
+  until: uri_output.status == 200
+  retries: 24
+  delay: 3
+  register: uri_output
+  tags:
+    - teleport

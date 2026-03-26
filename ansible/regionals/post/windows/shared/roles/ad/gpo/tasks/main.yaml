@@ -1,0 +1,28 @@
+---
+- name: Get domain-specific configuration
+  set_fact:
+    gpo_dest_path: "C:\\temp"
+
+- name: Create temporary GPO directory on target
+  ansible.windows.win_file:
+    path: "{{ gpo_dest_path }}"
+    state: directory
+
+- name: Transfer Required Files to Server
+  ansible.windows.win_copy:
+    src: "{{ gpo_source | default('files/gpo') }}"
+    dest: "{{ gpo_dest_path }}"
+
+- name: Populate GPOs
+  ansible.windows.win_powershell:
+    script: "{{ lookup('ansible.builtin.file', 'files/gpo.ps1') }}"
+    parameters:
+      MappingsJson: "{{ gpo_mappings }}"
+    error_action: stop
+  notify: gpupdate
+  register: gpo_import_result
+
+- name: Clean up GPO import files
+  ansible.windows.win_file:
+    path: "{{ gpo_dest_path }}"
+    state: absent

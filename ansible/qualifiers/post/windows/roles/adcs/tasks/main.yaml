@@ -1,0 +1,100 @@
+- name: Install ADCS
+  ansible.windows.win_feature:
+    name:
+      - ADCS-Cert-Authority
+      - ADCS-Web-Enrollment
+    state: present
+    include_sub_features: true
+    include_management_tools: true
+
+- name: Install-ADCSCertificationAuthority-PS
+  ansible.windows.win_powershell:
+    script: |
+      [CmdletBinding()]
+      param (
+          [String]
+          $domain_username,
+
+          [String]
+          $domain_password,
+
+          [String]
+          $ca_common_name
+      )
+      $pass = ConvertTo-SecureString $domain_password -AsPlainText -Force
+      $Cred = New-Object System.Management.Automation.PSCredential ($domain_username, $pass)
+      try {
+        Install-AdcsCertificationAuthority -Credential $Cred -CAType EnterpriseRootCA -CryptoProviderName "RSA#Microsoft Software Key Storage Provider" -KeyLength 2048 -HashAlgorithmName SHA256 -ValidityPeriod Years -ValidityPeriodUnits 5 -CACommonName $ca_common_name -Force
+        $Ansible.Changed = $true
+      } catch {
+        $Ansible.Changed = $false
+      }
+    error_action: stop
+    parameters:
+      domain_username: "{{domain_username}}"
+      domain_password: "{{domain_password}}"
+      ca_common_name: "{{ca_common_name}}"
+
+# ESC 8
+# ignore error if already installed
+- name: Enable Web enrollement
+  ansible.windows.win_powershell:
+    script: |
+      [CmdletBinding()]
+      param ()
+      try {
+        Install-AdcsWebEnrollment -Force
+        $Ansible.Changed = $true
+      } catch {
+        $Ansible.Changed = $false
+      }
+
+- name: Refresh
+  ansible.windows.win_command: gpupdate /force
+
+# Included in packer build
+# - name: Install powershell modules
+#   community.windows.win_psmodule:
+#     name: ADCSTemplate
+#     accept_license: true
+#     state: present
+
+- name: Copy templates json
+  win_copy:
+    src: "files/{{item}}.json"
+    dest: "C:\\{{item}}.json"
+  loop:
+    - SSL
+
+- name: Install templates
+  ansible.windows.win_powershell:
+    script: "{{ lookup('ansible.builtin.file', 'files/import-templates.ps1') }}"
+    parameters:
+      TemplateName: "{{item}} Certificate Template"
+      TemplatePath: "C:\\{{item}}.json"
+  loop:
+    - SSL
+
+- name: Remove templates json
+  ansible.windows.win_file:
+    path: "C:\\{{item}}.json"
+    state: absent
+  loop:
+    - SSL
+
+- name: Change IIS to allow anonymous access
+  ansible.windows.win_powershell:
+    script: |
+      Import-Module WebAdministration
+
+      & "$env:SystemRoot\System32\inetsrv\appcmd.exe" unlock config `
+        /section:system.webServer/security/authentication/anonymousAuthentication
+
+      & "$env:SystemRoot\System32\inetsrv\appcmd.exe" unlock config `
+        /section:system.webServer/security/authentication/windowsAuthentication
+
+      Set-WebConfigurationProperty `
+        -Filter "system.webServer/security/authentication/anonymousAuthentication" `
+        -PSPath "IIS:\Sites\Default Web Site\CertSrv" `
+        -Name enabled `
+        -Value $true

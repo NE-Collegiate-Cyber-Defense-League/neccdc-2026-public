@@ -1,0 +1,6 @@
+---
+- name: Corp pfSense
+  import_playbook: playbook_corp.yaml
+
+- name: Branch pfSense
+  import_playbook: playbook_branch.yaml

@@ -1,0 +1,43 @@
+---
+- name: Uptime and system status
+  hosts: linux
+  gather_facts: true
+  become: false
+  tasks:
+    - name: Gather uptime
+      ansible.builtin.command:
+        cmd: uptime
+      register: uptime_out
+      changed_when: false
+
+    - name: Gather memory usage
+      ansible.builtin.command:
+        cmd: free -h
+      register: free_out
+      changed_when: false
+
+    - name: Gather disk usage
+      ansible.builtin.command:
+        cmd: df -h /
+      register: df_out
+      changed_when: false
+
+    - name: Gather listening TCP ports
+      ansible.builtin.command:
+        cmd: ss -tlnp
+      register: ss_out
+      changed_when: false
+      failed_when: false
+
+    - name: Print system information
+      ansible.builtin.debug:
+        msg:
+          - "=== {{ inventory_hostname }} ({{ ansible_date_time.iso8601 }}) ==="
+          - "Uptime: {{ uptime_out.stdout }}"
+          - "Memory:"
+          - "{{ free_out.stdout }}"
+          - "Disk (/):"
+          - "{{ df_out.stdout }}"
+          - "Listening (ss -tlnp):"
+          - "{{ ss_out.stdout | default('(none or ss failed)') }}"
+          - "---"

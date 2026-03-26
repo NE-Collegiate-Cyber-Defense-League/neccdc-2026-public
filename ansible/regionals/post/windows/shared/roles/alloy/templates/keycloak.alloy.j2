@@ -1,0 +1,180 @@
+livedebugging {
+	enabled = true
+}
+
+logging {
+	level = "info"
+}
+
+prometheus.remote_write "local" {
+	endpoint {
+		url = "{{ alloy_mimir_url }}"
+	}
+}
+
+loki.write "local" {
+	endpoint {
+		url = "{{ alloy_loki_url }}"
+	}
+}
+
+// ─── Windows Exporter ────────────────────────────────────────────────────────
+
+prometheus.exporter.windows "default" {
+	enabled_collectors = [
+		"cpu", "logical_disk", "net", "os", "service", "system", "memory",
+	]
+}
+
+prometheus.scrape "windows_node" {
+	targets         = prometheus.exporter.windows.default.targets
+	job_name        = "integrations/windows_exporter"
+	forward_to      = [prometheus.remote_write.local.receiver]
+	scrape_interval = "30s"
+}
+
+// ─── Keycloak Metrics ────────────────────────────────────────────────────────
+
+prometheus.scrape "keycloak" {
+	targets = [
+		{"__address__" = "localhost", "instance" = constants.hostname},
+	]
+
+	job_name        = "integrations/keycloak"
+	forward_to      = [prometheus.remote_write.local.receiver]
+	scrape_interval = "30s"
+}
+
+// ─── Keycloak Logs ───────────────────────────────────────────────────────────
+
+loki.source.file "keycloak" {
+	targets = [
+		{
+			__path__ = "C:\\Program Files\\keycloak-26.5.4\\data\\log\\*.log",
+			job      = "integrations/keycloak",
+			instance = constants.hostname,
+		},
+	]
+	file_match {
+		enabled = true
+		sync_period = "10s"
+	}
+	forward_to = [loki.process.parse_keycloak.receiver]
+}
+
+loki.process "parse_keycloak" {
+	forward_to = [loki.relabel.windows_mapping.receiver]
+
+	stage.json {
+		expressions = {
+			timestamp         = "timestamp",
+			level             = "level",
+			message           = "message",
+			logger_class_name = "loggerClassName",
+			thread_name       = "threadName",
+			realm_name        = "\"kc.realmName\"",
+			client_id         = "\"kc.clientId\"",
+			user_id           = "\"kc.userId\"",
+			ip_address        = "\"kc.ipAddress\"",
+			session_id        = "\"kc.sessionId\"",
+		}
+	}
+
+	stage.labels {
+		values = {
+			level     = "",
+			realm     = "realm_name",
+			client_id = "",
+		}
+	}
+
+	stage.structured_metadata {
+		values = {
+			user_id    = "",
+			ip_address = "",
+			session_id = "",
+			thread     = "thread_name",
+			logger     = "logger_class_name",
+		}
+	}
+
+	stage.output {
+		source = "message"
+	}
+}
+
+// ─── Windows Event Logs ──────────────────────────────────────────────────────
+
+loki.source.windowsevent "system" {
+	forward_to    = [loki.process.parse_eventlog.receiver]
+	eventlog_name = "System"
+}
+
+loki.source.windowsevent "application" {
+	forward_to    = [loki.process.parse_eventlog.receiver]
+	eventlog_name = "Application"
+}
+
+loki.source.windowsevent "security" {
+	forward_to    = [loki.process.parse_eventlog.receiver]
+	eventlog_name = "Security"
+}
+
+loki.process "parse_eventlog" {
+	forward_to = [loki.relabel.windows_mapping.receiver]
+
+	stage.json {
+		expressions = {
+			message       = "",
+			Overwritten   = "",
+			source        = "",
+			computer      = "",
+			eventRecordID = "",
+			channel       = "",
+			component_id  = "",
+			execution     = "",
+		}
+	}
+
+	stage.json {
+		source      = "execution"
+		expressions = {
+			processId   = "",
+			processName = "",
+		}
+	}
+
+	stage.structured_metadata {
+		values = {
+			"eventRecordID"         = "",
+			"channel"               = "",
+			"component_id"          = "",
+			"execution_processId"   = "processId",
+			"execution_processName" = "processName",
+		}
+	}
+
+	stage.eventlogmessage {
+		source             = "message"
+		overwrite_existing = true
+	}
+
+	stage.labels {
+		values = {
+			"service_name" = "source",
+		}
+	}
+
+	stage.output {
+		source = "message"
+	}
+}
+
+loki.relabel "windows_mapping" {
+	forward_to = [loki.write.local.receiver]
+
+	rule {
+		target_label = "instance"
+		replacement  = constants.hostname
+	}
+}

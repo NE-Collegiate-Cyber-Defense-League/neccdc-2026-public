@@ -1,0 +1,30 @@
+---
+- name: Make directory for Teleport GPG key
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: '0755'
+- name: Download Teleport GPG key
+  ansible.builtin.get_url:
+    url: https://apt.releases.teleport.dev/gpg
+    dest: /etc/apt/keyrings/teleport-archive-keyring.asc
+  tags:
+    - teleport
+
+- name: Add Teleport's APT repository
+  ansible.builtin.apt_repository:
+    repo: >
+      deb [signed-by=/etc/apt/keyrings/teleport-archive-keyring.asc]
+      https://apt.releases.teleport.dev/{{ ansible_facts['distribution'] | lower  }}
+      {{ ansible_facts['distribution_release'] }} stable/{{ teleport_major_version }}
+    state: present
+  tags:
+    - teleport
+
+- name: Ensure Teleport is installed in Debian
+  ansible.builtin.apt:
+    name: teleport
+    state: present
+    update_cache: true
+  tags:
+    - teleport

@@ -1,0 +1,105 @@
+livedebugging {
+	enabled = true
+}
+
+logging {
+	level = "info"
+}
+
+prometheus.remote_write "local" {
+	endpoint {
+		url = "{{ alloy_mimir_url }}"
+	}
+}
+
+loki.write "local" {
+	endpoint {
+		url = "{{ alloy_loki_url }}"
+	}
+}
+
+prometheus.exporter.windows "default" {
+	enabled_collectors = [
+		"cpu", "logical_disk", "net", "os", "service", "system", "memory",
+	]
+}
+
+prometheus.scrape "windows_node" {
+	targets         = prometheus.exporter.windows.default.targets
+	job_name        = "integrations/windows_exporter"
+	forward_to      = [prometheus.remote_write.local.receiver]
+	scrape_interval = "30s"
+}
+
+loki.source.windowsevent "system" {
+	forward_to = [
+		loki.process.parse_eventlog.receiver,
+	]
+	eventlog_name = "System"
+}
+
+loki.source.windowsevent "application" {
+	forward_to = [
+		loki.process.parse_eventlog.receiver,
+	]
+	eventlog_name = "Application"
+}
+
+loki.process "parse_eventlog" {
+	forward_to = [loki.relabel.windows_mapping.receiver]
+
+	stage.json {
+		expressions = {
+			message       = "",
+			Overwritten   = "",
+			source        = "",
+			computer      = "",
+			eventRecordID = "",
+			channel       = "",
+			component_id  = "",
+			execution     = "",
+		}
+	}
+
+	stage.json {
+		source      = "execution"
+		expressions = {
+			processId   = "",
+			processName = "",
+		}
+	}
+
+	stage.structured_metadata {
+		values = {
+			"eventRecordID"         = "",
+			"channel"               = "",
+			"component_id"          = "",
+			"execution_processId"   = "processId",
+			"execution_processName" = "processName",
+		}
+	}
+
+	stage.eventlogmessage {
+		source             = "message"
+		overwrite_existing = true
+	}
+
+	stage.labels {
+		values = {
+			"service_name" = "source",
+		}
+	}
+
+	stage.output {
+		source = "message"
+	}
+}
+
+loki.relabel "windows_mapping" {
+	forward_to = [loki.write.local.receiver]
+
+	rule {
+		target_label = "instance"
+		replacement  = constants.hostname
+	}
+}

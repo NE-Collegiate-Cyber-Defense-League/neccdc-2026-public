@@ -1,0 +1,66 @@
+---
+- name: Create monitoring docker network
+  community.docker.docker_network:
+    name: monitoring
+    enable_ipv4: true
+    enable_ipv6: true
+    internal: true
+    scope: local
+  tags:
+    - monitoring
+
+- name: Create grafana directory
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+  with_items:
+    - /opt/grafana
+    - /opt/grafana/dashboards
+  tags:
+    - monitoring
+
+- name: Copy monitoring files
+  ansible.builtin.copy:
+    src: ./files/{{ item }}
+    dest: /opt/grafana/{{ item }}
+    owner: root
+    group: root
+    mode: "0640"
+  with_items:
+    - datasources.yaml
+    - dashboards.yaml
+    - dashboards/wireguard.json
+  tags:
+    - monitoring
+
+- name: Template docker compose
+  ansible.builtin.template:
+    src: templates/docker-compose.yaml
+    dest: "/opt/grafana/docker-compose.yaml"
+    owner: root
+    group: root
+    mode: "0600"
+  tags:
+    - monitoring
+
+- name: Template prometheus configuration
+  ansible.builtin.template:
+    src: templates/prometheus.yaml
+    dest: "/opt/grafana/prometheus.yaml"
+    owner: root
+    group: "65534" # prometheus user id
+    mode: "0640"
+  tags:
+    - monitoring
+
+- name: Create and start services
+  community.docker.docker_compose_v2:
+    project_src: /opt/grafana
+    files: docker-compose.yaml
+    pull: missing
+    state: present
+    wait: true
+  tags:
+    - monitoring

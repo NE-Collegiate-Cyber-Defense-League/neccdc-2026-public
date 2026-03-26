@@ -1,0 +1,37 @@
+---
+- name: Fetch and reload Falco rules from Gitea
+  hosts: falco_clients_corp,falco_clients_branch
+  become: true
+  vars:
+    # falco_gitea_rules_url: "https://gitea.example.com/org/falco-rules/raw/branch/main/falco_rules.yaml"
+    falco_rules_tmp: /tmp/falco_rules.yaml
+    falco_rules_dest: /etc/falco/rules.d/custom_rules.yaml
+
+  tasks:
+    - name: Download Falco rules from Gitea
+      ansible.builtin.get_url:
+        url: "{{ falco_gitea_rules_url }}"
+        dest: "{{ falco_rules_tmp }}"
+        force: true
+        validate_certs: "{{ falco_gitea_validate_certs | default(true) }}"
+
+    - name: Move rules into Falco config directory
+      ansible.builtin.copy:
+        src: "{{ falco_rules_tmp }}"
+        dest: "{{ falco_rules_dest }}"
+        owner: root
+        group: root
+        mode: "0644"
+        remote_src: true
+      notify: Reload Falco
+
+    - name: Remove temporary Falco rules file
+      ansible.builtin.file:
+        path: "{{ falco_rules_tmp }}"
+        state: absent
+
+  handlers:
+    - name: Reload Falco
+      ansible.builtin.systemd:
+        name: "{{ falco_service_name | default('falco-modern-bpf') }}"
+        state: restarted

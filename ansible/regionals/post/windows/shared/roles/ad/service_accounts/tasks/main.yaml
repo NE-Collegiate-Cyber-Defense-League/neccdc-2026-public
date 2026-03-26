@@ -1,0 +1,29 @@
+---
+- name: Fail when AD users data is missing
+  ansible.builtin.assert:
+    that:
+      - set_accounts is defined
+    fail_msg: "AD service acocunts data must be provided when including this role."
+
+- name: Hide ManagedServiceAccount Container
+  microsoft.ad.object:
+    identity: "CN=Managed Service Accounts,{{ data.dn }}"
+    attributes:
+      set:
+        showInAdvancedViewOnly: true
+    type: container
+
+- name: Create AD users
+  microsoft.ad.user:
+    name: "{{ item.key }}"
+    password: "{{ item.value.password }}"
+    firstname: "{{ item.key }}"
+    display_name: "{{ item.key }}"
+    upn: "{{ item.value.upn }}"
+    description: "{{ item.value.description | default(omit) }}"
+    groups:
+      add: "{{ item.value.groups | default(omit) }}"
+    path: "{{ item.value.path | default(omit) }}"
+    state: present
+  loop: "{{ set_accounts | default({}) | dict2items }}"
+

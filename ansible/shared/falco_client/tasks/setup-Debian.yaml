@@ -1,0 +1,52 @@
+---
+# https://github.com/juju4/ansible-falco/blob/main/tasks/debian.yml
+
+- name: Ensure apt-transport-https and gpg are present
+  ansible.builtin.apt:
+    name:
+      - apt-transport-https
+      - gnupg
+      - kmod
+      - systemd
+    state: present
+  tags:
+    - falco
+
+- name: Add falcosecurity APT key
+  ansible.builtin.get_url:
+    url: https://falco.org/repo/falcosecurity-packages.asc
+    dest: /etc/apt/trusted.gpg.d/falco.asc
+    mode: '0644'
+  tags:
+    - falco
+
+- name: Install falcosecurity apt source
+  ansible.builtin.apt_repository:
+    repo: "deb https://download.falco.org/packages/deb stable main"
+    filename: falcosecurity
+    mode: '0444'
+    state: present
+  tags:
+    - falco
+
+# This might break on some systems
+- name: Install kernel headers
+  ansible.builtin.apt:
+    name: "{% if 'pve' in ansible_kernel %}pve-headers-{{ ansible_kernel }}{% else %}linux-headers-{{ ansible_kernel }}{% endif %}"
+    state: present
+  ignore_errors: true
+  tags:
+    - falco
+
+- name: Install Falco
+  ansible.builtin.apt:
+    name: "falco{{ '=' + falco_version if (falco_version is defined and falco_version | length > 0) else '' }}"
+    state: present
+    update_cache: true
+    allow_unauthenticated: true
+  environment:
+    FALCO_FRONTEND: noninteractive
+    FALCO_DRIVER_CHOICE: "{{ falco_driver_type }}"
+    FALCOCTL_ENABLED: "true"
+  tags:
+    - falco

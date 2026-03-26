@@ -1,0 +1,200 @@
+---
+# https://docs.gitea.com/installation/install-from-binary
+- name: Create Gitea group
+  ansible.builtin.group:
+    name: gitea
+    system: true
+    state: present
+  tags:
+    - gitea
+
+- name: Create Gitea user
+  ansible.builtin.user:
+    name: gitea
+    comment: "Gitea user"
+    append: true
+    groups: gitea
+    home: /var/lib/gitea
+    shell: /bin/sh
+    system: true
+  tags:
+    - gitea
+
+- name: Create gitea directories
+  ansible.builtin.file:
+    path: /var/lib/gitea/{{ item }}
+    state: directory
+    recurse: true
+    owner: gitea
+    group: gitea
+    mode: "0750"
+  with_items:
+    - custom
+    - data
+    - log
+  tags:
+    - gitea
+
+- name: Create more gitea directories
+  ansible.builtin.file:
+    path: /etc/gitea
+    state: directory
+    owner: root
+    group: gitea
+    mode: "0770"
+  tags:
+    - gitea
+
+- name: Gitea log directories
+  ansible.builtin.file:
+    path: /var/log/gitea
+    state: directory
+    owner: root
+    group: gitea
+    mode: "0770"
+  tags:
+    - gitea
+
+# https://docs.gitea.com/administration/config-cheat-sheet
+- name: Copy Gitea config
+  ansible.builtin.copy:
+    src: files/gitea.ini
+    dest: /etc/gitea/gitea.ini
+    mode: "0644"
+    owner: gitea
+    group: gitea
+  notify: Restart gitea
+  tags:
+    - gitea
+
+# https://github.com/go-gitea/gitea/releases
+- name: Download gitea binary
+  ansible.builtin.get_url:
+    url: "https://dl.gitea.com/gitea/{{ gitea_version }}/gitea-{{ gitea_version }}-linux-arm64"
+    dest: /usr/local/bin/gitea
+    owner: root
+    group: root
+    mode: "0755"
+  vars:
+    gitea_version: 1.25.4
+  tags:
+    - gitea
+
+# https://docs.gitea.com/installation/linux-service
+- name: Copy gitea systemd service
+  ansible.builtin.copy:
+    src: files/gitea.service
+    dest: /etc/systemd/system/gitea.service
+    owner: root
+    group: root
+    mode: "0755"
+  notify: Restart gitea
+  tags:
+    - gitea
+
+- name: Start and enable gitea
+  ansible.builtin.service:
+    name: gitea
+    state: restarted
+    daemon_reload: true
+    enabled: true
+  tags:
+    - gitea
+
+- name: Open port 3000/tcp for Gitea web interface
+  ansible.posix.firewalld:
+    port: 3000/tcp
+    permanent: true
+    state: enabled
+    immediate: true
+  tags:
+    - gitea
+
+- name: Wait until ready # sql tables created
+  ansible.builtin.uri:
+    url: "{{ gitea_url }}/metrics"
+    method: GET
+    status_code:
+      - 200
+  register: api_status
+  until: api_status.status == 200
+  retries: 30
+  delay: 10
+  failed_when: api_status.status != 200
+  tags:
+    - gitea
+
+- name: Use gitea admin user
+  ansible.builtin.command:
+    cmd: >
+      /usr/local/bin/gitea -c /etc/gitea/gitea.ini
+        admin user create --username "admin"
+        --password "password123"
+        --email "admin@chefops.tech"
+        --must-change-password=false
+        --admin=true
+        --access-token=false
+  become_user: gitea
+  register: gitea_admin_create
+  failed_when: >
+    gitea_admin_create.rc != 0 and
+    "user already exists" not in gitea_admin_create.stderr
+  changed_when: gitea_admin_create.rc == 0
+  tags:
+    - gitea
+
+- name: Use gitea black-team user
+  ansible.builtin.command:
+    cmd: >
+      /usr/local/bin/gitea -c /etc/gitea/gitea.ini
+        admin user create --username "black-team"
+        --password "dfgbfecn4uMtYxcqEdA3WQcdBgH2QGxM"
+        --email "blackteam@neccdl.org"
+        --must-change-password=false
+        --admin=true
+        --access-token=false
+  become_user: gitea
+  register: gitea_admin_create
+  failed_when: >
+    gitea_admin_create.rc != 0 and
+    "user already exists" not in gitea_admin_create.stderr
+  changed_when: gitea_admin_create.rc == 0
+  tags:
+    - gitea
+
+- name: Delete any existing tokens
+  become_user: postgres
+  community.postgresql.postgresql_query:
+    login_db: giteadb
+    login_user: postgres
+    login_unix_socket: /var/run/postgresql
+    query: DELETE FROM public.access_token
+  tags:
+    - gitea
+
+# Generated initially with
+# gitea admin user generate-access-token --config /etc/gitea/gitea.ini --username admin --token-name gitea-admin --scopes all
+# 40b8404b26d98fd9778393c3a6d88edd00292813
+- name: Overwrite access token
+  become_user: postgres
+  community.postgresql.postgresql_query:
+    login_db: giteadb
+    login_user: postgres
+    login_unix_socket: /var/run/postgresql
+    query: INSERT INTO public.access_token VALUES (1, 1, 'gitea-admin', 'b24343400567e5f5ab17d8545f165ad587f07e016e31438da3e20aee2f785b916968668a1abce5bd57e63118a672783853ce', 'Etfcj92bGB', '00292813', 'all', 1772070210, 1772070210) ON CONFLICT DO NOTHING
+  tags:
+    - gitea
+
+- name: Wait until ready
+  ansible.builtin.uri:
+    url: "{{ gitea_url }}/metrics"
+    method: GET
+    status_code:
+      - 200
+  register: api_status
+  until: api_status.status == 200
+  retries: 30
+  delay: 10
+  failed_when: api_status.status != 200
+  tags:
+    - gitea

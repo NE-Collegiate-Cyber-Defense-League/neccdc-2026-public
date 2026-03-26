@@ -1,0 +1,19 @@
+#SPDX-License-Identifier: MIT-0
+---
+- name: Create BGInfo folder
+  ansible.windows.win_file:
+    path: C:\Program Files\BGInfo
+    state: directory
+
+- name: Copy BGInfo to Windows host
+  ansible.windows.win_copy:
+    src: files/
+    dest: C:\Program Files\BGInfo
+    force: true
+
+- name: Set registry run key for BGInfo
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run
+    name: BGInfo
+    data: '"C:\Program Files\BGInfo\BGInfo64.exe" "C:\Program Files\BGInfo\default.bgi" /timer:0 /silent /accepteula'
+    type: string

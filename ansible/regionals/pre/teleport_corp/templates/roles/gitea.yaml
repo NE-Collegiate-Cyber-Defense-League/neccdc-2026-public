@@ -1,0 +1,11 @@
+kind: role
+version: v7
+metadata:
+  name: gitea
+  description: Gitea web access
+spec:
+  options:
+    max_session_ttl: 8h
+  allow:
+    app_labels:
+      service: gitea

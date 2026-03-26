@@ -1,0 +1,17 @@
+---
+- hosts: branch_win_pos
+  gather_facts: true
+  vars_files:
+    - "../shared/vars/config.json"
+  vars:
+    roles_path: "../shared/roles"
+    data: "{{ lab[domain] }}"
+
+  roles:
+    - { role: "{{ roles_path }}/base/timezone", set_timezone: "Eastern Standard Time" }
+    - { role: "{{ roles_path }}/base/hostname", set_hostname: "{{ hostname }}" }
+    - { role: "{{ roles_path }}/base/dns_client", dns_servers: "{{ data.dns_servers }}" }
+    - { role: "{{ roles_path }}/ad/domain_join" }
+    - { role: "{{ roles_path }}/ad/gpupdate" }
+    - { role: "{{ roles_path }}/alloy", alloy_template: "windows" }
+  tags: join

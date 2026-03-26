@@ -1,0 +1,74 @@
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Install build dependencies
+  ansible.builtin.apt:
+    name:
+      - build-essential
+      - libbz2-dev
+      - libffi-dev
+      - libgdbm-dev
+      - libncurses5-dev
+      - libnss3-dev
+      - libreadline-dev
+      - libssl-dev
+      - zlib1g-dev
+    state: present
+
+- name: Download Python source tarball
+  ansible.builtin.get_url:
+    url: "https://www.python.org/ftp/python/{{ python_version }}/Python-{{ python_version }}.tgz"
+    dest: "/tmp/Python-{{ python_version }}.tgz"
+    mode: "0644"
+
+- name: Extract Python source
+  ansible.builtin.unarchive:
+    src: "/tmp/Python-{{ python_version }}.tgz"
+    dest: "/tmp"
+    remote_src: true
+    creates: "/tmp/Python-{{ python_version }}"
+
+- name: Configure Python build
+  ansible.builtin.command:
+    cmd: ./configure --enable-optimizations
+    chdir: "/tmp/Python-{{ python_version }}"
+    creates: "/tmp/Python-{{ python_version }}/Makefile"
+
+- name: Compile Python
+  ansible.builtin.command:
+    cmd: make -j {{ ansible_processor_vcpus | default(8) }}
+    chdir: "/tmp/Python-{{ python_version }}"
+    creates: "/tmp/Python-{{ python_version }}/python"
+  async: 900
+  poll: 30
+  retries: 3
+  delay: 30
+  failed_when: false
+
+- name: Compile Python again
+  ansible.builtin.command:
+    cmd: make -j {{ ansible_processor_vcpus | default(8) }}
+    chdir: "/tmp/Python-{{ python_version }}"
+    creates: "/tmp/Python-{{ python_version }}/python"
+  async: 60
+  poll: 10
+  retries: 1
+  delay: 30
+
+- name: Install Python using altinstall
+  ansible.builtin.command:
+    cmd: make altinstall
+    chdir: "/tmp/Python-{{ python_version }}"
+    creates: "/usr/local/bin/python3.9"
+
+- name: Clean up temporary archive
+  ansible.builtin.file:
+    path: /tmp/Python-{{ python_version }}.tgz
+    state: absent
+
+- name: Clean up temporary dir
+  ansible.builtin.file:
+    path: /tmp/Python-{{ python_version }}
+    state: absent

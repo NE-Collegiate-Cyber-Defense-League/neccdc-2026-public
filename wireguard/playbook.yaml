@@ -1,0 +1,341 @@
+---
+- name: Configure Wireguard Node
+  become: true
+  hosts: wireguard
+  vars:
+    username: black-team
+    password: dfgbfecn4uMtYxcqEdA3WQcdBgH2QGxM
+
+    monitoring: true
+    number_of_teams: 0
+
+    wireguard_metrics_password: "{{ password }}"
+    inventory_hostname: vpn.chefops.tech
+
+    wireguard_subnet_black_team: "172.16.99.x"
+    wireguard_subnet_red_team: "172.16.98.x"
+    wireguard_subnet_blue_team: "172.16"
+    # https://developers.cloudflare.com/1.1.1.1/ip-addresses/
+    wireguard_client_dns: "1.1.1.1,2606:4700:4700::1111"
+    wireguard_admin_username: "{{ username }}"
+    wireguard_admin_password: "{{ password }}"
+
+    internal_ipv4_range: "192.168.0.0/16"
+    internal_ipv6_range: "fc00::/56"
+
+    external_team_ipv4_range: "10.0.0.0/8"
+    external_global_ipv6_range: "2600:1f26:1d:8000::/52"
+
+    corp_ipv6_range: "{{ external_global_ipv6_range | ansible.utils.ipsubnet(56, 10) }}"
+    branch_ipv6_range: "{{ external_global_ipv6_range | ansible.utils.ipsubnet(56, 11) }}"
+
+    corp_public_ipv4_range: "10.7.0.0/16"
+    corp_dmz_ipv4_range: "10.3.0.0/16"
+    corp_private_ipv4_range: "10.100.0.0/16"
+
+    wireguard_allowed_ips:
+      - "{{ corp_public_ipv4_range }}"
+      - "{{ corp_dmz_ipv4_range }}"
+      - "{{ corp_private_ipv4_range }}"
+      - "{{ external_global_ipv6_range }}"
+
+    black_team_clients:
+      - username1
+    red_team: true
+    red_team_clients:
+      - red0
+      - red1
+      - red2
+      - red3
+      - red4
+      - red5
+      - red6
+      - red7
+      - red8
+      - red9
+    output_dir: "../documents/wireguard.zip"
+  tasks:
+    - name: Install packages
+      ansible.builtin.apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - software-properties-common
+          - gnupg2
+          - curl
+          - iptables-persistent
+        force_apt_get: true
+        state: present
+        update_cache: true
+      tags:
+        - base
+
+    - name: Download Docker GPG key
+      ansible.builtin.get_url:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        dest: /etc/apt/keyrings/docker.asc
+        mode: "0644"
+      tags:
+        - base
+
+    - name: Add docker official repository
+      ansible.builtin.apt_repository:
+        filename: docker
+        repo: deb [arch=arm64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu noble stable
+        state: present
+      tags:
+        - base
+
+    - name: Update repository cache
+      ansible.builtin.apt:
+        update_cache: true
+        force_apt_get: true
+      tags:
+        - base
+
+    - name: Install docker
+      ansible.builtin.apt:
+        name: "docker-ce"
+        state: present
+      tags:
+        - base
+
+    - name: Service docker
+      ansible.builtin.service:
+        name: docker
+        state: started
+        enabled: true
+      tags:
+        - base
+
+    - name: Add ubuntu to the docker group
+      ansible.builtin.user:
+        name: ubuntu
+        groups: docker
+        append: true
+      tags:
+        - base
+
+    - name: Create wireguard config directory
+      ansible.builtin.file:
+        path: /opt/wireguard
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+      tags:
+        - base
+
+    - name: Setup monitoring
+      when: monitoring | bool
+      ansible.builtin.include_tasks:
+        file: "tasks/monitoring.yaml"
+      tags:
+        - base
+        - monitoring
+        - wireguard
+
+    - name: Create black team wireguard client directory
+      ansible.builtin.file:
+        path: "/opt/wireguard/wireguard-black-team/"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+      tags:
+        - restore
+
+    - name: Try to copy wg-easy database backup
+      ansible.builtin.copy:
+        src: files/wg-easy.db
+        dest: /opt/wireguard/wireguard-black-team/wg-easy.db
+        owner: root
+        group: root
+        mode: "0666"
+      register: db_copy_result
+      ignore_errors: true
+      tags:
+        - restore
+
+    - name: Setup black team wireguard
+      ansible.builtin.include_tasks:
+        file: "tasks/wireguard_instance.yaml"
+      vars:
+        wg_name: "black-team"
+        item: "255"
+        udp_port: 51899
+        tcp_port: 51999
+        wireguard_client_subnet: "{{ wireguard_subnet_black_team }}"
+        clients: "{{ black_team_clients }}"
+        iptables: false
+        create_clients: "{{ db_copy_result is failed }}"
+      tags:
+        - base
+        - client
+        - wireguard
+
+    - name: Setup red team wireguard
+      when: red_team | bool
+      ansible.builtin.include_tasks:
+        file: "tasks/wireguard_instance.yaml"
+      vars:
+        wg_name: "red-team"
+        item: "254"
+        udp_port: 51898
+        tcp_port: 51998
+        wireguard_client_subnet: "{{ wireguard_subnet_red_team }}"
+        clients: "{{ red_team_clients }}"
+        iptables: false
+      tags:
+        - client
+        - wireguard
+        - base
+
+    - name: Flush docker user tables
+      ansible.builtin.iptables:
+        ip_version: both
+        chain: DOCKER-USER
+        flush: true
+      tags:
+        - iptables
+
+    - name: Setup blue team wireguard
+      with_sequence: start=0 end="{{ number_of_teams | int }}"
+      ansible.builtin.include_tasks:
+        file: "tasks/wireguard_instance.yaml"
+      vars:
+        wg_name: "blue-{{ item }}-team"
+        udp_port: "518{{ '%02d' | format(item | int) }}"
+        tcp_port: "519{{ '%02d' | format(item | int) }}"
+        wireguard_client_subnet: "{{ wireguard_subnet_blue_team }}.{{ item }}.x"
+        iptables: true
+        clients:
+          - one
+          - two
+          - three
+          - four
+          - five
+          - six
+          - seven
+          - eight
+      tags:
+        - client
+        - wireguard
+        - base
+        - iptables
+
+    - name: Colored Egress
+      block:
+        - name: IPv4
+          block:
+            - name: Colored Egress | IPv4 | Black team
+              ansible.builtin.iptables:
+                ip_version: ipv4
+                chain: DOCKER-USER
+                source: "{{ internal_ipv4_range | ansible.utils.ipsubnet(24, 255) }}"
+                destination: "{{ external_team_ipv4_range }}"
+                jump: ACCEPT
+              tags:
+                - iptables
+
+            - name: Colored Egress | IPv4 | Red team
+              ansible.builtin.iptables:
+                ip_version: ipv4
+                chain: DOCKER-USER
+                source: "{{ internal_ipv4_range | ansible.utils.ipsubnet(24, 254) }}"
+                destination: "{{ external_team_ipv4_range }}"
+                jump: ACCEPT
+              tags:
+                - iptables
+
+        - name: IPv6
+          block:
+            - name: Colored Egress | IPv6 | Black team
+              ansible.builtin.iptables:
+                ip_version: ipv6
+                chain: DOCKER-USER
+                source: "{{ internal_ipv6_range | ansible.utils.ipsubnet(64, 255) }}"
+                destination: "{{ external_global_ipv6_range }}"
+                jump: ACCEPT
+              tags:
+                - iptables
+
+            - name: Colored Egress | IPv6 | Red team
+              ansible.builtin.iptables:
+                ip_version: ipv6
+                chain: DOCKER-USER
+                source: "{{ internal_ipv6_range | ansible.utils.ipsubnet(64, 254) }}"
+                destination: "{{ external_global_ipv6_range }}"
+                jump: ACCEPT
+              tags:
+                - iptables
+
+    # iptables -I DOCKER-USER 1 -s 192.168.0.0/16 -d 10.0.0.0/16 -j REJECT
+    - name: Reject team networks
+      block:
+        - name: Reject team networks | IPv4
+          ansible.builtin.iptables:
+            ip_version: ipv4
+            chain: DOCKER-USER
+            source: "{{ internal_ipv4_range }}"
+            destination: "{{ external_team_ipv4_range }}"
+            jump: REJECT
+          tags:
+            - iptables
+
+        - name: Reject team networks | IPv6
+          ansible.builtin.iptables:
+            ip_version: ipv6
+            chain: DOCKER-USER
+            source: "{{ internal_ipv6_range }}"
+            destination: "{{ external_global_ipv6_range }}"
+            jump: REJECT
+          tags:
+            - iptables
+
+    # iptables -I DOCKER-USER -j RETURN
+    - name: Default pass traffic
+      ansible.builtin.iptables:
+        ip_version: both
+        chain: DOCKER-USER
+        jump: RETURN
+        state: present
+      tags:
+        - iptables
+
+    - name: Save iptables rules
+      block:
+        - name: Save iptables rules | IPv4
+          community.general.iptables_state:
+            ip_version: ipv4
+            path: /etc/iptables/rules.v4
+            state: saved
+          tags:
+            - iptables
+
+        - name: Save iptables rules | IPv6
+          community.general.iptables_state:
+            ip_version: ipv6
+            path: /etc/iptables/rules.v6
+            state: saved
+          tags:
+            - iptables
+
+    - name: Compress wireguard directory
+      community.general.archive:
+        path: /opt/wireguard
+        dest: /opt/wireguard.zip
+        format: zip
+        mode: "0600"
+        owner: "root"
+        group: "root"
+      tags:
+        - copy
+
+    - name: Copy wireguard files
+      ansible.builtin.fetch:
+        src: /opt/wireguard.zip
+        dest: "{{ output_dir }}"
+        flat: true
+      tags:
+        - copy

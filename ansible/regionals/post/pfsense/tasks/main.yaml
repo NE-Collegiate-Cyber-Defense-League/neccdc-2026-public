@@ -1,0 +1,9 @@
+---
+- name: Render Jinja2 template
+  ansible.builtin.template:
+    src: "templates/{{ template_file }}"
+    dest: "/conf/config.xml"
+
+- name: Reboot pfSense
+  ansible.builtin.reboot:
+

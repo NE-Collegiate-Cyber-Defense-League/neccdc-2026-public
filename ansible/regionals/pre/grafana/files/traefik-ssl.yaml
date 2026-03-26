@@ -1,0 +1,12 @@
+tls:
+  stores:
+    default:
+      defaultCertificate:
+        certFile: /ssl/fullchain.crt
+        keyFile: /ssl/private.key
+  certificates:
+    - certFile: /ssl/fullchain.crt
+      keyFile: /ssl/private.key
+  options:
+    default:
+      minVersion: VersionTLS10

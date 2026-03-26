@@ -1,0 +1,87 @@
+---
+- name: Add Redis Repository
+  ansible.builtin.yum_repository:
+    name: Redis
+    description: "Redis 8 Repository"
+    baseurl: http://packages.redis.io/rpm/rockylinux9
+    enabled: true
+    state: present
+  tags:
+    - redis
+
+- name: Import Redis GPG Key
+  ansible.builtin.rpm_key:
+    state: present
+    key: https://packages.redis.io/gpg
+  tags:
+    - redis
+
+- name: Install Redis
+  ansible.builtin.dnf:
+    name: redis >= 8.2
+    state: present
+  tags:
+    - redis
+
+- name: Configure Redis to bind to all interfaces
+  ansible.builtin.lineinfile:
+    path: /etc/redis/redis.conf
+    regexp: '^bind '
+    line: 'bind 0.0.0.0 ::1'
+    backup: false
+  tags:
+    - redis
+
+- name: Enable Redis ACL
+  ansible.builtin.lineinfile:
+    path: /etc/redis/redis.conf
+    regexp: '^aclfile '
+    line: 'aclfile /etc/redis/users.acl'
+    backup: false
+  tags:
+    - redis
+
+- name: Create Redis ACL file with admin user
+  ansible.builtin.copy:
+    content: |
+      user default off
+      user admin on >yourpassword ~* &* +@all
+    dest: /etc/redis/users.acl
+    owner: redis
+    group: redis
+    mode: '0644'
+  tags:
+    - redis
+
+- name: Disable Redis password (using ACL instead)
+  ansible.builtin.lineinfile:
+    path: /etc/redis/redis.conf
+    regexp: '^requirepass'
+    line: '# requirepass'
+  tags:
+    - redis
+
+- name: Enable Redis protected mode
+  ansible.builtin.lineinfile:
+    path: /etc/redis/redis.conf
+    regexp: '^protected-mode'
+    line: 'protected-mode yes'
+  tags:
+    - redis
+
+- name: Configure Redis persistence
+  ansible.builtin.lineinfile:
+    path: /etc/redis/redis.conf
+    regexp: '^appendonly '
+    line: 'appendonly yes'
+    backup: false
+  tags:
+    - redis
+
+- name: Start and enable Redis service
+  ansible.builtin.systemd:
+    name: redis
+    state: restarted
+    enabled: true
+  tags:
+    - redis

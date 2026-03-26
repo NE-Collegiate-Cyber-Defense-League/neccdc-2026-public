@@ -1,0 +1,28 @@
+kind: role
+version: v7
+metadata:
+  name: wordpress-admin
+  description: Wordpress administrator
+spec:
+  options:
+    max_session_ttl: 8h
+  allow:
+    app_labels:
+      app: wordpress
+    logins:
+      - admin
+      - '{{internal.logins}}'
+    node_labels:
+      service: wordpress
+    db_names:
+      - '*'
+    db_service_labels:
+      '*': '*'
+    db_users:
+      - '{{internal.db_users}}'
+      - '*'
+    impersonate:
+      users:
+        - "Db"
+      roles:
+        - "Db"

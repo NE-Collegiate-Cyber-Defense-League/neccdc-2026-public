@@ -1,0 +1,36 @@
+---
+- name: Validate targeting mode
+  ansible.builtin.assert:
+    that:
+      - ludus_wsus_targeting_mode in ['Server', 'Client']
+    fail_msg: "ludus_wsus_targeting_mode must be either 'Server' or 'Client'"
+
+- name: Validate sync configuration
+  ansible.builtin.assert:
+    that:
+      - ludus_wsus_sync_timeout is defined
+      - ludus_wsus_sync_timeout | int > 0
+      - ludus_wsus_category_sync_timeout_minutes is defined
+      - ludus_wsus_category_sync_timeout_minutes | int > 0
+      - ludus_wsus_syncs_per_day is defined
+      - ludus_wsus_syncs_per_day | int >= 1
+      - ludus_wsus_syncs_per_day | int <= 24
+    fail_msg: "Synchronization settings invalid. Timeouts must be positive integers. Syncs per day must be between 1 and 24."
+
+- name: Validate upstream server configuration
+  ansible.builtin.assert:
+    that:
+      - ludus_wsus_upstream_server_port | int > 0
+      - ludus_wsus_upstream_server_port | int < 65536
+    fail_msg: "Upstream server port must be between 1 and 65535"
+  when: not ludus_wsus_sync_from_mu
+
+- name: Display warning if products and classifications are empty
+  ansible.builtin.debug:
+    msg:
+      - "INFO: Products and classifications lists are empty."
+      - "WSUS will have NO products or classifications selected after deployment."
+      - "Configure them manually in the WSUS GUI or specify them in role_vars."
+  when: 
+    - ludus_wsus_products_list | length == 0
+    - ludus_wsus_classifications_list | length == 0

@@ -1,0 +1,15 @@
+---
+# Ludus WSUS Server deployment
+
+- name: Validate configuration
+  ansible.builtin.include_tasks: validate.yml
+
+- name: Install WSUS
+  ansible.builtin.include_tasks: install.yml
+
+- name: Configure WSUS
+  ansible.builtin.include_tasks: configure.yml
+
+# - name: Synchronize WSUS (optional)
+#   ansible.builtin.include_tasks: synchronize.yml
+#   when: ludus_wsus_initial_sync | bool

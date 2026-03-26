@@ -1,0 +1,198 @@
+# https://semaphoreui.com/install/binary/2_16/install
+---
+- name: Install Semaphore package
+  community.general.zypper:
+    name: "https://github.com/semaphoreui/semaphore/releases/download/v2.16.47/semaphore_2.16.47_linux_amd64.rpm"
+    state: present
+    disable_gpg_check: true
+    disable_recommends: false
+    quiet: false
+    update_cache: true
+  async: 120
+  poll: 30
+  retries: 3
+  delay: 30
+  failed_when: false
+  tags:
+    - semaphore
+
+- name: Install Semaphore package again
+  community.general.zypper:
+    name: "https://github.com/semaphoreui/semaphore/releases/download/v2.16.47/semaphore_2.16.47_linux_amd64.rpm"
+    state: present
+    disable_gpg_check: true
+    disable_recommends: false
+    quiet: false
+    update_cache: true
+  tags:
+    - semaphore
+
+- name: Ensure group "semaphore" exists
+  ansible.builtin.group:
+    name: semaphore
+    state: present
+  tags:
+    - semaphore
+
+- name: Add the semaphore user
+  ansible.builtin.user:
+    name: semaphore
+    comment: SemaphoreUI system user
+    uid: 1040
+    group: semaphore
+    system: false # intentional
+    shell: /bin/sh
+    create_home: true
+  tags:
+    - semaphore
+
+- name: Setup semaphore config directory
+  ansible.builtin.file:
+    dest: /opt/semaphore
+    state: directory
+    owner: semaphore
+    group: semaphore
+    mode: "0755"
+  tags:
+    - semaphore
+
+- name: Generate RSA private key
+  community.crypto.openssl_privatekey:
+    path: /etc/ssl/semaphore-selfsigned.key
+    size: 4096
+    owner: semaphore
+    group: semaphore
+    mode: '0644'
+  tags:
+    - semaphore
+    - tls
+
+- name: Generate certificate signing request
+  community.crypto.openssl_csr:
+    path: /etc/ssl/semaphore-selfsigned.csr
+    privatekey_path: /etc/ssl/semaphore-selfsigned.key
+    common_name: semaphore.chefops.tech
+    country_name: US
+    state_or_province_name: Massachusetts
+    locality_name: Lowell
+    organization_name: ChefOps
+    subject_alt_name:
+      - DNS:semaphore.chefops.tech
+    email_address: admin@chefops.tech
+    owner: semaphore
+    group: semaphore
+    mode: '0644'
+  tags:
+    - semaphore
+    - tls
+
+- name: Generate TLS certificates
+  community.crypto.x509_certificate:
+    owner: semaphore
+    group: semaphore
+    mode: '0644'
+    path: /etc/ssl/semaphore-selfsigned.crt
+    privatekey_path: /etc/ssl/semaphore-selfsigned.key
+    csr_path: /etc/ssl/semaphore-selfsigned.csr
+    provider: selfsigned
+  tags:
+    - semaphore
+    - tls
+
+# https://semaphoreui.com/docs/administration-guide/configuration
+- name: Copy Semaphore config
+  ansible.builtin.copy:
+    src: files/config.json
+    dest: /opt/semaphore/config.json
+    mode: "0644"
+    owner: semaphore
+    group: semaphore
+    backup: false
+  tags:
+    - semaphore
+
+- name: Touch Semaphore sqlite db file
+  ansible.builtin.file:
+    path: "/opt/semaphore/database.sqlite"
+    state: touch
+    mode: "0664"
+    owner: root
+    group: semaphore
+  tags:
+    - semaphore
+
+# https://semaphoreui.com/docs/administration-guide/installation_manually#extended-systemd-service
+- name: Configure semaphore systemd service
+  ansible.builtin.copy:
+    src: files/semaphore.service
+    dest: /etc/systemd/system/semaphore.service
+    owner: root
+    group: root
+    mode: "0664"
+  tags:
+    - semaphore
+
+- name: Reload systemd daemon
+  ansible.builtin.systemd:
+    daemon_reload: true
+  tags:
+    - semaphore
+
+- name: Start and enable semaphore
+  ansible.builtin.service:
+    name: semaphore
+    state: restarted # restart required to initialize database
+    enabled: true
+  tags:
+    - semaphore
+
+- name: Insert Semaphore admin user
+  ttafsir.sqlite_utils.insert:
+    db_path: /opt/semaphore/database.sqlite
+    table: user
+    replace: true
+    records:
+      id: "0"
+      created: '{{ lookup(''pipe'', ''date -u "+%Y-%m-%d %H:%M:%S %z UTC"'') }}'
+      username: "admin"
+      name: "Admin"
+      email: "admin@localhost"
+      password: "{{ 'changemeagain' | password_hash(hashtype='bcrypt') }}"
+  tags:
+    - semaphore
+
+# https://piellardj.github.io/totp-generator/?secret=ZBVQO2Z4BDFDI4E6KMY3DJ5I57VMOJ3S&digits=6&period=30&algorithm=SHA-1
+- name: Insert Semaphore admin totp
+  ttafsir.sqlite_utils.insert:
+    db_path: /opt/semaphore/database.sqlite
+    table: user__totp
+    replace: true
+    records:
+      id: "0"
+      user_id: "0"
+      url: "otpauth://totp/Semaphore:admin@localhost?algorithm=SHA1&digits=6&issuer=Semaphore&period=30&secret=ZBVQO2Z4BDFDI4E6KMY3DJ5I57VMOJ3S"
+      recovery_hash: "$2a$10$V.gv3AZrcWQeAlHZuFvFcO3mgqi09vJp.NPVs4.T6ZLmgIxHD5o4a" # Bcrypt of "password"
+      created: '{{ lookup(''pipe'', ''date -u "+%Y-%m-%d %H:%M:%S %z UTC"'') }}'
+  tags:
+    - semaphore
+
+- name: Remove all old tokens
+  ansible.builtin.command:
+    argv:
+      - sqlite3
+      - /opt/semaphore/database.sqlite
+      - DELETE FROM user__token WHERE user_id == '0'
+  tags:
+    - semaphore
+
+- name: Insert Semaphore admin user API token
+  ttafsir.sqlite_utils.insert:
+    db_path: /opt/semaphore/database.sqlite
+    table: user__token
+    replace: true
+    records:
+      id: "{{ admin_api_token }}"
+      user_id: "0"
+      created: '{{ lookup(''pipe'', ''date -u "+%Y-%m-%d %H:%M:%S %z UTC"'') }}'
+  tags:
+    - semaphore

@@ -1,0 +1,21 @@
+---
+- name: Copy user config file
+  ansible.builtin.template:
+    src: templates/user.yaml
+    dest: "/tmp/teleport_user.yaml"
+    mode: "0644"
+    owner: root
+    group: root
+  vars:
+     mfa_added_date: "{{ ansible_date_time.iso8601_micro }}"
+     uuid: "{{ 99999999 | random | to_uuid }}"
+  tags:
+    - teleport
+    - teleport_user
+
+- name: Create Teleport user
+  ansible.builtin.command:
+    cmd: "/usr/local/bin/tctl create -f /tmp/teleport_user.yaml"
+  tags:
+    - teleport
+    - teleport_user

@@ -1,0 +1,20 @@
+---
+- name: Copy template json files
+  ansible.windows.win_copy:
+    src: "files/templates/{{ item }}.json"
+    dest: "C:\\{{ item }}.json"
+  loop: "{{ adcs_templates }}"
+
+- name: Install templates
+  ansible.windows.win_powershell:
+    script: "{{ lookup('ansible.builtin.file', 'files/import-templates.ps1') }}"
+    parameters:
+      TemplateName: "{{ item }} Certificate Template"
+      TemplatePath: "C:\\{{ item }}.json"
+  loop: "{{ adcs_templates }}"
+
+- name: Remove template json files
+  ansible.windows.win_file:
+    path: "C:\\{{ item }}.json"
+    state: absent
+  loop: "{{ adcs_templates }}"

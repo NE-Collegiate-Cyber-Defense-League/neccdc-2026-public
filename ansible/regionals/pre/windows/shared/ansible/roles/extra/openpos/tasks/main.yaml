@@ -1,0 +1,17 @@
+---
+- name: Configure Apache for Open Source POS
+  ansible.builtin.import_tasks: apache.yaml
+  tags:
+    - apache
+    - ospos
+
+- name: Install Open Source POS application
+  ansible.builtin.import_tasks: setup.yaml
+  tags:
+    - ospos
+
+- name: Configure MySQL for Open Source POS
+  ansible.builtin.import_tasks: mysql.yaml
+  tags:
+    - mysql
+    - ospos

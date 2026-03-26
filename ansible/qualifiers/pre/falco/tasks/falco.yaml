@@ -1,0 +1,93 @@
+---
+# Based on the work from the ansible-falco role by juju4
+# https://github.com/juju4/ansible-falco
+
+- name: Install falcosecurity repository key
+  ansible.builtin.rpm_key:
+    state: present
+    key: https://falco.org/repo/falcosecurity-packages.asc
+    validate_certs: true
+  tags:
+    - falco
+
+- name: Install falcosecurity repository
+  ansible.builtin.get_url:
+    url: "https://falco.org/repo/falcosecurity-rpm.repo"
+    dest: /etc/yum.repos.d/falcosecurity.repo
+    mode: '0644'
+    validate_certs: true
+  tags:
+    - falco
+
+- name: Install kernel-devel
+  ansible.builtin.dnf:
+    name: kernel-devel
+    state: present
+    update_cache: true
+  tags:
+    - falco
+
+- name: Install falco
+  ansible.builtin.dnf:
+    name: falco
+    state: present
+    update_cache: true
+  environment:
+    FALCO_FRONTEND: noninteractive
+    FALCO_DRIVER_CHOICE: modern_ebpf
+    FALCOCTL_ENABLED: "true"
+  tags:
+    - falco
+
+- name: Check falco config directory permissions
+  ansible.builtin.file:
+    dest: /etc/falco
+    state: directory
+    mode: '0700'
+  tags:
+    - falco
+
+- name: Copy falco rules
+  ansible.builtin.template:
+    src: falco_controller_rules.yaml
+    dest: /etc/falco/rules.d/rules.yaml
+    mode: '0600'
+    backup: false
+  notify: Restart falco
+  tags:
+    - falco
+    - falco_rules
+
+- name: Configure falco
+  ansible.builtin.template:
+    src: falco.yaml.j2
+    dest: /etc/falco/falco.yaml
+    mode: '0600'
+    backup: false
+    validate: 'falco -c %s -L'
+  vars:
+    falco_plugins:
+      - name: container
+        library_path: libcontainer.so
+        init_config:
+          label_max_len: 100
+          with_size: false
+      - name: json
+        library_path: libjson.so
+  notify: Restart falco
+  tags:
+    - falco
+
+- name: Reload systemd daemon
+  ansible.builtin.systemd:
+    daemon_reload: true
+  tags:
+    - falco
+
+- name: Start and enable falco
+  ansible.builtin.service:
+    name: falco
+    state: started
+    enabled: true
+  tags:
+    - falco

@@ -1,0 +1,111 @@
+---
+base_domain: chefops.tech
+elk_ssl: false
+kibana_url: "{{ elk_ssl | ternary('https://localhost:5601', 'http://localhost:5601') }}"
+elastic_url: "{{ elk_ssl | ternary('https://localhost:9200', 'http://localhost:9200') }}"
+elastic_username: elastic
+elastic_password: dfgbfecn4uMtYxcqEdA3WQcdBgH2QGxM
+elastic_ram_gb: 4
+elastic_snapshot_repository: "backup"
+elastic_snapshot_directory: /mount/backups
+elastic_snapshot_policy: default
+
+dynamicbeat_username: dynamicbeat
+dynamicbeat_password: bowa4LqexI4H
+dynamicbeat_verbose: true
+dynamicbeat_home: /opt/dynamicbeat
+dynamicbeat_bin_path: "{{ dynamicbeat_home }}/dynamicbeat"
+dynamicbeat_config_path: "{{ dynamicbeat_home }}/dynamicbeat.yml"
+dynamicbeat_checks_src: files/checks/
+dynamicbeat_checks_dest: "{{ dynamicbeat_home }}/checks.d"
+dynamicbeat_checks_command: "{{ dynamicbeat_bin_path }} setup checks {{ dynamicbeat_checks_dest }} --config {{ dynamicbeat_config_path }}"
+
+dynamicbeat_roles:
+  - name: common
+    request_body:
+      indices:
+        - names:
+            - checks
+          privileges:
+            - read
+      applications:
+        - application: "kibana-.kibana"
+          privileges:
+            - space_read
+          resources:
+            - "space:scorestack"
+  - name: spectator
+    request_body:
+      indices:
+        - names:
+            - results-all
+          privileges:
+            - read
+
+dynamicbeat_users:
+  - name: whiteteam
+    password: SWi5wofurofuSesarz3
+    roles: ["common", "spectator"]
+  - name: redteam
+    password: GltAwe8riPriwuwr3taq34
+    roles: ["common", "spectator"]
+  - name: guest
+    password: fRIjoD8IhaG5pri8aga4
+    roles: ["common", "spectator"]
+
+dynamicbeat_teams:
+- name: team00
+  elk_password: 888341204a06de4a
+  overrides:
+    TeamNumber: 0
+    TeamHex: "0"
+- name: team01
+  elk_password: c3044f7df04ec8bc
+  overrides:
+    TeamNumber: 1
+    TeamHex: "1"
+- name: team02
+  elk_password: ff6fb7a1da412ff6
+  overrides:
+    TeamNumber: 2
+    TeamHex: "2"
+- name: team03
+  elk_password: 33b9b4ab2ae8033e
+  overrides:
+    TeamNumber: 3
+    TeamHex: "3"
+- name: team04
+  elk_password: 44ac6069e3839b1d
+  overrides:
+    TeamNumber: 4
+    TeamHex: "4"
+- name: team05
+  elk_password: 488b0ce403c749eb
+  overrides:
+    TeamNumber: 5
+    TeamHex: "5"
+- name: team06
+  elk_password: bfdf1f83f85503c3
+  overrides:
+    TeamNumber: 6
+    TeamHex: "6"
+- name: team07
+  elk_password: b86c48adaec36f73
+  overrides:
+    TeamNumber: 7
+    TeamHex: "7"
+- name: team08
+  elk_password: 4201b258e6853b2f
+  overrides:
+    TeamNumber: 8
+    TeamHex: "8"
+- name: team09
+  elk_password: 961b85372d6bcb6f
+  overrides:
+    TeamNumber: 9
+    TeamHex: "9"
+- name: team10
+  elk_password: 53f7ac87e265c028
+  overrides:
+    TeamNumber: 10
+    TeamHex: "a"

@@ -1,0 +1,23 @@
+linux:
+  children:
+    kiosk:
+
+kiosk:
+  hosts:
+    2600:1f26:001d:8a{{ '%02x' | format(team_number) }}::100:1:
+    2600:1f26:001d:8a{{ '%02x' | format(team_number) }}::100:2:
+  vars:
+    ansible_user: ansible
+    ansible_private_key_file: /opt/semaphore/id_rsa
+
+air_fryer:
+  hosts:
+    2600:1f26:001d:8a99:0123:4567:89ab:cdef:
+  vars:
+    ansible_become: true
+    ansible_user: ansible
+    ansible_private_key_file: /opt/semaphore/id_rsa
+
+windows_pos:
+  hosts:
+    2600:1f26:001d:8a{{ '%02x' | format(team_number) }}::cafe:0:

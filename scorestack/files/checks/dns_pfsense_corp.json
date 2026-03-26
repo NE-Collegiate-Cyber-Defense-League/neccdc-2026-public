@@ -1,0 +1,18 @@
+{
+  "name": "DNS_pfsense_corp",
+  "type": "dns",
+  "score_weight": 4,
+  "definition": {
+    "Server": "[{{.Server}}]",
+    "Port": "53",
+    "Fqdn": "{{.Fqdn}}",
+    "ExpectedIP": "{{.Result}}"
+  },
+  "attributes": {
+    "admin": {
+      "Fqdn": "app.bobs.burgers",
+      "Result": "169.254.0.100",
+      "Server": "2600:1f26:1d:8a{{.TeamHex}}1:ffff:ffff:ffff:fffe"
+    }
+  }
+}

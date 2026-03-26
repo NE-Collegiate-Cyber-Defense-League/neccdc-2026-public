@@ -1,0 +1,15 @@
+version: v2
+proxy_server: teleport.example.com:443
+onboarding:
+  join_method: token
+  token: abcdef1234567890
+storage:
+  type: directory
+  path: /var/lib/teleport/bot
+services:
+- type: identity
+  destination:
+    type: directory
+    path: /opt/machine-id
+    readers:
+      - group: semaphore

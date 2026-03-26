@@ -1,0 +1,72 @@
+{# DNS Resolver (Unbound) configuration #}
+<unbound>
+	<enable></enable>
+	<active_interface></active_interface>
+	<outgoing_interface></outgoing_interface>
+	<hideidentity></hideidentity>
+	<hideversion></hideversion>
+	<dnssecstripped></dnssecstripped>
+	<qname-minimisation></qname-minimisation>
+	<sock_queue_timeout>0</sock_queue_timeout>
+	<msgcachesize>4</msgcachesize>
+	<outgoing_num_tcp>10</outgoing_num_tcp>
+	<incoming_num_tcp>10</incoming_num_tcp>
+	<edns_buffer_size>auto</edns_buffer_size>
+	<num_queries_per_thread>512</num_queries_per_thread>
+	<jostle_timeout>200</jostle_timeout>
+	<cache_max_ttl>86400</cache_max_ttl>
+	<cache_min_ttl>0</cache_min_ttl>
+	<infra_keep_probing>enabled</infra_keep_probing>
+	<infra_host_ttl>900</infra_host_ttl>
+	<infra_cache_numhosts>10000</infra_cache_numhosts>
+	<unwanted_reply_threshold>disabled</unwanted_reply_threshold>
+	<log_verbosity>1</log_verbosity>
+	<custom_options>{{ unbound_custom_options | b64encode }}</custom_options>
+	<sslcertref>{{ certs.system[0].refid }}</sslcertref>
+	<dns64>
+		<enable></enable>
+	</dns64>
+	<domainoverrides>
+		<domain>{{ ad.domain }}</domain>
+		<ip>{{ team_address.windows_ad.ipv4 }}</ip>
+		<tls_hostname></tls_hostname>
+		<descr><![CDATA[Primary Domain Controller]]></descr>
+	</domainoverrides>
+	<hosts>
+		<host>{{ hostvars[groups['windows_ad'][0]].hostname }}</host>
+		<domain>{{ ad.domain }}</domain>
+		<ip>{{ team_address.windows_ad.ipv4 }},{{ team_address.windows_ad.ipv6 }}</ip>
+		<descr></descr>
+		<aliases></aliases>
+	</hosts>
+	<hosts>
+		<host>{{ hostvars[groups['windows_pos'][0]].hostname }}</host>
+		<domain>{{ ad.domain }}</domain>
+		<ip>{{ team_address.windows_pos.ipv6 }}</ip>
+		<descr></descr>
+		<aliases></aliases>
+	</hosts>
+	<hosts>
+		<host>{{ hostvars[groups['windows_adfs'][0]].hostname }}</host>
+		<domain>{{ ad.domain }}</domain>
+		<ip>{{ team_address.windows_adfs.ipv4 }},{{ team_address.windows_adfs.ipv6 }}</ip>
+		<descr></descr>
+		<aliases></aliases>
+	</hosts>
+	<acls>
+		<aclid>0</aclid>
+		<aclname><![CDATA[Allow Unbound Access]]></aclname>
+		<aclaction>allow</aclaction>
+		<description></description>
+		<row>
+			<acl_network>0.0.0.0</acl_network>
+			<mask>0</mask>
+			<description></description>
+		</row>
+		<row>
+			<acl_network>::0</acl_network>
+			<mask>0</mask>
+			<description></description>
+		</row>
+	</acls>
+</unbound>

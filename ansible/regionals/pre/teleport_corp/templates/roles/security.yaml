@@ -1,0 +1,25 @@
+kind: role
+version: v7
+metadata:
+  name: security
+  description: Security systems access
+spec:
+  options:
+    max_session_ttl: 72h
+    forward_agent: true
+    ssh_port_forwarding:
+      remote:
+        enabled: true
+      local:
+        enabled: true
+    create_host_user_mode: keep
+    client_idle_timeout: 5m
+  allow:
+    app_labels:
+      app: falco
+    logins:
+      - admin
+    host_groups:
+      - admin
+    node_labels:
+      system: security

@@ -1,0 +1,84 @@
+falco:
+  hosts:
+    10.0.0.100:
+      ipv4: 10.0.0.100
+      ipv6: 2600:1f26:001d:8b00::fa1c:0
+      team: 0
+  vars:
+    hostname: falco
+firewall:
+  hosts:
+    10.0.0.254:
+      ipv4: 10.0.0.254
+      ipv6: 2600:1f26:001d:8c00:ffff:ffff:ffff:fffe
+      team: 0
+  vars:
+    hostname: firewall
+grafana:
+  hosts:
+    10.0.0.32:
+      ipv4: 10.0.0.32
+      ipv6: 2600:1f26:001d:8b00::beef:0
+      team: 0
+  vars:
+    hostname: grafana
+kiosk:
+  hosts:
+    2600:1f26:001d:8a00::100:1:
+      ipv4: ''
+      ipv6: 2600:1f26:001d:8a00::100:1
+      team: 0
+    2600:1f26:001d:8a00::100:2:
+      ipv4: ''
+      ipv6: 2600:1f26:001d:8a00::100:2
+      team: 0
+  vars:
+    hostname: kiosk
+semaphore:
+  hosts:
+    10.0.0.48:
+      ipv4: 10.0.0.48
+      ipv6: 2600:1f26:001d:8b00::dead:0
+      team: 0
+  vars:
+    hostname: semaphore
+teleport:
+  hosts:
+    10.0.0.148:
+      ipv4: 10.0.0.148
+      ipv6: ''
+      team: 0
+  vars:
+    hostname: teleport
+windows_ad:
+  hosts:
+    10.0.0.120:
+      ipv4: 10.0.0.120
+      ipv6: 2600:1f26:001d:8b00:ab57:8ef2:ce6:42c1
+      team: 0
+  vars:
+    hostname: windows-ad
+windows_adfs:
+  hosts:
+    10.0.0.110:
+      ipv4: 10.0.0.110
+      ipv6: 2600:1f26:001d:8b00::adf5:0
+      team: 0
+  vars:
+    hostname: windows-adfs
+windows_pos:
+  hosts:
+    2600:1f26:001d:8a00::cafe:0:
+      ipv4: ''
+      ipv6: 2600:1f26:001d:8a00::cafe:0
+      team: 0
+  vars:
+    hostname: windows-pos
+wordpress:
+  hosts:
+    10.0.0.188:
+      ipv4: 10.0.0.188
+      ipv6: ''
+      team: 0
+  vars:
+    hostname: wordpress

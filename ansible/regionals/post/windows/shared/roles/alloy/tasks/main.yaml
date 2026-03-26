@@ -1,0 +1,10 @@
+---
+- name: Deploy Alloy config from selected template
+  ansible.windows.win_template:
+    src: "{{ alloy_template }}.alloy.j2"
+    dest: "{{ alloy_config_dest }}"
+
+- name: Restart Alloy service when config changes
+  ansible.windows.win_service:
+    name: Alloy
+    state: restarted

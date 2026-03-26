@@ -1,0 +1,27 @@
+{
+  "name": "HTTP_kiosk_C",
+  "type": "http",
+  "score_weight": 3,
+  "definition": {
+    "requests": [
+      {
+        "host": "{{.IP}}",
+        "path": "/",
+        "https": true,
+        "port": 443,
+        "method": "GET",
+        "matchcode": true,
+        "code": 200,
+        "headers": {
+          "Host": "{{.Host}}"
+        }
+      }
+    ]
+  },
+  "attributes": {
+    "admin": {
+      "Host": "{{.TeamNumber}}.oceancrests.kitchen",
+      "IP": "2600:1f26:1d:8b{{.TeamHex}}1:200::3"
+    }
+  }
+}

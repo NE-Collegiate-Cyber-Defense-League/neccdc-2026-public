@@ -1,0 +1,7 @@
+---
+- name: Install powershell modules
+  community.windows.win_psmodule:
+    name: "{{ item }}"
+    accept_license: true
+    state: present
+  loop: "{{ install }}"

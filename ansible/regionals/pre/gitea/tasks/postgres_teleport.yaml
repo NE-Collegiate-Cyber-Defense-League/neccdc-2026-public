@@ -1,0 +1,89 @@
+---
+- name: Create postgres config directory
+  ansible.builtin.file:
+    path: "/opt/postgres/certs"
+    state: directory
+    owner: root
+    group: root
+  tags:
+    - postgres
+    - teleport
+
+# These ones are placeholders from my local Teleport server. Will need to run this in post and copy them over
+# tctl auth sign --format=db --host=localhost --out=server --ttl=2160h
+# This might break in your testing, I removed the data since it points to my personal teleport
+- name: Copy Teleport certificates and keys
+  ansible.builtin.copy:
+    src: files/teleport_certs/{{ item }}
+    dest: /opt/postgres/certs/{{ item }}
+    owner: root
+    group: postgres
+    mode: "0640"
+  with_items:
+    - server.cas
+    - server.crt
+    - server.key
+  tags:
+    - postgres
+    - teleport
+
+- name: Update postgresql config
+  block:
+    - name: Update postgresql config | Enable ssl
+      ansible.builtin.lineinfile:
+        dest: /var/lib/pgsql/18/data/postgresql.conf
+        regexp: "^#ssl ="
+        line: "ssl = on"
+        state: present
+        mode: 0644
+      notify: Restart postgresql
+      tags:
+        - postgres
+        - teleport
+
+    - name: Update postgresql config | Specify ssl cert
+      ansible.builtin.lineinfile:
+        dest: /var/lib/pgsql/18/data/postgresql.conf
+        regexp: "^#ssl_cert_file ="
+        line: "ssl_cert_file = '/opt/postgres/certs/server.crt'"
+        state: present
+        mode: 0644
+      notify: Restart postgresql
+      tags:
+        - postgres
+        - teleport
+
+    - name: Update postgresql config | Specify ssl key
+      ansible.builtin.lineinfile:
+        dest: /var/lib/pgsql/18/data/postgresql.conf
+        regexp: "^#ssl_key_file ="
+        line: "ssl_key_file = '/opt/postgres/certs/server.key'"
+        state: present
+        mode: 0644
+      notify: Restart postgresql
+      tags:
+        - postgres
+        - teleport
+
+    - name: Update postgresql config | Specify ssl ca
+      ansible.builtin.lineinfile:
+        dest: /var/lib/pgsql/18/data/postgresql.conf
+        regexp: "^#ssl_ca_file ="
+        line: "ssl_ca_file = '/opt/postgres/certs/server.cas'"
+        state: present
+        mode: 0644
+      notify: Restart postgresql
+      tags:
+        - postgres
+        - teleport
+
+- name: Insert SSL certificate authentication rules before generic host rules
+  ansible.builtin.blockinfile:
+    path: /var/lib/pgsql/18/data/pg_hba.conf
+    insertbefore: '^host\s+all\s+all\s+127\.0\.0\.1/32'
+    block: |
+      hostssl all             all             all               cert
+    state: present
+  tags:
+    - postgres
+    - teleport

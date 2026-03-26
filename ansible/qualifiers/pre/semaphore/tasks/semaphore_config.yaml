@@ -1,0 +1,60 @@
+---
+- name: Copy playbook files
+  ansible.builtin.copy:
+    src: templates/playbooks
+    dest: /opt/semaphore/
+    owner: semaphore
+    group: semaphore
+    mode: "0755"
+  tags:
+    - semaphore
+    - semaphore_config
+
+- name: Copy private ssh key
+  ansible.builtin.copy:
+    src: templates/ssh/id_rsa
+    dest: /opt/semaphore/id_rsa
+    owner: root
+    group: semaphore
+    mode: "0440"
+  tags:
+    - semaphore
+    - semaphore_config
+
+- name: Create inventory dir
+  ansible.builtin.file:
+    dest: /opt/semaphore/orgs
+    state: directory
+    mode: "0755"
+  tags:
+    - semaphore
+    - semaphore_config
+
+- name: Enable ansible tasks
+  ttafsir.sqlite_utils.insert:
+    db_path: /opt/semaphore/database.sqlite
+    table: option
+    replace: true
+    records:
+      key: apps.ansible.active
+      value: "true"
+  tags:
+    - semaphore
+    - semaphore_config
+
+# Most of this could probably have just been done with an import of a backup, but automation.
+- name: Setup Semaphore projects
+  block:
+    - name: Setup ChefOps Project
+      ansible.builtin.include_tasks:
+        file: "semaphore_config_chefops.yaml"
+      tags:
+        - semaphore
+        - semaphore_config
+
+    - name: Setup OCK Project
+      ansible.builtin.include_tasks:
+        file: "semaphore_config_ock.yaml"
+      tags:
+        - semaphore
+        - semaphore_config

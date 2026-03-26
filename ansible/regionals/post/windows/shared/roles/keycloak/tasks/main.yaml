@@ -1,0 +1,133 @@
+---
+- name: Gather cert material from vars
+  ansible.builtin.set_fact:
+    cert_fullchain: "{{ lookup('ansible.builtin.file', keycloak_cert_path ~ 'fullchain.crt') }}"
+    cert_private: "{{ lookup('ansible.builtin.file', keycloak_cert_path ~ 'private.key') }}"
+  when: keycloak_cert_path is defined
+
+# Task file for Keycloak; intended for include_tasks
+- name: Get Keycloak service info
+  ansible.windows.win_service_info:
+    name: Keycloak
+  register: keycloak_service
+
+- name: Stop Keycloak service before copying config (if running)
+  ansible.windows.win_service:
+    name: Keycloak
+    state: stopped
+  when: keycloak_service.exists
+
+- name: Set server.crt.pem
+  ansible.windows.win_copy:
+    content: "{{ cert_fullchain }}"
+    dest: "{{ keycloak_install_path }}\\conf\\server.crt.pem"
+    force: true
+  when: keycloak_cert_path is defined
+
+- name: Set server.key.pem
+  ansible.windows.win_copy:
+    content: "{{ cert_private }}"
+    dest: "{{ keycloak_install_path }}\\conf\\server.key.pem"
+    force: true
+  when: keycloak_cert_path is defined
+
+- name: Import LDAPS certificate to Keycloak truststore (if configured)
+  block:
+    - name: Find certificates in specified store
+      ansible.windows.win_certificate_info:
+        store_name: "{{ keycloak_ldaps_cert_store }}"
+      register: certs
+
+    - name: Get certificate matching subject
+      ansible.builtin.set_fact:
+        keycloak_ldaps_cert: >-
+          {{
+            certs.certificates
+            | selectattr('issued_by', 'equalto', keycloak_ldaps_cert_subject)
+            | list
+            | first
+            | default({})
+          }}
+
+    - name: Ensure LDAPS certificate exists
+      ansible.builtin.assert:
+        that:
+          - keycloak_ldaps_cert | length > 0
+        fail_msg: "LDAPS certificate with subject '{{ keycloak_ldaps_cert_subject }}' was not found in the {{ keycloak_ldaps_cert_store }} store."
+
+    - name: Export ChefOps-ADCS certificate to Keycloak truststore
+      ansible.windows.win_certificate_store:
+        thumbprint: "{{ keycloak_ldaps_cert.thumbprint }}"
+        path: "{{ keycloak_install_path }}\\conf\\truststores\\adcs-ca.cer"
+        store_name: "{{ keycloak_ldaps_cert_store }}"
+        state: exported
+        file_type: der
+  when: keycloak_ldaps_cert_subject is defined
+
+- name: Create keycloak database directory
+  ansible.windows.win_file:
+    path: "{{ keycloak_install_path }}\\data\\h2"
+    state: directory
+
+- name: Copy keycloak data files
+  ansible.windows.win_copy:
+    src: "{{ keycloak_data }}/"
+    dest: "{{ keycloak_install_path }}\\"
+    force: true
+
+- name: Grant SeServiceLogonRight to service user (if not SYSTEM)
+  ansible.windows.win_user_right:
+    name: SeServiceLogonRight
+    users:
+      - "{{ keycloak_service_user }}"
+    action: add
+  when: keycloak_service_user != "SYSTEM"
+
+- name: Allow Users full control
+  ansible.windows.win_acl:
+    path: "{{ keycloak_install_path }}"
+    user: "{{ keycloak_service_user }}"
+    rights: FullControl
+    type: allow
+    inherit: ContainerInherit,ObjectInherit
+    propagation: None
+    state: present
+  when: keycloak_service_user != "SYSTEM"
+
+- name: Allow user to bind to service ports
+  ansible.windows.win_shell: |
+    netsh http add urlacl url=http://+:80/ user={{ keycloak_service_user }} listen=yes
+    netsh http add urlacl url=http://+:443/ user={{ keycloak_service_user }} listen=yes
+    netsh http add urlacl url=http://+:8080/ user={{ keycloak_service_user }} listen=yes
+  register: urlacl_result
+  when: keycloak_service_user != "SYSTEM"
+  changed_when: "'Error: 183' not in urlacl_result.stdout"
+  failed_when:
+    - "'Error: 183' not in urlacl_result.stdout"  # Ignore "already exists" error
+    - urlacl_result.rc != 0
+
+- name: Update Keycloak Windows service
+  community.windows.win_nssm:
+    name: Keycloak
+    application: "{{ keycloak_install_path }}\\bin\\kc.bat"
+    working_directory: "{{ keycloak_install_path }}"
+    arguments:
+      - "start-dev"
+    display_name: "Keycloak Identity and Access Management"
+    description: "Keycloak Identity and Access Management Service"
+    start_mode: auto
+    app_environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: "{{ keycloak_bootstrap_admin_username }}"
+      KC_BOOTSTRAP_ADMIN_PASSWORD: "{{ keycloak_bootstrap_admin_password }}"
+    state: present
+
+- name: Configure and start Keycloak service
+  ansible.windows.win_service:
+    name: Keycloak
+    username: "{{ keycloak_service_user }}"
+    password: "{{ keycloak_service_password | default(omit) }}"
+    state: started
+
+- name: Display Keycloak service status
+  ansible.builtin.debug:
+    msg: "Keycloak service has been created and started as {{ keycloak_service_user }}"

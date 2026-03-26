@@ -1,0 +1,437 @@
+---
+- name: Setup Teleport
+  hosts: packer
+  become: true
+  vars:
+    ansible_python_interpreter: /usr/bin/python3.5
+    teleport_server_dns_address: teleport.chefops.tech
+    teleport_server_name: teleport
+    users_data: "{{ lookup('file', '/workspaces/neccdc-2026/documents/employees/users.yaml') | from_yaml }}"
+  tasks:
+    # This wait it to allow internal updates/upgrades to complete
+    - name: Wait for everything to be ready
+      ansible.builtin.pause:
+        seconds: 300
+
+    - name: Install nmap
+      ansible.builtin.apt:
+        name: nmap
+        state: present
+        update_cache: true
+
+    - name: Install newer python
+      ansible.builtin.include_tasks:
+        file: "tasks/python3-9.yaml"
+      vars:
+        python_version: "3.9.0"
+      tags:
+        - python
+
+    - name: Install dkms
+      ansible.builtin.apt:
+        name: dkms>=2.1.0.0
+        state: present
+        update_cache: true
+      register: apt_result
+      retries: 2
+      delay: 10
+      until: apt_result is success
+
+    - name: Weaken SSH
+      ansible.builtin.include_tasks:
+        file: "../../../shared/weaken_ssh/main.yaml"
+      vars:
+        permit_empty_passwords: False
+      tags:
+        - ssh
+
+    - name: Set Ansible user
+      ansible.builtin.include_tasks:
+        file: "../../../shared/semaphore_ansible/main.yaml"
+      tags:
+        - ansible
+
+    - name: Install Falco
+      ansible.builtin.include_tasks:
+        file: "../../../shared/falco_client/main.yaml"
+      vars:
+        falco_version: "0.38.2"
+        falco_driver_override: kmod
+      tags:
+        - falco
+
+    - name: Hold falco package
+      ansible.builtin.dpkg_selections:
+        name: falco
+        selection: hold
+
+    - name: Install EIC
+      ansible.builtin.include_tasks:
+        file: "../../../shared/ec2_instance_connect/main.yaml"
+      tags:
+        - eic
+
+    - name: Set a hostname
+      ansible.builtin.hostname:
+        name: "{{ teleport_server_name }}"
+      tags:
+        - hostname
+
+    - name: Ensure teleport points to localhost
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        state: present
+        regexp: '^127\.0\.0\.1\s+{{ teleport_server_name }}$'
+        line: "127.0.0.1 {{ teleport_server_name }}"
+      tags:
+        - hostname
+
+    - name: Update APT cache
+      ansible.builtin.apt:
+        update_cache: true
+
+    - name: Install sqlite3 package
+      ansible.builtin.apt:
+        name: sqlite3
+        state: latest
+        update_cache: true
+        allow_downgrades: true
+
+    - name: Setup fish
+      ansible.builtin.include_tasks:
+        file: "tasks/fish.yaml"
+      tags:
+        - fish
+
+    - name: Setup black team task
+      ansible.builtin.include_tasks:
+        file: "../../../shared/black_team/main.yaml"
+      vars:
+        shell_override: /usr/bin/fish
+        root_groups: sudo
+        shell_config_override: .config/fish/config.fish
+        shell_command_override: set fish_greeting ""; cat /home/black-team/readme.md
+      tags:
+        - black-team
+
+    - name: AWS SSM Agent
+      block:
+        - name: AWS SSM Agent | Install
+          ansible.builtin.command:
+            cmd: snap install amazon-ssm-agent --classic
+          tags:
+            - ssm
+
+        - name: AWS SSM Agent | Start and enable
+          ansible.builtin.service:
+            name: snap.amazon-ssm-agent.amazon-ssm-agent
+            state: started
+            enabled: true
+          tags:
+            - ssm
+
+    - name: Setup neovim
+      ansible.builtin.include_tasks:
+        file: "tasks/neovim.yaml"
+      tags:
+        - neovim
+
+    - name: Install Teleport
+      ansible.builtin.include_tasks:
+        file: "tasks/teleport.yaml"
+      tags:
+        - teleport
+
+    - name: Create Teleport configurations
+      ansible.builtin.include_tasks:
+        file: "tasks/teleport_configs.yaml"
+      tags:
+        - teleport_user
+        - teleport_misc
+
+    - name: Create teleport users directory
+      ansible.builtin.file:
+        path: /teleport/users
+        state: directory
+        recurse: true
+        owner: root
+        group: root
+        mode: "0744"
+      tags:
+        - teleport
+        - teleport_user
+
+    # https://piellardj.github.io/totp-generator/?secret=T65SCE5SK4K7PXEW2NLWQ5CPSKBJYQFU&digits=6&period=30&algorithm=SHA-1
+    - name: black team user
+      ansible.builtin.include_tasks:
+        file: "tasks/teleport_user.yaml"
+      vars:
+        username: black-team
+        password: kfaCu7iym9aQ7hyUb8b8qpa8YsJAjvE3
+        totp_token: T65SCE5SK4K7PXEW2NLWQ5CPSKBJYQFU
+        teleport_roles:
+          - access
+          - editor
+      tags:
+        - teleport
+        - teleport_user
+
+    # Passwords can be under the limit when inserting directly
+    - name: Admin (blue team) Teleport user
+      ansible.builtin.include_tasks:
+        file: "tasks/teleport_user.yaml"
+      vars:
+        username: admin
+        password: LOUVRE
+        totp_token: ZBVQO2Z4BDFDI4E6KMY3DJ5I57VMOJ3S
+        teleport_roles:
+          - access
+          - editor
+      tags:
+        - teleport
+        - teleport_user
+
+    # Probably should have just made the task configurable
+    - name: Grant admin user access to login as root
+      ansible.builtin.command:
+        cmd: tctl users update admin --set-logins admin,root
+      tags:
+        - teleport
+        - teleport_user
+
+    - name: Remove Teleport User Template
+      ansible.builtin.file:
+        path: /tmp/teleport_user.yaml
+        state: absent
+      tags:
+        - teleport
+        - teleport_user
+
+    # This is done better in regionals
+    - name: Create Teleport join tokens
+      vars:
+        semaphore: 98T63LBZWKNR4K8SV3RYNICE
+        falco: STF5Y7KCA80S7IOHEPUNVB6SRMTX1U78
+        grafana: 1KSP55J35U9O5YQC92PEZ594
+        windows_ad: E5AI7J4P7VBR2FTIZIU1CECI
+        windows_adfs: E5AI7J4P7VBR2FTIZIU1CEFS
+        wordpress: SK52P7ZMB375R20BQICC4KKW
+      block:
+        - name: Create Teleport join tokens | Semaphore
+          ansible.builtin.command:
+            cmd: >
+              /usr/local/bin/tctl tokens add
+                --type node,app
+                --app-name Semaphore
+                --labels service=semaphore,os=linux
+                --ttl 30d
+                --value {{ semaphore }}
+          tags:
+            - token
+
+        - name: Create Teleport join tokens | Falco
+          ansible.builtin.command:
+            cmd: >
+              /usr/local/bin/tctl tokens add
+                --type node,app
+                --app-name Falco
+                --labels service=falco,os=linux
+                --ttl 30d
+                --value {{ falco }}
+          tags:
+            - token
+
+        - name: Create Teleport join tokens | Grafana
+          ansible.builtin.command:
+            cmd: >
+              /usr/local/bin/tctl tokens add
+                --type kube,app,discovery
+                --app-name Grafana
+                --labels service=grafana,os=linux
+                --ttl 30d
+                --value {{ grafana }}
+          tags:
+            - token
+
+        - name: Create Teleport join tokens | Windows AD
+          ansible.builtin.command:
+            cmd: >
+              /usr/local/bin/tctl tokens add
+                --type node
+                --app-name WindowsAD
+                --labels service=active-directory,os=windows
+                --ttl 30d
+                --value {{ windows_ad }}
+          tags:
+            - token
+
+        - name: Create Teleport join tokens | Windows ADFS
+          ansible.builtin.command:
+            cmd: >
+              /usr/local/bin/tctl tokens add
+                --type node
+                --app-name WindowsDFS
+                --labels service=active-directory-federation-service,os=windows
+                --ttl 30d
+                --value {{ windows_adfs }}
+          tags:
+            - token
+
+        - name: Create Teleport join tokens | Wordpress
+          ansible.builtin.command:
+            cmd: >
+              /usr/local/bin/tctl tokens add
+                --type node
+                --app-name Wordpress
+                --labels service=wordpress,os=linux
+                --ttl 30d
+                --value {{ wordpress }}
+          tags:
+            - token
+
+    - name: Create Linux Groups
+      ansible.builtin.group:
+        name: "{{ item | regex_replace(' ', '-') | lower }}"
+        state: present
+      with_items:
+        - engineering
+        - security
+      tags:
+        - users
+
+    - name: Create Engineering Users
+      ansible.builtin.user:
+        name: "{{ item.username | regex_replace(' ', '.') | lower }}"
+        password: "{{ item.password | password_hash('sha512') }}"
+        append: true
+        groups: "users,engineering,floppy,audio,dip,video{% if item.position == 'System Administrator' %},sudo,adm{% endif %}"
+        shell: "/bin/bash"
+        state: present
+      when: item.department == "Engineering"
+      with_items: "{{ users_data.users }}"
+      tags:
+        - users
+
+    - name: Create Security Users
+      ansible.builtin.user:
+        name: "{{ item.username | regex_replace(' ', '.') | lower }}"
+        password: "{{ item.password | password_hash('sha512') }}"
+        append: true
+        groups: "users,security,dialout,cdrom,floppy"
+        shell: "/usr/bin/fish"
+        state: present
+      when: item.department == "Security"
+      with_items: "{{ users_data.users }}"
+      tags:
+        - users
+
+    - name: Create CISO user
+      ansible.builtin.user:
+        name: "{{ item.username | regex_replace(' ', '.') | lower }}"
+        password: "{{ item.password | password_hash('sha512') }}"
+        append: true
+        groups: "users,security,adm,dialout,cdrom,floppy,sudo,audio,dip,video,plugdev,netdev,lxd"
+        shell: "/bin/sh"
+        state: present
+      when: item.position == "CISO"
+      with_items: "{{ users_data.users }}"
+      tags:
+        - users
+
+    - name: Create Teleport Engineering users
+      ansible.builtin.include_tasks:
+        file: "tasks/teleport_user.yaml"
+      vars:
+        username: "{{ item.username | regex_replace(' ', '.') | lower }}"
+        password: "{{ item.password }}"
+        totp_token: "{{ item.totp_secret }}"
+        mfa_uuid: "{{ item.user_uuid }}"
+        teleport_roles: >
+          [
+            'employee',
+            'system-admin'
+            {% if item.position == 'System Engineering' %}, 'windows', 'editor'{% endif %}
+            {% if item.position == 'System Admin' %}, 'windows-admin', 'wordpress-admin', 'monitoring'{% endif %}
+            {% if item.position == 'Network Technician' %}, 'security', 'monitoring'{% endif %}
+          ]
+      when: item.department == "Engineering"
+      with_items: "{{ users_data.users }}"
+      tags:
+        - teleport_user
+
+    - name: Create Teleport Support users
+      ansible.builtin.include_tasks:
+        file: "tasks/teleport_user.yaml"
+      vars:
+        username: "{{ item.username | regex_replace(' ', '.') | lower }}"
+        password: "{{ item.password }}"
+        totp_token: "{{ item.totp_secret }}"
+        mfa_uuid: "{{ item.user_uuid }}"
+        teleport_roles: >
+          [
+            'employee',
+            'support'
+            {% if item.position == 'Customer Ops' %}, 'windows'{% endif %}
+          ]
+      when: item.department == "Support"
+      with_items: "{{ users_data.users }}"
+      tags:
+        - teleport_user
+
+    - name: Create Teleport Security users
+      ansible.builtin.include_tasks:
+        file: "tasks/teleport_user.yaml"
+      vars:
+        username: "{{ item.username | regex_replace(' ', '.') | lower }}"
+        password: "{{ item.password }}"
+        totp_token: "{{ item.totp_secret }}"
+        mfa_uuid: "{{ item.user_uuid }}"
+        teleport_roles:
+          - employee
+          - security
+      when: item.department == "Security"
+      with_items: "{{ users_data.users }}"
+      tags:
+        - teleport_user
+
+    - name: Create Teleport CISO
+      ansible.builtin.include_tasks:
+        file: "tasks/teleport_user.yaml"
+      vars:
+        username: "{{ item.username | regex_replace(' ', '.') | lower }}"
+        password: "{{ item.password }}"
+        totp_token: "{{ item.totp_secret }}"
+        mfa_uuid: "{{ item.user_uuid }}"
+        teleport_roles:
+          - access
+          - employee
+          - security
+          - windows-admin
+      when: item.position == "CISO"
+      with_items: "{{ users_data.users }}"
+      tags:
+        - teleport_user
+
+
+- name: Setup Teleport More
+  hosts: packer
+  become: true
+  vars:
+    ansible_python_interpreter: /usr/local/bin/python3.9
+  tasks:
+    - name: Admin Teleport tasks misc
+      ansible.builtin.include_tasks:
+        file: "tasks/teleport_admin.yaml"
+      vars:
+        username: admin
+        password: LOUVRE
+      tags:
+        - users
+        - teleport
+        - teleport_user
+
+    - name: Teleport tricks # no treats
+      ansible.builtin.include_tasks:
+        file: "tasks/tricks.yaml"
+      tags:
+        - tricks

@@ -1,0 +1,5 @@
+---
+- name: Enable all the Firewall rules in application group
+  ansible.builtin.win_firewall_rule:
+    group: "{{ firewall_groups }}"
+    enabled: true

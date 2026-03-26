@@ -1,0 +1,5 @@
+---
+alloy_template:
+alloy_config_dest: "C:\\Program Files\\GrafanaLabs\\Alloy\\config.alloy"
+alloy_mimir_url: "https://mimir.{{ team }}.chefops.tech/api/v1/push"
+alloy_loki_url: "https://loki.{{ team }}.chefops.tech/loki/api/v1/push"

@@ -1,0 +1,40 @@
+---
+kind: role
+version: v7
+metadata:
+  name: bot
+  description: Semaphore access role
+spec:
+  allow:
+    logins:
+      - ansible
+    node_labels:
+      ansible: "true"
+---
+version: v2
+kind: token
+metadata:
+  name: abcdef1234567890
+spec:
+  bot_name: semaphore
+  join_method: token
+  roles:
+    - Bot
+---
+version: v1
+kind: bot
+metadata:
+  name: semaphore
+  description: "Remote ansible management"
+spec:
+  max_session_ttl: 43200s
+  roles:
+    - access
+    - bot
+  traits:
+    - name: logins
+      values:
+        - ansible
+status:
+  role_name: bot-semaphore
+  user_name: bot-semaphore

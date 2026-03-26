@@ -1,0 +1,69 @@
+---
+- name: Set hostname
+  hosts: linux
+  become: true
+  tasks:
+    - name: Set a hostname
+      ansible.builtin.hostname:
+        name: "{{ hostname }}"
+      tags:
+        - hostname
+
+    - name: Hostname points to localhost
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        line: '127.0.0.1 {{ hostname }}'
+        backup: false
+      tags:
+        - hostname
+
+    - name: Disable cloud-init /etc/hosts management
+      ansible.builtin.copy:
+        dest: /etc/cloud/cloud.cfg.d/99-disable-manage-etc-hosts.cfg
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          manage_etc_hosts: false
+      tags:
+        - hostname
+
+
+- name: Configure Branch DNS
+  hosts: kiosk
+  become: true
+  vars:
+    team: "{{ hostvars[inventory_hostname]['team'] }}"
+    dns_server_address: "{{ team_address.firewall_branch.ipv6 }}"
+  tasks:
+    - name: Configure DNS
+      ansible.builtin.include_tasks:
+        file: "../../../shared/dns/main.yaml"
+      tags:
+        - dns
+
+- name: Configure Screened DNS
+  hosts: wordpress,teleport
+  become: true
+  vars:
+    team: "{{ hostvars[inventory_hostname]['team'] }}"
+    dns_server_address: "{{ team_address.firewall_screened.ipv4 }}"
+  tasks:
+    - name: Configure DNS
+      ansible.builtin.include_tasks:
+        file: "../../../shared/dns/main.yaml"
+      tags:
+        - dns
+
+- name: Configure Private DNS
+  hosts: falco,grafana,semaphore
+  become: true
+  vars:
+    team: "{{ hostvars[inventory_hostname]['team'] }}"
+    dns_server_address: "{{ team_address.firewall_private.ipv4 }}"
+  tasks:
+    - name: Configure DNS
+      ansible.builtin.include_tasks:
+        file: "../../../shared/dns/main.yaml"
+      tags:
+        - dns

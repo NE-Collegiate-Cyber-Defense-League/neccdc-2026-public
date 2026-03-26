@@ -1,0 +1,59 @@
+- name: Ensure black-team is domain admin
+  microsoft.ad.user:
+    name: black-team
+    firstname: Black
+    lastname: Team
+    display_name: Black Team
+    description: "BLACKTEAM - DO NOT TOUCH THIS ACCOUNT"
+    sam_account_name: black-team
+    upn: "black-team@{{ domain }}"
+    groups:
+      add:
+        - Domain Admins
+        - Enterprise Admins
+    domain_username: "{{ ansible_user }}@{{ domain }}"
+    domain_password: "{{ ansible_password }}"
+    domain_server: "{{ hostname }}.{{ domain }}"
+    state: present
+  register: domain_create_user_result
+  retries: 30
+  delay: 15
+  until: domain_create_user_result is successful
+
+- name: Create ssm-user user
+  microsoft.ad.user:
+    name: ssm-user
+    firstname: SSM
+    lastname: User
+    display_name: SSM User
+    description: "BLACKTEAM - DO NOT TOUCH THIS ACCOUNT"
+    sam_account_name: ssm-user
+    upn: "ssm-user@{{ domain }}"
+    password: "{{ black_team_password }}"
+    groups:
+      add:
+      - Domain Admins
+      - Enterprise Admins
+    domain_username: "{{ ansible_user }}@{{ domain }}"
+    domain_password: "{{ ansible_password }}"
+    domain_server: "{{ hostname }}.{{ domain }}"
+    state: present
+
+- name: Create blue-team user
+  microsoft.ad.user:
+    name: system_admin
+    firstname: System
+    lastname: Administrator
+    display_name: System Administrator
+    description: "Domain System Administrator"
+    sam_account_name: system_admin
+    upn: "system_admin@{{ domain }}"
+    password: "Secur3@Access"
+    groups:
+      add:
+      - Domain Admins
+      - Enterprise Admins
+    domain_username: "{{ ansible_user }}@{{ domain }}"
+    domain_password: "{{ ansible_password }}"
+    domain_server: "{{ hostname }}.{{ domain }}"
+    state: present

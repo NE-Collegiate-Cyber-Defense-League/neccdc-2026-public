@@ -1,0 +1,138 @@
+---
+# https://github.com/viasite-ansible/ansible-role-zsh
+# https://shaunandersonaz.github.io/Ansible-To-Setup-OhMyZSH-and-PowerLevel10K/
+- name: Install zsh, git, wget, curl
+  ansible.builtin.package:
+    name:
+      - zsh
+      - git
+      - wget
+      - curl
+      - unzip
+    state: present
+  tags:
+    - zsh
+
+- name: Set default user shell
+  ansible.builtin.user:
+    name: "{{ zsh_user }}"
+    shell: /bin/zsh
+  tags:
+    - zsh
+
+- name: Download ohmyzsh
+  ansible.builtin.get_url:
+    url: https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh
+    dest: "/tmp/install.sh"
+    mode: '0755'
+  tags:
+    - zsh
+
+- name: Remove ohmyzsh file if exists
+  ansible.builtin.file:
+    path: "/root/.oh-my-zsh"
+    state: absent
+  tags:
+    - zsh
+
+- name: Install ohmyzsh
+  ansible.builtin.shell:
+    cmd: echo y | /tmp/install.sh
+  tags:
+    - zsh
+
+- name: Move oh-my-zsh to /opt
+  ansible.builtin.command:
+    cmd: mv --force /root/.oh-my-zsh /opt/oh-my-zsh
+  tags:
+    - zsh
+
+- name: Install PowerLevel10K
+  ansible.builtin.git:
+    repo: https://github.com/romkatv/powerlevel10k.git
+    dest: "/opt/oh-my-zsh/custom/themes/powerlevel10k"
+    depth: 1
+  tags:
+    - zsh
+
+- name: Install zsh plugins
+  block:
+    - name: Install syntax highlighting
+      ansible.builtin.git:
+        repo: https://github.com/zsh-users/zsh-syntax-highlighting.git
+        dest: "/opt/oh-my-zsh/custom/plugins/zsh-syntax-highlighting"
+        depth: 1
+      tags:
+        - zsh
+
+    - name: Install auto suggestions
+      ansible.builtin.git:
+        repo: https://github.com/zsh-users/zsh-autosuggestions
+        dest: "/opt/oh-my-zsh/custom/plugins/zsh-autosuggestions"
+        depth: 1
+      tags:
+        - zsh
+
+
+# https://github.com/ryanoasis/nerd-fonts/releases
+- name: Download NerdFonts
+  ansible.builtin.get_url:
+    url: https://github.com/ryanoasis/nerd-fonts/releases/download/v3.2.1/Meslo.zip
+    dest: "/tmp/Meslo.zip"
+    mode: '0700'
+  tags:
+    - zsh
+
+- name: Create temp directory
+  ansible.builtin.file:
+    path: "/tmp/Meslo"
+    state: directory
+    mode: '0700'
+  tags:
+    - zsh
+
+- name: Install font files
+  ansible.builtin.unarchive:
+    src: "/tmp/Meslo.zip"
+    dest: "/tmp/Meslo"
+    remote_src: true
+  tags:
+    - zsh
+
+- name: Create fonts directory
+  ansible.builtin.file:
+    path: "/usr/share/fonts"
+    state: directory
+    mode: '0755'
+  tags:
+    - zsh
+
+- name: Move font files to fonts directory
+  ansible.builtin.copy:
+    src: "/tmp/Meslo"
+    dest: /usr/share/fonts/Meslo
+    owner: root
+    mode: '0755'
+    remote_src: true
+  tags:
+    - zsh
+
+- name: Copy zshrc config file
+  ansible.builtin.copy:
+    src: files/zshrc
+    dest: "/home/{{ zsh_user }}/.zshrc"
+    owner: "{{ zsh_user }}"
+    group: "{{ zsh_user }}"
+    mode: '0644'
+  tags:
+    - zsh
+
+- name: Copy p10k config
+  ansible.builtin.copy:
+    src: files/p10k.zsh
+    dest: "/opt/oh-my-zsh/p10k.zsh"
+    owner: root
+    group: root
+    mode: '0644'
+  tags:
+    - zsh

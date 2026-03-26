@@ -1,0 +1,11 @@
+kind: role
+version: v7
+metadata:
+  name: wordpress
+  description: Wordpress editor server access
+spec:
+  options:
+    max_session_ttl: 4h
+  allow:
+    app_labels:
+      service: wordpress

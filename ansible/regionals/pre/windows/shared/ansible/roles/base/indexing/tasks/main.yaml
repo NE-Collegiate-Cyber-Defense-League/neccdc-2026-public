@@ -1,0 +1,11 @@
+---
+- name: Install Windows Search Service
+  ansible.windows.win_feature:
+    name: "Search-Service"
+    state: present
+
+- name: Ensure Windows Search Service is enabled
+  ansible.windows.win_service:
+    name: "WSearch"
+    start_mode: delayed
+    state: started

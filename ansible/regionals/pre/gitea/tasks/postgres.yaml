@@ -1,0 +1,169 @@
+---
+# https://github.com/geerlingguy/ansible-role-postgresql
+# https://docs.gitea.com/installation/database-prep#postgresql
+# https://www.postgresql.org/download/linux/redhat/
+# https://oneuptime.com/blog/post/2026-02-21-ansible-install-postgresql/view
+
+- name: Install postgresql repository
+  ansible.builtin.dnf:
+    name: https://download.postgresql.org/pub/repos/yum/reporpms/EL-9-aarch64/pgdg-redhat-repo-latest.noarch.rpm
+    update_cache: true
+    disable_gpg_check: true
+    state: present
+  tags:
+    - postgres
+
+- name: Install the postgresql packages
+  ansible.builtin.dnf:
+    name:
+      - postgresql18
+      - postgresql18-server
+      - python3-psycopg2 # Required for ansible module
+    state: present
+  tags:
+    - postgres
+
+- name: Check if PostgreSQL database is initialized.
+  ansible.builtin.stat:
+    path: "/var/lib/pgsql/18/data/PG_VERSION"
+  register: _postgresql_pgdata_dir_version_res
+  tags:
+    - postgres
+
+- name: Open port 5432/tcp for Postgresql
+  ansible.posix.firewalld:
+    port: 5432/tcp
+    permanent: true
+    state: enabled
+    immediate: true
+  tags:
+    - postgres
+
+- name: Ensure PostgreSQL database is initialized
+  ansible.builtin.command: /usr/pgsql-18/bin/postgresql-18-setup initdb
+  register: _postgresql_initdb_res
+  changed_when:
+    - '"Success" in _postgresql_initdb_res.stdout'
+  when:
+    - not _postgresql_pgdata_dir_version_res.stat.exists
+  tags:
+    - postgres
+
+- name: Enable & start postgres
+  ansible.builtin.service:
+    name: postgresql-18
+    enabled: true
+    state: started
+  tags:
+    - postgres
+
+- name: Update PostgreSQL Config
+  block:
+    - name: Listen on all addresses
+      ansible.builtin.lineinfile:
+        dest: /var/lib/pgsql/18/data/postgresql.conf
+        regexp: "^#listen_addresses"
+        line: "listen_addresses = '*'"
+        state: present
+        mode: 0644
+      notify: Restart postgresql
+      tags:
+        - postgres
+
+    - name: Stronger encryption
+      ansible.builtin.lineinfile:
+        dest: /var/lib/pgsql/18/data/postgresql.conf
+        regexp: "^#password_encryption"
+        line: "password_encryption = scram-sha-256"
+        state: present
+        mode: 0644
+      notify: Restart postgresql
+      tags:
+        - postgres
+
+- name: PostgreSQL root user
+  become_user: postgres
+  community.postgresql.postgresql_user:
+    name: root
+    password: utnc2zug3gey4xr7rb8WTpLHJyRK2pbb
+    login_user: postgres
+    role_attr_flags: SUPERUSER
+    login_unix_socket: /var/run/postgresql
+  tags:
+    - postgres
+
+- name: Grant root postgresql user access
+  community.postgresql.postgresql_pg_hba:
+    dest: /var/lib/pgsql/18/data/pg_hba.conf
+    contype: host
+    users: root
+    address: all
+    databases: all
+    method: scram-sha-256
+    create: true
+  notify: Restart postgresql
+  tags:
+    - postgres
+
+- name: gitea PostgreSQL user
+  become_user: postgres
+  community.postgresql.postgresql_user:
+    name: gitea
+    password: gitea
+    login_user: postgres
+    role_attr_flags: SUPERUSER
+    login_unix_socket: /var/run/postgresql
+  tags:
+    - postgres
+
+- name: Grant gitea user access
+  community.postgresql.postgresql_pg_hba:
+    dest: /var/lib/pgsql/18/data/pg_hba.conf
+    contype: host
+    users: gitea
+    address: all
+    databases: giteadb
+    method: scram-sha-256
+    create: true
+  notify: Restart postgresql
+  tags:
+    - postgres
+
+- name: Create a giteadb database
+  become_user: postgres
+  community.postgresql.postgresql_db:
+    name: giteadb
+    owner: gitea
+    template: template0
+    encoding: UTF8
+    lc_collate: en_US.UTF-8
+    lc_ctype: en_US.UTF-8
+    comment: Gitea DB
+  tags:
+    - postgres
+
+- name: Create System Admin postgresql role
+  become_user: postgres
+  community.postgresql.postgresql_user:
+    name: "{{ item.username | regex_replace(' ', '.') | lower }}"
+    password: "{{ item.password | password_hash('sha512') }}"
+    role_attr_flags: CREATEDB,CREATEROLE,SUPERUSER
+    login_user: postgres
+    login_unix_socket: /var/run/postgresql
+  when: item.department == "Engineering" and item.position == "System Admin"
+  with_items: "{{ users_data.users }}"
+  tags:
+    - postgres
+
+- name: Create Former System Admin postgresql role
+  become_user: postgres
+  community.postgresql.postgresql_user:
+    name: "{{ item.username | regex_replace(' ', '.') | lower }}"
+    password: "{{ item.password | password_hash('sha512') }}"
+    role_attr_flags: CREATEDB,CREATEROLE,SUPERUSER
+    login_user: postgres
+    login_unix_socket: /var/run/postgresql
+  when: item.department == "Engineering" and item.position == "System Admin"
+  with_items: "{{ former_users_data.users }}"
+  tags:
+    - postgres

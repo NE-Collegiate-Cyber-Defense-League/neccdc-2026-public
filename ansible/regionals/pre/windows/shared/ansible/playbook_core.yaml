@@ -1,0 +1,15 @@
+---
+- hosts: all
+  gather_facts: true
+  vars_files:
+    - vars/common.yaml
+  roles:
+    - { role: "base/timezone", timezone: "Eastern Standard Time" }
+    - { role: "base/firewall" }
+    - { role: "base/rsat_tools", install_core_tools: true }
+    - { role: "base/regedits" }
+    - { role: "blackteam/user" }
+    - { role: "choco/install", install: "{{ chocolatey_packages }}" }
+    - { role: "choco/teleport" }
+    - { role: "extra/pwsh_modules", install: "{{ powershell_modules }}" }
+    - { role: "aws/ngen" }

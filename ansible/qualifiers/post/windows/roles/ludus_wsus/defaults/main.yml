@@ -1,0 +1,56 @@
+---
+# Ludus WSUS Server Role
+# Supports Windows Server 2012 R2, 2016, 2019, 2022, and 2025
+
+# WSUS Installation - Most commonly configured settings
+ludus_wsus_content_folder: 'C:\WSUS\Content'
+ludus_wsus_log_folder: 'C:\WSUS\Logs'
+
+# WSUS Configuration - Sensible defaults for lab environments
+ludus_wsus_update_languages: ['en']
+ludus_wsus_sync_from_mu: true  # Sync from Microsoft Update
+ludus_wsus_upstream_server_name: ''  # Leave empty to sync from Microsoft Update
+ludus_wsus_upstream_server_port: 8530  # Default WSUS HTTP port
+ludus_wsus_upstream_server_use_ssl: false
+ludus_wsus_upstream_server_replica: false
+
+# Proxy settings - Usually not needed in Ludus labs
+ludus_wsus_proxy_name: ''
+ludus_wsus_proxy_port: 80
+ludus_wsus_proxy_user_name: ''
+ludus_wsus_proxy_password: ''
+
+# Target Groups - Server-side targeting for Ludus control
+ludus_wsus_targeting_mode: 'Server'
+ludus_wsus_computer_target_group_list:
+  - 'Domain Controllers'
+  - 'Servers'
+  - 'Workstations'
+
+# Products to synchronize - EMPTY by default for fast deployment
+# Users should explicitly define products they need for their lab
+# With empty list, NO products are selected (not even Windows)
+# Configure manually in WSUS GUI or specify in role_vars
+ludus_wsus_products_list: []
+
+# Update classifications - EMPTY by default for fast deployment
+# Users should explicitly define classifications they need
+# With empty list, NO classifications are selected
+# Configure manually in WSUS GUI or specify in role_vars
+ludus_wsus_classifications_list: []
+
+# Synchronization settings - Optimized for fast lab deployment
+ludus_wsus_initial_sync: false    # DON'T sync during deployment (faster)
+ludus_wsus_wait_for_sync: false   # Don't wait if sync is enabled
+ludus_wsus_sync_timeout: 14400    # 4 hours in seconds
+ludus_wsus_category_sync_timeout_minutes: 60  # Initial category sync timeout
+
+# Automatic synchronization schedule - DISABLED by default for manual control
+ludus_wsus_enable_auto_sync: false
+ludus_wsus_sync_daily_time:  # Local time (automatically converted to UTC for WSUS)
+  hour: 3
+  minute: 0
+ludus_wsus_syncs_per_day: 1  # Number of synchronizations per day (1-24)
+
+# Automatic approval - Typically disabled for lab control
+ludus_wsus_enable_default_approval_rule: false

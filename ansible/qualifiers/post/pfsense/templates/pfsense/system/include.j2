@@ -1,0 +1,14 @@
+{# System section aggregator include #}
+<version>24.1</version>
+<lastchange></lastchange>
+<revision>
+  <time>1769214312</time>
+    <description><![CDATA[admin@10.0.0.190[10.255.0.1] (Local Database): Black Team.]]></description>
+    <username><![CDATA[admin@10.0.0.190[10.255.0.1] (Local Database)]]></username>
+</revision>
+<system>
+{% filter indent(width=4, first=true) %}
+{% include "pfsense/system/_system.xml.j2" +%}
+{% include "pfsense/system/_users.xml.j2" %}
+{% endfilter +%}
+</system>

@@ -1,0 +1,13 @@
+kind: role
+version: v7
+metadata:
+  name: system-admin
+  description: Administer all linux servers
+spec:
+  options:
+    max_session_ttl: 1h
+  allow:
+    logins:
+      - root
+    node_labels:
+      os: linux

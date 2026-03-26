@@ -1,0 +1,133 @@
+---
+- name: Install WordPress
+  hosts: packer
+  user: user
+  become: true
+  vars:
+    ansible_python_interpreter: /usr/bin/python3.10
+    wordpress_action: install
+    users_data: "{{ lookup('file', '../../../../documents/employees/users.yaml') | from_yaml }}"
+  roles:
+    - wordpress_install
+  tasks:
+    - name: Weaken SSH
+      ansible.builtin.include_tasks:
+        file: "../../../shared/weaken_ssh/main.yaml"
+      tags:
+        - ssh
+
+    - name: Set Ansible user
+      ansible.builtin.include_tasks:
+        file: "../../../shared/semaphore_ansible/main.yaml"
+      tags:
+        - ansible
+
+    - name: Install Teleport client
+      ansible.builtin.include_tasks:
+        file: "../../../shared/teleport_client/main.yaml"
+      vars:
+        teleport_node_name: wordpress
+        teleport_join_token: SK52P7ZMB375R20BQICC4KKW
+        teleport_node_label:
+          service: wordpress
+        teleport_app_service_enabled: "no"
+        teleport_apps: []
+      tags:
+        - teleport
+
+    - name: Install Falco
+      ansible.builtin.include_tasks:
+        file: "../../../shared/falco_client/main.yaml"
+      vars:
+        falco_version: "0.42.1"
+      tags:
+        - falco
+
+    - name: Install EIC
+      ansible.builtin.include_tasks:
+        file: "../../../shared/ec2_instance_connect/main.yaml"
+      tags:
+        - eic
+
+    - name: Setup black team task
+      ansible.builtin.include_tasks:
+        file: "../../../shared/black_team/main.yaml"
+      vars:
+        root_groups: sudo
+      tags:
+        - black-team
+
+    - name: AWS SSM Agent
+      block:
+        - name: AWS SSM Agent | Install
+          ansible.builtin.command:
+            cmd: snap install amazon-ssm-agent --classic
+          tags:
+            - ssm
+
+        - name: AWS SSM Agent | Start and enable
+          ansible.builtin.service:
+            name: snap.amazon-ssm-agent.amazon-ssm-agent
+            state: started
+            enabled: true
+          tags:
+            - ssm
+
+    - name: Create Linux user groups
+      ansible.builtin.group:
+        name: "{{ item | regex_replace(' ', '-') | lower }}"
+        state: present
+      with_items:
+        - engineering
+        - sales
+      tags:
+        - users
+
+    - name: Allow engineers passwordless sudo
+      ansible.builtin.lineinfile:
+        dest: /etc/sudoers
+        state: present
+        regexp: "^%engineering"
+        line: "%engineering ALL=(ALL) NOPASSWD: ALL"
+        validate: "visudo -cf %s"
+      tags:
+        - users
+
+    - name: Create sales users
+      ansible.builtin.user:
+        name: "{{ item.username | regex_replace(' ', '.') | lower }}"
+        password: "{{ item.password | password_hash('sha512') }}"
+        append: true
+        groups: "sales"
+        shell: "/bin/sh"
+        state: present
+      when: item.department == "Sales"
+      with_items: "{{ users_data.users }}"
+      tags:
+        - users
+
+    - name: Create CEO user
+      ansible.builtin.user:
+        name: "{{ item.username | regex_replace(' ', '.') | lower }}"
+        password: "{{ item.password | password_hash('sha512') }}"
+        append: true
+        groups: "sales,engineering"
+        shell: "/bin/bash"
+        state: present
+      when: item.position == "CEO"
+      with_items: "{{ users_data.users }}"
+      tags:
+        - users
+
+    - name: Create engineering users
+      ansible.builtin.user:
+        name: "{{ item.username | regex_replace(' ', '.') | lower }}"
+        password: "{{ item.password | password_hash('sha512') }}"
+        append: true
+        groups: "engineering"
+        shell: "/bin/bash"
+        state: present
+      when: item.position == "System Admin"
+      with_items: "{{ users_data.users }}"
+      tags:
+        - users

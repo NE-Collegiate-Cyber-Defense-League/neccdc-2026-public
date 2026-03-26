@@ -1,0 +1,45 @@
+---
+- name: Configure Grafana Stack For Team
+  hosts: grafana
+  become: true
+  vars:
+    team_number: "{{ hostvars[inventory_hostname]['team'] }}"
+  tasks:
+    - name: Copy full chain certificates
+      ansible.builtin.copy:
+        src: '../../../../documents/blue_team/qualifiers/team_{{ team_number }}/certificates/{{ item }}'
+        dest: /opt/grafana/ssl/{{ item }}
+        mode: '0400'
+        owner: root
+        group: root
+      with_items:
+        - fullchain.crt
+        - private.key
+      tags:
+        - certificates
+
+    - name: Configure Alloy for Kiosk
+      ansible.builtin.include_tasks:
+        file: "../../../shared/alloy/main.yaml"
+      vars:
+        mode: "post"
+        mimir_server_name: "http://localhost:9008"
+        loki_server_name: "http://localhost:9009"
+      tags:
+        - alloy
+
+    - name: Update hostnames in docker compose file
+      ansible.builtin.replace:
+        path: "/opt/grafana/compose.yaml"
+        regexp: '{{ item.regexp }}'
+        replace: '{{ item.replace }}'
+      with_items:
+        - { regexp: 'mimir\.chefops\.tech', replace: 'mimir.{{ team_number }}.chefops.tech' }
+        - { regexp: 'loki\.chefops\.tech', replace: 'loki.{{ team_number }}.chefops.tech' }
+        - { regexp: 'traefik\.chefops\.tech', replace: 'traefik.{{ team_number }}.chefops.tech' }
+        - { regexp: 'grafana\.chefops\.tech', replace: 'grafana.{{ team_number }}.chefops.tech' }
+
+    - name: Start Grafana Stack
+      community.docker.docker_compose_v2:
+        project_src: /opt/grafana
+        state: present

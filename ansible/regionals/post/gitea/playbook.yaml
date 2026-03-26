@@ -1,0 +1,25 @@
+- name: Configure gitea
+  hosts: gitea
+  become: true
+  vars:
+    team_number: "{{ hostvars[inventory_hostname]['team'] }}"
+  tasks:
+    - name: Copy gitea config
+      ansible.builtin.template:
+        src: templates/gitea.ini.j2
+        dest: /etc/gitea/gitea.ini 
+        mode: "0644"
+        owner: gitea
+        group: gitea
+        backup: false
+      notify: Restart gitea
+      tags:
+        - ansible
+
+  handlers:
+    - name: Restart gitea
+      ansible.builtin.service:
+        name: gitea
+        state: restarted
+      tags:
+        - ansible

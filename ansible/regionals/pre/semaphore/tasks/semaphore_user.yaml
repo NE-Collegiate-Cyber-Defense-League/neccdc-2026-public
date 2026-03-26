@@ -1,0 +1,62 @@
+- name: Insert Semaphore user
+  ttafsir.sqlite_utils.insert:
+    db_path: /opt/semaphore/database.sqlite
+    table: user
+    replace: true
+    records:
+      id: "{{ semaphore_id }}"
+      created: '{{ lookup(''pipe'', ''date -u "+%Y-%m-%d %H:%M:%S %z UTC"'') }}'
+      username: "{{ semaphore_username }}"
+      name: "{{ semaphore_name }}"
+      email: "{{ semaphore_email }}"
+      password: "{{ 'password' | password_hash(hashtype='bcrypt') }}"
+      external: "1"
+      admin: "{{ semaphore_admin | default(0) }}" # 1 == true
+  tags:
+    - semaphore
+    - semaphore_user
+
+- name: Grant user access to project
+  ttafsir.sqlite_utils.insert:
+    db_path: /opt/semaphore/database.sqlite
+    table: project__user
+    replace: true
+    records:
+      project_id: "1"
+      user_id: "{{ semaphore_id }}"
+      role: "{{ semaphore_role }}" # owner, manager, task_runner, guest
+  tags:
+    - semaphore
+    - semaphore_user
+
+- name: Remove all old tokens
+  when: semaphore_api_token | default("") != ""
+  ansible.builtin.command:
+    argv:
+      - sqlite3
+      - /opt/semaphore/database.sqlite
+      - DELETE FROM user__token WHERE user_id == '{{ semaphore_id }}'
+  tags:
+    - semaphore
+    - semaphore_user
+
+- name: Insert Semaphore admin user API token
+  when: semaphore_api_token | default("") != ""
+  ttafsir.sqlite_utils.insert:
+    db_path: /opt/semaphore/database.sqlite
+    table: user__token
+    replace: true
+    records:
+      id: "{{ semaphore_api_token }}"
+      user_id: "{{ semaphore_id }}"
+      created: '{{ lookup(''pipe'', ''date -u "+%Y-%m-%d %H:%M:%S %z UTC"'') }}'
+  tags:
+    - semaphore
+    - semaphore_user
+
+- name: Increment the count by 1
+  ansible.builtin.set_fact:
+    user_id_count: "{{ user_id_count | int + 1 }}"
+  tags:
+    - semaphore
+    - semaphore_user

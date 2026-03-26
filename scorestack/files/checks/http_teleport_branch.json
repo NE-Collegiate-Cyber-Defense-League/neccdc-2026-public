@@ -1,0 +1,29 @@
+{
+  "name": "HTTP_teleport_branch",
+  "type": "http",
+  "score_weight": 3,
+  "definition": {
+    "requests": [
+      {
+        "host": "{{.IP}}",
+        "path": "/webapi/ping",
+        "https": true,
+        "port": 443,
+        "method": "GET",
+        "matchcode": true,
+        "code": 200,
+        "headers": {
+          "Host": "{{.Host}}"
+        },
+        "MatchContent": true,
+        "ContentRegex": "tls_routing_enabled"
+      }
+    ]
+  },
+  "attributes": {
+    "admin": {
+      "Host": "teleport.{{.TeamNumber}}.oceancrests.kitchen",
+      "IP": "2600:1f26:1d:8b{{.TeamHex}}0:ffff:ffff:ffff:fffe"
+    }
+  }
+}

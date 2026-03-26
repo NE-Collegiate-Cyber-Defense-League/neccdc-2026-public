@@ -1,0 +1,32 @@
+---
+- name: Configure DNS with wicked
+  ansible.builtin.copy:
+    dest: /etc/sysconfig/network/config
+    content: |
+      NETCONFIG_DNS_POLICY=""
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Apply network config
+  ansible.builtin.command:
+    cmd: netconfig update -f
+
+- name: Copy the updated resolv.conf
+  ansible.builtin.template:
+    src: ../templates/resolv.conf.j2
+    dest: /opt/resolv.conf
+    mode: "0644"
+    owner: root
+    group: root
+
+- name: Delete existing /etc/resolv.conf linked file
+  ansible.builtin.file:
+    path: /etc/resolv.conf
+    state: absent
+
+- name: Create link to the new resolver file
+  ansible.builtin.file:
+    src: /opt/resolv.conf
+    dest: /etc/resolv.conf
+    state: link

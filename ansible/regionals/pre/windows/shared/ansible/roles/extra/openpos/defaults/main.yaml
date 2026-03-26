@@ -1,0 +1,6 @@
+---
+ospos_archive: ospos-build-20260312-204640.zip
+
+ospos_db_name: ospos
+ospos_db_user: admin
+ospos_db_password: pointofsale

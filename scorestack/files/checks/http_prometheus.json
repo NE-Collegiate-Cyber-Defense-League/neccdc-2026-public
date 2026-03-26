@@ -1,0 +1,25 @@
+{
+  "name": "HTTP_prometheus",
+  "type": "http",
+  "score_weight": 1,
+  "definition": {
+    "requests": [
+      {
+        "host": "{{.IP}}",
+        "path": "/-/healthy",
+        "https": false,
+        "port": 9090,
+        "method": "GET",
+        "matchcode": true,
+        "code": 200,
+        "matchcontent": true,
+        "ContentRegex": "Prometheus Server is Healthy."
+      }
+    ]
+  },
+  "attributes": {
+    "admin": {
+      "IP": "2600:1f26:1d:8a{{.TeamHex}}2:0:ace::"
+    }
+  }
+}

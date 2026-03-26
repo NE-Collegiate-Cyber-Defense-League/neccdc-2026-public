@@ -1,0 +1,10 @@
+---
+# https://docs.aws.amazon.com/systems-manager/latest/userguide/agent-install-sles.html
+
+# Switched back from packer vs rpm causing issues on build
+- name: Install SSM Agent Package
+  community.general.zypper:
+    name: amazon-ssm-agent
+    state: present
+  tags:
+    - ssm

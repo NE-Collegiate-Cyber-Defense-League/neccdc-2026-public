@@ -1,0 +1,9 @@
+---
+# https://docs.aws.amazon.com/systems-manager/latest/userguide/agent-install-rhel-8-9.html
+- name: Install SSM Agent Package
+  ansible.builtin.dnf:
+    name: https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_arm64/amazon-ssm-agent.rpm
+    state: present
+    disable_gpg_check: true
+  tags:
+    - ssm

@@ -1,0 +1,32 @@
+---
+# pfSense: backup config or run command via SSH. No native Ansible modules; use command/script or API.
+- name: pfSense backup config (via SSH)
+  hosts: pfsense
+  vars:
+    pfsense_backup_dest: /tmp/pfsense-config-{{ ansible_hostname }}-{{ ansible_date_time.epoch }}.xml
+
+  tasks:
+    - name: Backup pfSense config via SSH (fetch config.xml)
+      ansible.builtin.shell: |
+        ssh -o StrictHostKeyChecking=no {{ ansible_user }}@{{ inventory_hostname }} "cat /cf/conf/config.xml" > {{ pfsense_backup_dest }}
+      args:
+        executable: /bin/bash
+      delegate_to: "{{ groups['ansible_runner'][0] | default(inventory_hostname) }}"
+      when: inventory_hostname is defined
+      register: backup_cmd
+      changed_when: backup_cmd.rc == 0
+
+    - name: Ensure local backup directory exists (when running from controller)
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/backups/pfsense"
+        state: directory
+        mode: "0755"
+      run_once: true
+      delegate_to: localhost
+
+    - name: Copy backup to playbook backup dir (optional)
+      ansible.builtin.copy:
+        src: "{{ pfsense_backup_dest }}"
+        dest: "{{ playbook_dir }}/backups/pfsense/{{ ansible_hostname }}-{{ ansible_date_time.epoch }}.xml"
+        remote_src: true
+      when: backup_cmd.rc == 0 and (groups['ansible_runner'] is defined)

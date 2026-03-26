@@ -1,0 +1,23 @@
+{
+  "name": "HTTP_pos",
+  "type": "http",
+  "score_weight": 3,
+  "definition": {
+    "requests": [
+      {
+        "host": "{{.Host}}",
+        "path": "/ospos/public/resources/css/receipt-c2c74c776e.css",
+        "https": false,
+        "port": 80,
+        "method": "GET",
+        "matchcode": true,
+        "code": 400
+      }
+    ]
+  },
+  "attributes": {
+    "admin": {
+      "Host": "2600:1f26:1d:8b{{.TeamHex}}1::cafe"
+    }
+  }
+}

@@ -1,0 +1,83 @@
+# Configuration cheat sheet: https://docs.gitea.io/en-us/config-cheat-sheet/
+RUN_USER = gitea
+RUN_MODE = prod
+WORK_PATH = /var/lib/gitea
+
+[repository]
+ROOT = /var/lib/gitea/git
+SCRIPT_TYPE = sh
+DEFAULT_PRIVATE = public
+DISABLE_HTTP_GIT = false
+ENABLE_PUSH_CREATE_USER = true
+ENABLE_PUSH_CREATE_ORG = true
+DISABLE_STARS = true
+DEFAULT_BRANCH = main
+ALLOW_ADOPTION_OF_UNADOPTED_REPOSITORIES = true
+ALLOW_DELETION_OF_UNADOPTED_REPOSITORIES = true
+
+[cors]
+ENABLED = false
+ALLOW_DOMAIN = *
+ALLOW_CREDENTIALS = true
+
+[metrics]
+ENABLED = true
+
+[ui]
+REACTION_MAX_USER_NUM = 99
+
+[ui.meta]
+AUTHOR = Gitea - Git with a cup of coffee
+DESCRIPTION = "Gitea is a painless self-hosted Git service written in C and PHP"
+
+[server]
+ROOT_URL=https://gitea.{{ team_number }}.chefops.tech/
+STATIC_ROOT_PATH = /usr/share/webapps/gitea
+APP_DATA_PATH = /var/lib/gitea/data
+LFS_START_SERVER = false
+PROTOCOL = http
+DOMAIN = localhost
+HTTP_PORT = 3000
+HTTP_ADDR = 0.0.0.0
+SSH_PORT = 22
+SSH_LISTEN_HOST = 0.0.0.0
+SSH_AUTHORIZED_PRINCIPALS_ALLOW = any
+SSH_EXPOSE_ANONYMOUS = true
+
+[database]
+DB_TYPE = postgres
+HOST = localhost:5432
+NAME = giteadb
+USER = gitea
+PASSWD = gitea
+SSL_MODE = disable
+
+[security]
+INSTALL_LOCK = true
+LOGIN_REMEMBER_DAYS = 365
+DISABLE_GIT_HOOKS = false
+MIN_PASSWORD_LENGTH = 12
+PASSWORD_COMPLEXITY = off
+PASSWORD_CHECK_PWN = false
+INTERNAL_TOKEN = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYmYiOjE3NzI5OTE5NjV9.87OTPekOka0xce_SvayPnbNf-xZdKSaeCtjVyEC3qj0
+
+[openid]
+ENABLE_OPENID_SIGNIN = false
+
+[actions]
+ENABLED = true
+
+[session]
+PROVIDER = file
+
+[log]
+ENABLE_SSH_LOG = true
+ROOT_PATH = /var/log/gitea
+MODE = file
+LEVEL = Info
+
+[oauth2]
+JWT_SECRET = QFbQYS8Q1ygqdpgLbNBT0_H0wV-7fzdAmF8iaTU6IXQ
+
+[oauth2_client]
+ENABLE_AUTO_REGISTRATION = true

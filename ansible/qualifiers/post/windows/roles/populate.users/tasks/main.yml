@@ -1,0 +1,26 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for users
+- name: Transfer Required Files to Server
+  ansible.windows.win_copy:
+    src: "{{ users_source_csv }}"
+    dest: "{{ users_destination_csv }}"
+
+# - name: Set Password Policy
+#   ansible.windows.win_powershell:
+#     script: "{{ lookup('ansible.builtin.file', 'files/password_policy.ps1') }}"
+#     error_action: stop
+
+# Currently Not Using UPN Suffix
+- name: Populate Users and Groups
+  ansible.windows.win_powershell:
+    script: "{{ lookup('ansible.builtin.file', 'files/populate.ps1') }}"
+    parameters:
+      CreateUsers: "{{ users_create_users }}"
+      CreateGroups: "{{ users_create_groups }}"
+    error_action: stop
+
+- name: Remove Temporary Files from Server
+  ansible.windows.win_file:
+    path: "{{ users_destination_csv }}"
+    state: absent

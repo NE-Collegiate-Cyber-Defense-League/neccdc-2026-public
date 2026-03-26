@@ -1,0 +1,139 @@
+<group>
+    <name>admins</name>
+    <description><![CDATA[System Administrators]]></description>
+    <scope>system</scope>
+    <gid>1999</gid>
+    <member>0</member>
+    <member>2000</member>
+    <member>2001</member>
+    <priv>page-all</priv>
+</group>
+<group>
+    <name>all</name>
+    <description><![CDATA[All Users]]></description>
+    <scope>system</scope>
+    <gid>1998</gid>
+</group>
+<group>
+    <name>network_admins</name>
+    <description><![CDATA[Network Administrators]]></description>
+    <scope>local</scope>
+    <member>2005</member>
+    <member>2004</member>
+    <member>2002</member>
+    <member>2003</member>
+    <gid>2000</gid>
+    <priv>page-all</priv>
+    <priv>user-shell-access</priv>
+</group>
+<group>
+    <name>support</name>
+    <description><![CDATA[Support Techs]]></description>
+    <scope>local</scope>
+    <member>2006</member>
+    <gid>2001</gid>
+    <priv>page-all</priv>
+    <priv>user-shell-access</priv>
+</group>
+<user>
+    <name>admin</name>
+    <descr><![CDATA[System Administrator]]></descr>
+    <uid>0</uid>
+    <scope>system</scope>
+    <groupname>admins</groupname>
+    <priv>user-shell-access</priv>
+    <priv>user-ipsec-xauth-dialin</priv>
+    <authorizedkeys>c3NoLXJzYSBBQUFBQjNOemFDMXljMkVBQUFBREFRQUJBQUFCQVFESXhESXArSVN1V1FCM1BvbHpVOVN0QmhORmVadVg0b09WNGg2akxqUFNpZmJzbWw1Wko4dTFCdUdDa2VNRFlvS2ZldWlNZzgyVUI1cFVXZ1ROQjgrMEpUdkxiSlhTY25VYWJxRDZsc3EzTXNhQnFiUFhERG5TbjRxSC85cFZrdHVjY051NitDVzVydDNGVElYcVQwR0ZUZnpWekdmc2xPVDNlUDRlNEoyY3R6bzJSRkMyK081ck5BR3l3Q3lNYVdKK1oyemdocVRzSWdwVjdZNzFzV2E0ZW83cUwvSE9maFBVa1FCSVh1d0g1V2ZvdUtFRFlhWUhqbWxSNHk2T0xxQmpIZ3p6R2pIVmQvc3BGb1BzTVAwTzhEWEVSZmdsVFBuUUtmVU5YMTBndlc4TGlGaU1CT1YvWTBHUjZ0MGh4NThuN0pKcTBMTXUwbmpkM09wSVMycjEgYmxhY2stdGVhbUBuZWNjZGwub3JnDQo=</authorizedkeys>
+    <bcrypt-hash>$2y$12$Jlb0spPa/tpB2YFJsw4ULekc7rrAZWF9R.t9cSVE7vkPQ2f.TrPWC</bcrypt-hash>
+    <expires></expires>
+    <dashboardcolumns>2</dashboardcolumns>
+    <ipsecpsk></ipsecpsk>
+    <webguicss>pfSense.css</webguicss>
+</user>
+<user>
+    <scope>user</scope>
+    <bcrypt-hash>$2y$12$cyTC5bmIEfa1ygcZntSQJeK6sQ6cXGnBChiKWnfb3ZRjv7mFekjjC</bcrypt-hash>
+    <descr><![CDATA[Addison Hawkins]]></descr>
+    <name>ahawkins</name>
+    <expires></expires>
+    <dashboardcolumns>2</dashboardcolumns>
+    <authorizedkeys></authorizedkeys>
+    <ipsecpsk></ipsecpsk>
+    <webguicss>pfSense.css</webguicss>
+    <uid>2006</uid>
+    <priv>page-all</priv>
+    <priv>user-shell-access</priv>
+</user>
+<user>
+    <scope>user</scope>
+    <bcrypt-hash>$2y$12$bKS4XJn4ptmbQ1SIH4/JweUhjHqbMSKjCZN/1PBe6A8jD7EgswLXG</bcrypt-hash>
+    <descr><![CDATA[Alyssa Reed]]></descr>
+    <name>areed</name>
+    <expires></expires>
+    <dashboardcolumns>2</dashboardcolumns>
+    <authorizedkeys></authorizedkeys>
+    <ipsecpsk></ipsecpsk>
+    <webguicss>pfSense.css</webguicss>
+    <uid>2005</uid>
+    <priv>page-all</priv>
+    <priv>user-shell-access</priv>
+</user>
+<user>
+    <name>black-team</name>
+    <descr><![CDATA[BLACK TEAM]]></descr>
+    <uid>2001</uid>
+    <scope>user</scope>
+    <bcrypt-hash>$2y$12$.yPZHF.g3MkKgyK/RoSiJeEsnkiYtt7wg/9q8d7mr21klmn9hu0J6</bcrypt-hash>
+    <authorizedkeys>c3NoLXJzYSBBQUFBQjNOemFDMXljMkVBQUFBREFRQUJBQUFCQVFESXhESXArSVN1V1FCM1BvbHpVOVN0QmhORmVadVg0b09WNGg2akxqUFNpZmJzbWw1Wko4dTFCdUdDa2VNRFlvS2ZldWlNZzgyVUI1cFVXZ1ROQjgrMEpUdkxiSlhTY25VYWJxRDZsc3EzTXNhQnFiUFhERG5TbjRxSC85cFZrdHVjY051NitDVzVydDNGVElYcVQwR0ZUZnpWekdmc2xPVDNlUDRlNEoyY3R6bzJSRkMyK081ck5BR3l3Q3lNYVdKK1oyemdocVRzSWdwVjdZNzFzV2E0ZW83cUwvSE9maFBVa1FCSVh1d0g1V2ZvdUtFRFlhWUhqbWxSNHk2T0xxQmpIZ3p6R2pIVmQvc3BGb1BzTVAwTzhEWEVSZmdsVFBuUUtmVU5YMTBndlc4TGlGaU1CT1YvWTBHUjZ0MGh4NThuN0pKcTBMTXUwbmpkM09wSVMycjEgYmxhY2stdGVhbUBuZWNjZGwub3JnDQo=</authorizedkeys>
+    <priv>user-shell-access</priv>
+    <expires></expires>
+    <dashboardcolumns>2</dashboardcolumns>
+    <ipsecpsk></ipsecpsk>
+    <webguicss>pfSense.css</webguicss>
+</user>
+<user>
+    <name>ec2-user</name>
+    <descr><![CDATA[EC2 User]]></descr>
+    <uid>2000</uid>
+    <scope>user</scope>
+    <authorizedkeys>c3NoLWVkMjU1MTkgQUFBQUMzTnphQzFsWkRJMU5URTVBQUFBSUNHem9rbjF2L3gyRGlqRWhyd252OHdNT3ArbzBnY1Q4cm9UdEpEVld4alkgYmxhY2stdGVhbQ0K</authorizedkeys>
+    <bcrypt-hash>$2y$12$O7uaMSii6me4BCVmKBCGMeSi8G/.WxznTgyqXB0XSRgoVpXveXkZS</bcrypt-hash>
+</user>
+<user>
+    <scope>user</scope>
+    <bcrypt-hash>$2y$12$XapqHae2fmLmsycIAtzNgudzD86uslBpBdhuQcCjmbTGtFLIxR0sK</bcrypt-hash>
+    <descr><![CDATA[Josefine Thomsen]]></descr>
+    <name>jthomsen</name>
+    <expires></expires>
+    <dashboardcolumns>2</dashboardcolumns>
+    <authorizedkeys></authorizedkeys>
+    <ipsecpsk></ipsecpsk>
+    <webguicss>pfSense.css</webguicss>
+    <uid>2004</uid>
+</user>
+<user>
+    <scope>user</scope>
+    <bcrypt-hash>$2y$12$aYtUFyl8pV6fDKQi9B6mV.jMYdZjwvSz9fz65RGt4S5CHYmyM7S02</bcrypt-hash>
+    <descr><![CDATA[Meghan Nichols]]></descr>
+    <name>mnichols</name>
+    <expires></expires>
+    <dashboardcolumns>2</dashboardcolumns>
+    <authorizedkeys></authorizedkeys>
+    <ipsecpsk></ipsecpsk>
+    <webguicss>pfSense.css</webguicss>
+    <uid>2002</uid>
+</user>
+<user>
+    <scope>user</scope>
+    <bcrypt-hash>$2y$12$vgP3/TPo8KzdbcnNOtjCr.VG4UaD0B45WJQpWKLu/ibUn9xsyl3wG</bcrypt-hash>
+    <descr><![CDATA[Susie Taylor]]></descr>
+    <name>staylor</name>
+    <expires></expires>
+    <dashboardcolumns>2</dashboardcolumns>
+    <authorizedkeys></authorizedkeys>
+    <ipsecpsk></ipsecpsk>
+    <webguicss>pfSense.css</webguicss>
+    <uid>2003</uid>
+</user>
+<nextuid>2007</nextuid>
+<nextgid>2002</nextgid>

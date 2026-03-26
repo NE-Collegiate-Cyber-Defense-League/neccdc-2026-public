@@ -1,0 +1,87 @@
+falco:
+  hosts:
+    127.0.0.1:
+
+firewall:
+  hosts:
+    10.0.0.254:
+  vars:
+    ansible_user: admin
+    ansible_password: netadmin
+    ansible_port: 22
+
+gitea:
+  hosts:
+    10.0.99.33:
+
+grafana:
+  hosts:
+    10.0.99.32:
+  vars:
+    falco_service_name: falco-modern-bpf
+
+kiosk:
+  hosts:
+    2600:1f26:001d:8a{{ '%02x' | format(team_number) }}::100:1:
+    2600:1f26:001d:8a{{ '%02x' | format(team_number) }}::100:2:
+  vars:
+    ansible_username: kiosk
+    ansible_password: kioskpassword
+    falco_service_name: falco-modern-bpf
+
+semaphore:
+  hosts:
+    10.0.99.48:
+  vars:
+    ansible_python_interpreter: /usr/bin/python3.11
+
+siem:
+  hosts:
+    0.0.0.0:
+  vars:
+    ansible_user: admin
+
+teleport:
+  hosts:
+    10.0.99.148:
+  vars:
+    ansible_python_interpreter: /usr/local/bin/python3.9
+
+wordpress:
+  hosts:
+    10.0.99.188:
+
+linux:
+  children:
+    gitea:
+    grafana:
+    kiosk:
+    semaphore:
+    teleport:
+    wordpress:
+  vars:
+    ansible_user: ansible
+    ansible_private_key_file: /opt/semaphore/id_rsa
+    ansible_port: 22
+
+falco_clients:
+  children:
+    gitea:
+    grafana:
+    kiosk:
+    semaphore:
+    teleport:
+    wordpress:
+
+windows_ad:
+  hosts:
+    10.0.99.120:
+
+windows_adfs:
+  hosts:
+    10.0.99.110:
+
+windows:
+  children:
+    windows_ad:
+    windows_adfs:

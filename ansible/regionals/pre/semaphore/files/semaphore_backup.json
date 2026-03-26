@@ -1,0 +1,399 @@
+{
+  "environments": [
+    {
+      "env": "{\"ANSIBLE_HOST_KEY_CHECKING\":\"False\",\"ANSIBLE_LOG_PATH\":\"/tmp/logs\",\"DEFAULT_ASK_VAULT_PASS\":\"False\",\"DEFAULT_BECOME\":\"False\"}",
+      "json": "{\"ansible_password\":\"kiosk\", \"ansible_password\":\"kioskpassword\"}",
+      "name": "Kiosk"
+    },
+    {
+      "env": "{\"ANSIBLE_HOST_KEY_CHECKING\":\"False\"}",
+      "json": "{\"db_user\":\"wpuser\",\"db_password\":\"Password123!\"}",
+      "name": "Wordpress"
+    },
+    {
+      "env": "{\"ANSIBLE_HOST_KEY_CHECKING\":\"False\"}",
+      "json": "{}",
+      "name": "default"
+    },
+    {
+      "env": "{\"ANSIBLE_HOST_KEY_CHECKING\":\"False\",\"COLOR_CHANGED\":\"green\",\"COLOR_CONSOLE_PROMPT\":\"red\",\"COLOR_DEBUG\":\"blue\",\"COLOR_DEPRECATE\":\"white\"}",
+      "json": "{}",
+      "name": "system-environment"
+    }
+  ],
+  "integration_aliases": [],
+  "integrations": [
+    {
+      "aliases": [
+        "health"
+      ],
+      "auth_header": "",
+      "auth_method": "",
+      "extract_values": [],
+      "matchers": [],
+      "name": "AvailabiltyVerify",
+      "searchable": false,
+      "task_params": {
+        "environment": "{}",
+        "message": "",
+        "params": {
+          "debug_level": 4,
+          "dry_run": false
+        }
+      },
+      "template": "Local Debug"
+    },
+    {
+      "aliases": [
+        "abc"
+      ],
+      "auth_header": "",
+      "auth_method": "",
+      "extract_values": [],
+      "matchers": [],
+      "name": "Reboot",
+      "searchable": false,
+      "task_params": {
+        "environment": "{}",
+        "message": "",
+        "params": {
+          "debug_level": 4,
+          "dry_run": false
+        }
+      },
+      "template": "Reboot"
+    },
+    {
+      "aliases": [
+        "dQw4w9WgXcQ"
+      ],
+      "auth_header": "",
+      "auth_method": "",
+      "extract_values": [],
+      "matchers": [],
+      "name": "Reset",
+      "searchable": false,
+      "task_params": {
+        "environment": "{}",
+        "message": "",
+        "params": {
+          "debug_level": 4,
+          "dry_run": false
+        }
+      },
+      "template": "Backup restore"
+    }
+  ],
+  "inventories": [
+    {
+      "inventory": "/opt/semaphore/inventory.yaml",
+      "name": "inventory",
+      "ssh_key": "NoAuth",
+      "type": "file"
+    }
+  ],
+  "keys": [
+    {
+      "name": "NoAuth",
+      "owner": "",
+      "type": "none"
+    }
+  ],
+  "meta": {
+    "alert": false,
+    "max_parallel_tasks": 0,
+    "name": "ChefOps",
+    "type": ""
+  },
+  "repositories": [
+    {
+      "git_branch": "main",
+      "git_url": "gitea@gitea.chefops.tech:chefops/ansible.git",
+      "name": "Gitea",
+      "ssh_key": "semaphore"
+    },
+    {
+      "git_branch": "",
+      "git_url": "/opt/semaphore/playbooks",
+      "name": "Local",
+      "ssh_key": "NoAuth"
+    }
+  ],
+  "schedules": [
+    {
+      "active": true,
+      "cron_format": "*/13 * * * *",
+      "name": "SystemStatus",
+      "task_params": {
+        "environment": "",
+        "message": "",
+        "params": {}
+      },
+      "template": "SystemStatus"
+    },
+    {
+      "active": true,
+      "cron_format": "10 * * * *",
+      "name": "FalcoRulesUpdate",
+      "task_params": {
+        "environment": "",
+        "message": "",
+        "params": {}
+      },
+      "template": "Falco Update"
+    }
+  ],
+  "secret_storages": [],
+  "templates": [
+    {
+      "allow_override_args_in_task": false,
+      "allow_override_branch_in_task": false,
+      "allow_parallel_tasks": false,
+      "app": "ansible",
+      "arguments": "[]",
+      "autorun": false,
+      "description": "",
+      "environment": "system-environment",
+      "inventory": "inventory",
+      "name": "Backup restore",
+      "playbook": "reset-password.yaml",
+      "repository": "Local",
+      "suppress_success_alerts": false,
+      "survey_vars": [],
+      "task_params": {},
+      "type": "",
+      "vaults": []
+    },
+    {
+      "allow_override_args_in_task": false,
+      "allow_override_branch_in_task": false,
+      "allow_parallel_tasks": false,
+      "app": "ansible",
+      "arguments": "[]",
+      "autorun": false,
+      "cron": "10 * * * *",
+      "description": "Update falco rules from git",
+      "environment": "default",
+      "inventory": "inventory",
+      "name": "Falco Update",
+      "playbook": "falco-update-rules.yaml",
+      "repository": "Gitea",
+      "suppress_success_alerts": false,
+      "survey_vars": [],
+      "task_params": {},
+      "type": "",
+      "vaults": []
+    },
+    {
+      "allow_override_args_in_task": false,
+      "allow_override_branch_in_task": false,
+      "allow_parallel_tasks": false,
+      "app": "ansible",
+      "arguments": "[]",
+      "autorun": false,
+      "description": "Trigger a dummy alert to test falco syscall monitoring",
+      "environment": "default",
+      "inventory": "inventory",
+      "name": "FalcoTestAlert",
+      "playbook": "test-falco-alert.yaml",
+      "repository": "Gitea",
+      "suppress_success_alerts": false,
+      "survey_vars": [],
+      "task_params": {},
+      "type": "",
+      "vaults": []
+    },
+    {
+      "allow_override_args_in_task": false,
+      "allow_override_branch_in_task": false,
+      "allow_parallel_tasks": false,
+      "app": "ansible",
+      "arguments": "[]",
+      "autorun": false,
+      "description": "Debug in case gitea outage",
+      "environment": "system-environment",
+      "inventory": "inventory",
+      "name": "Local Debug",
+      "playbook": "debug.yaml",
+      "repository": "Local",
+      "suppress_success_alerts": false,
+      "survey_vars": [],
+      "task_params": {},
+      "type": "",
+      "vaults": []
+    },
+    {
+      "allow_override_args_in_task": false,
+      "allow_override_branch_in_task": false,
+      "allow_parallel_tasks": false,
+      "app": "ansible",
+      "arguments": "[]",
+      "autorun": false,
+      "description": "Reboot servers in case of hackxors",
+      "environment": "default",
+      "inventory": "inventory",
+      "name": "Reboot",
+      "playbook": "reboot-server.yaml",
+      "repository": "Gitea",
+      "suppress_success_alerts": false,
+      "survey_vars": [],
+      "task_params": {},
+      "type": "",
+      "vaults": []
+    },
+    {
+      "allow_override_args_in_task": false,
+      "allow_override_branch_in_task": false,
+      "allow_parallel_tasks": false,
+      "app": "ansible",
+      "arguments": "[]",
+      "autorun": false,
+      "description": "Reload alloy with update config",
+      "environment": "default",
+      "inventory": "inventory",
+      "name": "ReloadAlloy",
+      "playbook": "alloy-reload",
+      "repository": "Gitea",
+      "suppress_success_alerts": false,
+      "survey_vars": [],
+      "task_params": {},
+      "type": "",
+      "vaults": []
+    },
+    {
+      "allow_override_args_in_task": false,
+      "allow_override_branch_in_task": false,
+      "allow_parallel_tasks": false,
+      "app": "ansible",
+      "arguments": "[]",
+      "autorun": false,
+      "description": "",
+      "environment": "default",
+      "inventory": "inventory",
+      "name": "Software Updates",
+      "playbook": "update-software-package.yaml",
+      "repository": "Gitea",
+      "suppress_success_alerts": false,
+      "survey_vars": [],
+      "task_params": {},
+      "type": "",
+      "vaults": []
+    },
+    {
+      "allow_override_args_in_task": false,
+      "allow_override_branch_in_task": false,
+      "allow_parallel_tasks": false,
+      "app": "ansible",
+      "arguments": "[]",
+      "autorun": false,
+      "cron": "*/13 * * * *",
+      "description": "Diagnostic information about running servers",
+      "environment": "default",
+      "inventory": "inventory",
+      "name": "SystemStatus",
+      "playbook": "system-status.yaml",
+      "repository": "Gitea",
+      "suppress_success_alerts": false,
+      "survey_vars": [],
+      "task_params": {},
+      "type": "",
+      "vaults": []
+    },
+    {
+      "allow_override_args_in_task": false,
+      "allow_override_branch_in_task": false,
+      "allow_parallel_tasks": false,
+      "app": "ansible",
+      "arguments": "[]",
+      "autorun": false,
+      "description": "Restart in case of de-sync",
+      "environment": "default",
+      "inventory": "inventory",
+      "name": "Teleport",
+      "playbook": "teleport-operation.yaml",
+      "repository": "Gitea",
+      "suppress_success_alerts": false,
+      "survey_vars": [],
+      "task_params": {},
+      "type": "",
+      "vaults": []
+    },
+    {
+      "allow_override_args_in_task": false,
+      "allow_override_branch_in_task": false,
+      "allow_parallel_tasks": false,
+      "app": "ansible",
+      "arguments": "[]",
+      "autorun": false,
+      "description": "Backup wordpress DB",
+      "environment": "Wordpress",
+      "inventory": "inventory",
+      "name": "Wordpress Backup",
+      "playbook": "wordpress-db-backup.yaml",
+      "repository": "Gitea",
+      "suppress_success_alerts": false,
+      "survey_vars": [],
+      "task_params": {},
+      "type": "",
+      "vaults": []
+    },
+    {
+      "allow_override_args_in_task": false,
+      "allow_override_branch_in_task": false,
+      "allow_parallel_tasks": false,
+      "app": "ansible",
+      "arguments": "[]",
+      "autorun": false,
+      "description": "Checks access to remote systems",
+      "environment": "default",
+      "inventory": "inventory",
+      "name": "availability check",
+      "playbook": "noop.yaml",
+      "repository": "Gitea",
+      "suppress_success_alerts": false,
+      "survey_vars": [],
+      "task_params": {},
+      "type": "",
+      "vaults": []
+    },
+    {
+      "allow_override_args_in_task": false,
+      "allow_override_branch_in_task": false,
+      "allow_parallel_tasks": false,
+      "app": "ansible",
+      "arguments": "[]",
+      "autorun": false,
+      "description": "Script we run to make sure we remain ISO 27001 compliant",
+      "environment": "default",
+      "inventory": "inventory",
+      "name": "compliance",
+      "playbook": "compliance-check.yaml",
+      "repository": "Gitea",
+      "suppress_success_alerts": false,
+      "survey_vars": [],
+      "task_params": {},
+      "type": "",
+      "vaults": []
+    },
+    {
+      "allow_override_args_in_task": false,
+      "allow_override_branch_in_task": false,
+      "allow_parallel_tasks": false,
+      "app": "ansible",
+      "arguments": "[]",
+      "autorun": false,
+      "description": "",
+      "environment": "default",
+      "inventory": "inventory",
+      "name": "pfSense Backup",
+      "playbook": "pfsense-backup.yaml",
+      "repository": "Gitea",
+      "suppress_success_alerts": false,
+      "survey_vars": [],
+      "task_params": {},
+      "type": "",
+      "vaults": []
+    }
+  ],
+  "views": []
+}

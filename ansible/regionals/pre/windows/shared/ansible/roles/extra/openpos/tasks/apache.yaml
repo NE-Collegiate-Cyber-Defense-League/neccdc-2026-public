@@ -1,0 +1,30 @@
+---
+- name: Apache Create firewall rule to allow Apache access
+  community.windows.win_firewall_rule:
+    name: Allow Apache
+    localport: 80
+    action: allow
+    direction: in
+    protocol: tcp
+    enabled: true
+    state: present
+
+- name: Apache Copy php.ini to XAMPP php directory
+  ansible.windows.win_copy:
+    src: ospos/php.ini
+    dest: C:\xampp\php\php.ini
+    backup: true
+
+- name: Apache Install Apache Service
+  ansible.windows.win_command:
+    cmd: 'C:\xampp\apache\bin\httpd.exe -k install'
+  register: apache_service_install
+  failed_when: >
+    apache_service_install.rc != 0 and
+    ('already installed' not in (apache_service_install.stderr | lower))
+  changed_when: apache_service_install.rc == 0
+
+- name: Apache Start Apache Service
+  ansible.windows.win_service:
+    name: Apache2.4
+    state: started

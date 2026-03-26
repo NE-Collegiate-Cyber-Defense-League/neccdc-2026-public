@@ -1,0 +1,20 @@
+{
+  "name": "MYSQL_wordpress",
+  "type": "mysql",
+  "score_weight": 1,
+  "definition": {
+    "host": "{{.Host}}",
+    "username": "{{.Username}}",
+    "password": "{{.Password}}",
+    "database": "wordpress",
+    "table": "wp_users",
+    "column": "user_login"
+  },
+  "attributes": {
+    "admin": {
+      "Host": "10.3.{{.TeamNumber}}.200",
+      "Username": "black-team",
+      "Password": "dfgbfecn4uMtYxcqEdA3WQcdBgH2QGxM"
+    }
+  }
+}

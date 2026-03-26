@@ -1,0 +1,41 @@
+---
+- name: Change Alloy config and reload
+  hosts: alloy_agents
+  become: true
+  vars:
+    alloy_config_path: /etc/alloy/config.alloy
+    alloy_config_source: ""  # set via extra vars or template
+
+  tasks:
+    - name: Ensure Alloy config directory exists
+      ansible.builtin.file:
+        path: "{{ alloy_config_path | dirname }}"
+        state: directory
+        mode: "0755"
+
+    - name: Deploy Alloy config (when content provided)
+      ansible.builtin.copy:
+        content: "{{ alloy_config_source }}"
+        dest: "{{ alloy_config_path }}"
+        mode: "0644"
+      when: alloy_config_source | length > 0
+      notify: Reload Alloy
+
+    - name: Validate Alloy config
+      ansible.builtin.command:
+        cmd: alloy run --config.file={{ alloy_config_path }} --storage.path=/tmp/alloy-check --server.http.listen-addr=127.0.0.1:0 -- 2>&1 || true
+      register: alloy_validate
+      changed_when: false
+      when: alloy_config_source | length > 0
+
+    - name: Reload Alloy (no config change)
+      ansible.builtin.systemd:
+        name: alloy
+        state: reloaded
+      when: alloy_config_source | length == 0
+
+  handlers:
+    - name: Reload Alloy
+      ansible.builtin.systemd:
+        name: alloy
+        state: reloaded

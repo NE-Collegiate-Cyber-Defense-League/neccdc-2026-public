@@ -1,0 +1,11 @@
+---
+- name: Disable IPv4 on IPv6 only systems
+  ansible.windows.win_powershell:
+    script: |
+      Get-NetAdapter |
+      Where-Object { $_.Status -eq "Up" -and $_.HardwareInterface } |
+      ForEach-Object {
+          Write-Output "Disabling IPv4 on $($_.Name)"
+          Disable-NetAdapterBinding -Name $_.Name -ComponentID ms_tcpip -PassThru
+      }
+  when: ipv6 is defined and ipv4 is not defined

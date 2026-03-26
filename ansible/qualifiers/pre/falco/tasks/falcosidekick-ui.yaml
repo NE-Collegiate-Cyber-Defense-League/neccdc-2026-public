@@ -1,0 +1,162 @@
+---
+# https://github.com/falcosecurity/falcosidekick-ui
+
+# https://go.dev/doc/install
+- name: Download and Extract Golang Archive
+  vars:
+    golang_version: "1.25.4"
+  ansible.builtin.unarchive:
+    src: https://go.dev/dl/go{{ golang_version }}.linux-arm64.tar.gz
+    dest: /usr/local
+    remote_src: true
+  tags:
+    - falcosidekick-ui
+
+- name: Install Git & NPM
+  ansible.builtin.dnf:
+    name:
+      - git
+      - npm
+    state: present
+  tags:
+    - falcosidekick-ui
+
+- name: Install "yarn" node.js package globally
+  community.general.npm:
+    name: yarn
+    global: true
+  tags:
+    - falcosidekick-ui
+
+- name: Clone falcosidekick-ui GitHub repository
+  ansible.builtin.git:
+    repo: https://github.com/falcosecurity/falcosidekick-ui.git
+    dest: /tmp/falcosidekick-ui
+  tags:
+    - falcosidekick-ui
+
+- name: Create falcosidekick UI config dir
+  ansible.builtin.file:
+    dest: /opt/falcosidekick-ui/frontend/dist
+    state: directory
+    mode: '0755'
+  tags:
+    - falcosidekick-ui
+
+- name: Check if falcosidekick-ui frontend is already built
+  ansible.builtin.stat:
+    path: /opt/falcosidekick-ui/frontend/dist/manifest.json
+  register: falcosidekick_ui_frontend_built
+  tags:
+    - falcosidekick-ui
+
+- name: Install falcosidekick-ui frontend dependencies
+  ansible.builtin.command:
+    cmd: /usr/local/bin/yarn install
+  args:
+    chdir: /tmp/falcosidekick-ui/frontend
+  when: not falcosidekick_ui_frontend_built.stat.exists
+  tags:
+    - falcosidekick-ui
+
+- name: Build falcosidekick-ui frontend
+  ansible.builtin.command:
+    cmd: /usr/local/bin/yarn build --dest /opt/falcosidekick-ui/frontend/dist
+  args:
+    chdir: /tmp/falcosidekick-ui/frontend
+  when: not falcosidekick_ui_frontend_built.stat.exists
+  async: 900
+  poll: 30
+  retries: 3
+  delay: 30
+  failed_when: false
+  tags:
+    - falcosidekick-ui
+
+- name: Check if falcosidekick-ui frontend is already built
+  ansible.builtin.stat:
+    path: /opt/falcosidekick-ui/frontend/dist/manifest.json
+  register: falcosidekick_ui_frontend_built
+  tags:
+    - falcosidekick-ui
+
+- name: Build falcosidekick-ui frontend again if failed earlier
+  ansible.builtin.command:
+    cmd: /usr/local/bin/yarn build --dest /opt/falcosidekick-ui/frontend/dist
+  args:
+    chdir: /tmp/falcosidekick-ui/frontend
+  when: not falcosidekick_ui_frontend_built.stat.exists
+  tags:
+    - falcosidekick-ui
+
+- name: Check if falcosidekick-ui binary is already built
+  ansible.builtin.stat:
+    path: /usr/local/bin/falcosidekick-ui
+  register: falcosidekick_ui_binary_built
+  tags:
+    - falcosidekick-ui
+
+- name: Build falcosidekick-ui application
+  ansible.builtin.command:
+    cmd: /usr/local/go/bin/go build -o /usr/local/bin/falcosidekick-ui .
+  args:
+    chdir: /tmp/falcosidekick-ui
+  when: not falcosidekick_ui_binary_built.stat.exists
+  tags:
+    - falcosidekick-ui
+
+- name: Set execute permissions on falcosidekick-ui binary
+  ansible.builtin.file:
+    path: /usr/local/bin/falcosidekick-ui
+    mode: '0755'
+  tags:
+    - falcosidekick-ui
+
+- name: Restore SELinux context for falcosidekick-ui binary
+  ansible.builtin.sefcontext:
+    target: /usr/local/bin/falcosidekick-ui
+    setype: bin_t
+    state: present
+  tags:
+    - falcosidekick-ui
+
+- name: Apply SELinux context to falcosidekick-ui binary
+  ansible.builtin.file:
+    path: /usr/local/bin/falcosidekick-ui
+    seuser: system_u
+    serole: object_r
+    setype: bin_t
+    selevel: s0
+  tags:
+    - falcosidekick-ui
+
+- name: Configure falcosidekick-ui systemd service
+  ansible.builtin.template:
+    src: templates/falcosidekick-ui.service.j2
+    dest: /etc/systemd/system/falcosidekick-ui.service
+    owner: root
+    group: root
+    mode: '0664'
+  tags:
+    - falcosidekick-ui
+
+- name: Reload systemd daemon
+  ansible.builtin.systemd:
+    daemon_reload: true
+  tags:
+    - falcosidekick-ui
+
+- name: Start and enable falcosidekick-ui
+  ansible.builtin.service:
+    name: falcosidekick-ui
+    state: restarted
+    enabled: true
+  tags:
+    - falcosidekick-ui
+
+- name: Clean up temporary file
+  ansible.builtin.file:
+    path: /tmp/falcosidekick-ui
+    state: absent
+  tags:
+    - falcosidekick-ui

@@ -1,0 +1,29 @@
+---
+- name: Install ADCS
+  ansible.windows.win_feature:
+    name:
+      - ADCS-Cert-Authority
+      - ADCS-Web-Enrollment
+    state: present
+    include_sub_features: true
+    include_management_tools: true
+
+- name: Install ADCS (standard)
+  ansible.builtin.include_tasks: install_standard.yaml
+  when: adcs_backup_cert_file_path | trim | length == 0
+
+- name: Install ADCS (restore from backup)
+  ansible.builtin.include_tasks: install_backup.yaml
+  when: adcs_backup_cert_file_path | trim | length > 0
+
+- name: Refresh
+  ansible.windows.win_command: gpupdate /force
+
+- name: Configure Web Enrollment
+  ansible.builtin.include_tasks: web_enroll.yaml
+  when: adcs_web_enrollment
+
+- name: Configure certificate templates
+  ansible.builtin.include_tasks: templates.yaml
+  when: adcs_templates | length > 0
+

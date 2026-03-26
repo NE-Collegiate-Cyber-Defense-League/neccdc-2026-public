@@ -1,0 +1,11 @@
+- macro: falco_open_write
+  condition: (evt.type in (open,openat,openat2) and evt.is_open_write=true and fd.typechar='f' and fd.num>=0)
+
+- list: falco_rules_files
+  items: [/etc/falco/rules.d, /opt/falco_rules]
+
+- rule: Modify Falco Rules File
+  desc: Detect attempt to modify Falco rules files
+  condition: falco_open_write and (fd.directory in (falco_rules_files))
+  output: A Falco rules file has been modified (user=%user.name user_loginuid=%user.loginuid command=%proc.cmdline pid=%proc.pid pcmdline=%proc.pcmdline file=%fd.name)
+  priority: WARNING

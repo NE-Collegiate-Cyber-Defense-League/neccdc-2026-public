@@ -1,0 +1,48 @@
+---
+# Role snippets taken from the role robertdebock.vsftpd
+# https://github.com/robertdebock/ansible-role-vsftpd
+
+- name: Install vsftpd
+  ansible.builtin.package:
+    name: vsftpd
+    state: present
+  tags:
+    - ftp
+
+- name: Configure vsftpd
+  ansible.builtin.template:
+    src: templates/vsftpd.conf.j2
+    dest: /etc/vsftpd/vsftpd.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart vsftpd
+  tags:
+    - ftp
+
+- name: Create falco ftp rules dir
+  ansible.builtin.file:
+    dest: /opt/falco_rules
+    state: directory
+    mode: '0755'
+  tags:
+    - ftp
+
+- name: Copy falco global rules
+  ansible.builtin.template:
+    src: falco_rules.yaml
+    dest: /opt/falco_rules/falco_rules.yaml
+    mode: '0644'
+    backup: false
+  notify: Restart falco
+  tags:
+    - ftp
+    - falco_rules
+
+- name: Start and enable vsftpd
+  ansible.builtin.service:
+    name: vsftpd
+    state: started
+    enabled: true
+  tags:
+    - ftp

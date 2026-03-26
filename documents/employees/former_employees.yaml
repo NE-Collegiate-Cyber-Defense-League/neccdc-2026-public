@@ -1,0 +1,31 @@
+users:
+- first_name: Addison
+  last_name: Hawkins
+  username: ahawkins
+  email: ahawkins@chefops.tech
+  password: 1qazxsw2
+  totp_secret: TDGGU4PNSIMKVTA7JGIWKJ44PXSNH7UB
+  department: Support
+  position: Help Desk
+  employee_id: 4
+  manager_id: 21
+- first_name: Josefine
+  last_name: Thomsen
+  username: jthomsen
+  email: jthomsen@chefops.tech
+  password: abc1989
+  totp_secret: M2DQP25FBPRVWUDJ4X6MUWKAKE5M7FQ6
+  department: Engineering
+  position: System Admin
+  employee_id: 12
+  manager_id: 17
+- first_name: Sharon
+  last_name: Pearson
+  username: spearson
+  email: spearson@chefops.tech
+  password: basketball
+  totp_secret: IFYAB3SR6S3JAUEVTBJNOMSHVQ3YWCBA
+  department: Sales
+  position: Sales Representative
+  employee_id: '0'
+  manager_id: '0'

@@ -1,0 +1,17 @@
+---
+- name: Download teleport repository
+  ansible.builtin.get_url:
+    url: https://yum.releases.teleport.dev/rhel/{{ ansible_facts['distribution_major_version'] }}/Teleport/{{ ansible_facts['architecture'] }}/stable/{{ teleport_major_version }}/teleport-yum.repo
+    dest: /etc/yum.repos.d/teleport.repo
+    owner: root
+    group: root
+    mode: '0644'
+  tags:
+    - teleport
+
+- name: Install Teleport
+  ansible.builtin.package:
+    name: teleport
+    state: present
+  tags:
+    - teleport

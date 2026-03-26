@@ -1,0 +1,218 @@
+
+prometheus.exporter.unix "self" {}
+prometheus.scrape "node_metrics" {
+        targets = prometheus.exporter.unix.self.targets
+        forward_to      = [prometheus.relabel.self.receiver]
+        job_name        = "node"
+        scrape_interval = "30s"
+}
+
+prometheus.relabel "self" {
+        forward_to = [prometheus.remote_write.remote.receiver]
+
+        rule {
+                target_label = "job"
+                replacement  = "node"
+        }
+}
+
+prometheus.scrape "extra" {
+    targets = [
+        {
+            __address__ = "127.0.0.1:12345",
+            instance    = constants.hostname,
+            job         = "alloy",
+        },
+    ]
+    forward_to      = [prometheus.remote_write.remote.receiver]
+    scrape_interval = "30s"
+}
+
+
+discovery.relabel "agents_logs" {
+    targets = []
+
+    rule {
+        source_labels = ["__journal__systemd_unit"]
+        target_label  = "unit"
+    }
+
+    rule {
+        source_labels = ["__journal__hostname"]
+        target_label  = "instance"
+    }
+}
+
+loki.source.journal "agents_logs" {
+        max_age       = "24h0m0s"
+        relabel_rules = discovery.relabel.agents_logs.rules
+        forward_to    = [loki.write.remote.receiver]
+        labels        = {
+            job = "integrations/agent",
+        }
+}
+
+
+prometheus.exporter.self "agent" { }
+
+discovery.relabel "agent" {
+    targets = prometheus.exporter.self.agent.targets
+
+    rule {
+        source_labels = ["agent_hostname"]
+        target_label  = "instance"
+    }
+
+    rule {
+        target_label = "job"
+        replacement  = "integrations/agent-check"
+    }
+}
+
+prometheus.scrape "agent" {
+        targets         = discovery.relabel.agent.output
+        forward_to      = [prometheus.relabel.agent.receiver]
+        job_name        = "integrations/agent"
+        scrape_interval = "30s"
+}
+
+prometheus.relabel "agent" {
+    forward_to = [prometheus.remote_write.remote.receiver]
+
+    rule {
+        source_labels = ["__name__"]
+        regex         = "agent_build_info|agent_tcp_connections|agent_wal_samples_appended_total|agent_wal_storage_active_series|go_gc_duration_seconds_count|go_goroutines|go_memstats_heap_inuse_bytes|process_cpu_seconds_total|process_start_time_seconds|prometheus_remote_storage_enqueue_retries_total|prometheus_remote_storage_highest_timestamp_in_seconds|prometheus_remote_storage_queue_highest_sent_timestamp_seconds|prometheus_remote_storage_samples_dropped_total|prometheus_remote_storage_samples_failed_total|prometheus_remote_storage_samples_pending|prometheus_remote_storage_samples_retried_total|prometheus_remote_storage_samples_total|prometheus_remote_storage_sent_batch_duration_seconds_bucket|prometheus_remote_storage_sent_batch_duration_seconds_count|prometheus_remote_storage_sent_batch_duration_seconds_sum|prometheus_remote_storage_shard_capacity|prometheus_remote_storage_shards|prometheus_remote_storage_shards_desired|prometheus_remote_storage_shards_max|prometheus_remote_storage_shards_min|prometheus_remote_storage_succeeded_samples_total|prometheus_sd_discovered_targets|prometheus_target_interval_length_seconds_count|prometheus_target_interval_length_seconds_sum|prometheus_target_scrapes_exceeded_sample_limit_total|prometheus_target_scrapes_sample_duplicate_timestamp_total|prometheus_target_scrapes_sample_out_of_bounds_total|prometheus_target_scrapes_sample_out_of_order_total|prometheus_target_sync_length_seconds_sum|prometheus_wal_watcher_current_segment|traces_exporter_send_failed_spans_total|traces_exporter_sent_spans_total|traces_receiver_accepted_spans_total|traces_receiver_refused_spans_total|up"
+        action        = "keep"
+    }
+}
+
+logging {
+  level    = "info"
+  format   = "json"
+  write_to = [loki.relabel.alloy_logs_rename.receiver]
+}
+
+loki.relabel "alloy_logs_rename" {
+    forward_to = [loki.write.remote.receiver]
+
+    rule {
+            replacement = "integrations/alloy-logs"
+            target_label  = "job"
+    }
+    rule {
+        replacement = constants.hostname
+        target_label  = "instance"
+    }
+}
+
+prometheus.remote_write "remote" {
+    endpoint {
+        url = "mimir_server_name/api/v1/push"
+
+        queue_config { }
+
+        metadata_config { }
+    }
+}
+
+loki.write "remote" {
+    endpoint {
+        url = "loki_server_name/loki/api/v1/push"
+    }
+    external_labels = {}
+}
+
+{% if include_docker %}
+
+discovery.docker "docker_logs" {
+    host             = "unix:///var/run/docker.sock"
+    refresh_interval = "5s"
+}
+
+discovery.relabel "docker_logs" {
+    targets = []
+
+    rule {
+        source_labels = ["__meta_docker_container_id"]
+        target_label  = "job"
+        replacement   = "integrations/docker"
+    }
+
+    rule {
+        source_labels = ["__meta_docker_container_id"]
+        target_label  = "instance"
+        replacement   = constants.hostname
+    }
+
+    rule {
+        source_labels = ["__meta_docker_container_name"]
+        regex         = "/(.*)"
+        target_label  = "container"
+    }
+
+    rule {
+        source_labels = ["__meta_docker_container_log_stream"]
+        target_label  = "stream"
+    }
+}
+
+loki.source.docker "docker_logs" {
+    host             = "unix:///var/run/docker.sock"
+    targets          = discovery.docker.docker_logs.targets
+    forward_to       = [loki.write.remote.receiver]
+    relabel_rules    = discovery.relabel.docker_logs.rules
+    refresh_interval = "10s"
+}
+
+prometheus.exporter.cadvisor "cadvisor" {
+        docker_only = true
+}
+
+discovery.relabel "cadvisor" {
+    targets = prometheus.exporter.cadvisor.cadvisor.targets
+
+    rule {
+        target_label = "job"
+        replacement  = "integrations/docker"
+    }
+
+    rule {
+        target_label = "instance"
+        replacement  = constants.hostname
+    }
+}
+
+prometheus.scrape "cadvisor" {
+    targets         = discovery.relabel.cadvisor.output
+    forward_to      = [prometheus.remote_write.remote.receiver]
+    job_name        = "integrations/cadvisor"
+    scrape_interval = "30s"
+}
+
+prometheus.scrape "pfsense_chefops" {
+	targets = [
+		{
+			__address__ = "<firewall_corp>:9100",
+			instance    = "<firewall_corp>",
+			job         = "integrations/pfsense",
+		},
+	]
+	forward_to      = [prometheus.remote_write.remote.receiver]
+    scrape_interval = "30s"
+}
+
+prometheus.scrape "pfsense_ock" {
+	targets = [
+		{
+			__address__ = "<firewall_branch>:9100",
+			instance    = "<firewall_branch>",
+			job         = "integrations/pfsense",
+		},
+	]
+	forward_to      = [prometheus.remote_write.remote.receiver]
+    scrape_interval = "30s"
+}
+
+{% endif %}
+
+{{ extra_config }}

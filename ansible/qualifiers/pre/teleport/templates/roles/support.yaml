@@ -1,0 +1,11 @@
+kind: role
+version: v7
+metadata:
+  name: support
+  description: Support role with access to kiosk systems
+spec:
+  allow:
+    logins:
+      - support
+    node_labels:
+      system: kiosk

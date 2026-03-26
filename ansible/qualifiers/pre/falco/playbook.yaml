@@ -1,0 +1,212 @@
+---
+- name: Setup Falco
+  hosts: packer
+  become: true
+  gather_facts: false
+  vars:
+    server_name: falco
+    users_data: "{{ lookup('file', '../../../../documents/employees/users.yaml') | from_yaml }}"
+  tasks:
+    # Gather facts during the playbook execution.
+    # Packer was using pre-execution facts, so the facts were incorrect
+    - name: Re-gather facts from the target host
+      ansible.builtin.setup: {}
+
+    - name: Set a hostname
+      ansible.builtin.hostname:
+        name: "{{ server_name }}"
+      tags:
+        - hostname
+
+    - name: Update SSH Server
+      ansible.builtin.package:
+        name: openssh
+        state: latest
+
+    - name: Install EIC
+      ansible.builtin.include_tasks:
+        file: "../../../shared/ec2_instance_connect/main.yaml"
+      tags:
+        - eic
+
+    - name: Setup Alloy
+      ansible.builtin.include_tasks:
+        file: "../../../shared/alloy/main.yaml"
+      vars:
+        mode: "pre"
+        include_docker: false
+        extra_config: ""
+      tags:
+        - alloy
+
+    - name: Update dnf cache
+      ansible.builtin.dnf:
+        update_cache: true
+      tags:
+        - alloy
+
+    - name: Weaken SSH
+      ansible.builtin.include_tasks:
+        file: "../../../shared/weaken_ssh/main.yaml"
+      tags:
+        - ssh
+
+    - name: Set Ansible user
+      ansible.builtin.include_tasks:
+        file: "../../../shared/semaphore_ansible/main.yaml"
+      tags:
+        - ansible
+
+    - name: Install Utilities
+      ansible.builtin.package:
+        name:
+          - bind-utils
+          - nmap
+          - vim
+          - nmap
+        state: present
+
+    - name: Setup black team task
+      ansible.builtin.include_tasks:
+        file: "../../../shared/black_team/main.yaml"
+      vars:
+        root_groups: adm
+      tags:
+        - black-team
+
+    - name: Install Teleport client
+      ansible.builtin.include_tasks:
+        file: "../../../shared/teleport_client/main.yaml"
+      vars:
+        teleport_node_name: "{{ server_name }}"
+        teleport_join_token: STF5Y7KCA80S7IOHEPUNVB6SRMTX1U78
+        teleport_node_label:
+          service: falco
+        teleport_app_service_enabled: "yes"
+        teleport_major_version_override: v16 # One major version behind the server
+        teleport_apps:
+          - name: falcosidekick
+            uri: "http://localhost:2802"
+            labels:
+              service: falcosidekick
+      tags:
+        - teleport
+
+    - name: Install Falcosidekick
+      ansible.builtin.include_tasks:
+        file: "tasks/falcosidekick.yaml"
+      tags:
+        - falcosidekick
+
+    - name: Install Redis
+      ansible.builtin.include_tasks:
+        file: "tasks/redis.yaml"
+      tags:
+        - redis
+
+    - name: Install Falcosidekick UI
+      ansible.builtin.include_tasks:
+        file: "tasks/falcosidekick-ui.yaml"
+      tags:
+        - falcosidekick-ui
+
+    - name: Install FTP Server
+      ansible.builtin.include_tasks:
+        file: "tasks/ftp.yaml"
+      tags:
+        - ftp
+        - falco_rules
+
+    - name: Install Falco
+      ansible.builtin.include_tasks:
+        file: "tasks/falco.yaml"
+      tags:
+        - falco
+        - falco_rules
+
+    - name: Start and enable cockpit
+      ansible.builtin.service:
+        name: cockpit
+        state: started
+        enabled: true
+      tags:
+        - cockpit
+
+    # https://docs.aws.amazon.com/systems-manager/latest/userguide/agent-install-rocky.html
+    - name: AWS SSM Agent
+      block:
+        - name: AWS SSM Agent | Install
+          ansible.builtin.dnf:
+            name: 'https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_arm64/amazon-ssm-agent.rpm'
+            state: present
+            disable_gpg_check: true
+          tags:
+            - ssm
+
+        - name: AWS SSM Agent | Start and enable
+          ansible.builtin.service:
+            name: amazon-ssm-agent
+            state: started
+            enabled: true
+          tags:
+            - ssm
+
+    - name: Create Linux Groups
+      ansible.builtin.group:
+        name: "{{ item | regex_replace(' ', '-') | lower }}"
+        state: present
+      with_items:
+        - engineering
+        - security
+      tags:
+        - users
+
+    - name: Create System Admin Engineering Users
+      ansible.builtin.user:
+        name: "{{ item.username | regex_replace(' ', '.') | lower }}"
+        password: "{{ item.password | password_hash('sha512') }}"
+        append: true
+        groups: "engineering,adm,wheel,systemd-journal"
+        shell: '/bin/bash'
+        state: present
+      when: item.position == "System Admin"
+      with_items: "{{ users_data.users }}"
+      tags:
+        - users
+
+    - name: Create Security Users
+      ansible.builtin.user:
+        name: "{{ item.username | regex_replace(' ', '.') | lower }}"
+        password: "{{ item.password | password_hash('sha512') }}"
+        append: true
+        groups: "security,adm,systemd-journal"
+        shell: '/usr/bin/bash'
+        state: present
+      when: item.department == "Security"
+      with_items: "{{ users_data.users }}"
+      tags:
+        - users
+
+    - name: Create CISO user
+      ansible.builtin.user:
+        name: "{{ item.username | regex_replace(' ', '.') | lower }}"
+        password: "{{ item.password | password_hash('sha512') }}"
+        append: true
+        groups: security,engineering,adm,systemd-journal
+        shell: '/bin/sh'
+        state: present
+      when: item.position == "CISO"
+      with_items: "{{ users_data.users }}"
+      tags:
+        - users
+
+  handlers:
+    - name: Restart falco
+      ansible.builtin.service:
+        name: falco
+        state: restarted
+
+    - name: Restart vsftpd
+      ansible.builtin.service:
+        name: vsftpd
+        state: restarted

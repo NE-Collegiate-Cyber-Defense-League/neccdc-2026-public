@@ -1,0 +1,9 @@
+---
+- name: Run dcdiag with /fix flag
+  ansible.windows.win_command:
+    cmd: dcdiag /fix
+  register: dcdiag_result
+
+- name: Display dcdiag output
+  ansible.builtin.debug:
+    var: dcdiag_result

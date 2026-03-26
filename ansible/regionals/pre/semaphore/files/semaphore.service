@@ -1,0 +1,21 @@
+[Unit]
+Description=Semaphore UI
+Documentation=https://semaphoreui.com/docs
+Wants=network-online.target
+After=network-online.target
+ConditionPathExists=/usr/bin/semaphore
+ConditionPathExists=/opt/semaphore/config.json
+# After=network.target
+# StartLimitIntervalSec=0
+
+[Service]
+ExecStart=/usr/bin/semaphore server --config /opt/semaphore/config.json
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=always
+RestartSec=10s
+User=semaphore
+Group=semaphore
+Type=simple
+
+[Install]
+WantedBy=multi-user.target

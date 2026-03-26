@@ -1,0 +1,46 @@
+---
+- name: Create teleport roles directory
+  ansible.builtin.file:
+    path: /teleport/roles
+    state: directory
+    owner: root
+    group: root
+    mode: '0744'
+  tags:
+    - teleport_roles
+
+- name: Teleport roles
+  block:
+    - name: Copy config file
+      ansible.builtin.copy:
+        src: files/roles/{{ item }}.yaml
+        dest: "/teleport/roles/{{ item }}.yaml"
+        mode: "0644"
+        owner: root
+        group: root
+      with_items:
+        - employees
+        - external-admin
+        - external-support
+        - external-windows
+        - kiosk
+        - system-admin
+        - windows
+        - windows-admin
+      tags:
+        - teleport_roles
+
+    - name: Create teleport config resources
+      ansible.builtin.command:
+        cmd: "/usr/local/bin/tctl create -f /teleport/roles/{{ item }}.yaml"
+      with_items:
+        - employees
+        - external-admin
+        - external-support
+        - external-windows
+        - kiosk
+        - system-admin
+        - windows
+        - windows-admin
+      tags:
+        - teleport_roles

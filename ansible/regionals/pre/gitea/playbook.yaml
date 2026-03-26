@@ -1,0 +1,271 @@
+- name: Setup Gitea
+  hosts: packer
+  become: true
+  gather_facts: true
+  vars:
+    users_data: "{{ lookup('file', '../../../../documents/employees/employees.yaml') | from_yaml }}"
+    former_users_data: "{{ lookup('file', '../../../../documents/employees/former_employees.yaml') | from_yaml }}"
+    gitea_token: 40b8404b26d98fd9778393c3a6d88edd00292813
+    gitea_url: "http://localhost:3000"
+  tasks:
+    - name: Set a hostname
+      ansible.builtin.hostname:
+        name: gitea
+      tags:
+        - base
+
+    - name: Add EPEL 9 repository
+      ansible.builtin.yum_repository:
+        name: epel
+        description: "EPEL Release 9 Repository"
+        metalink: https://mirrors.fedoraproject.org/metalink?repo=epel-9&arch=$basearch&infra=$infra&content=$contentdir
+        gpgcheck: false
+        countme: true
+        enabled: true
+        state: present
+      tags:
+        - base
+
+    - name: Update packages
+      ansible.builtin.dnf:
+        name: "*"
+        state: latest
+      tags:
+        - base
+
+    - name: Install additional packages
+      ansible.builtin.dnf:
+        name:
+          - bash
+          - curl
+          - file
+          - firewalld
+          - git
+          - htop
+          - nmap
+          - tar
+          - unzip
+          - wget
+        state: present
+      tags:
+        - base
+
+    - name: Ensure firewalld is running and enabled
+      ansible.builtin.service:
+        name: firewalld
+        state: started
+        enabled: true
+
+    - name: Setup black team task
+      ansible.builtin.include_tasks:
+        file: "../../../shared/black_team/main.yaml"
+      vars:
+        shell_override: /bin/bash
+        root_groups: wheel
+      tags:
+        - black-team
+
+    - name: Set Ansible user
+      ansible.builtin.include_tasks:
+        file: "../../shared/semaphore_ansible/main.yaml"
+      tags:
+        - ansible
+
+    - name: Set Postgres
+      ansible.builtin.include_tasks:
+        file: "tasks/postgres.yaml"
+      tags:
+        - postgres
+
+    - name: Set Gitea
+      ansible.builtin.include_tasks:
+        file: "tasks/gitea.yaml"
+      tags:
+        - gitea
+
+    - name: Create gitea configuration
+      ansible.builtin.include_tasks:
+        file: "tasks/gitea_setup.yaml"
+      tags:
+        - gitea
+        - gitea_config
+
+    - name: Create gitea users
+      ansible.builtin.include_tasks:
+        file: "tasks/gitea_users.yaml"
+      tags:
+        - gitea
+        - gitea_users
+
+    - name: Set fail2ban
+      ansible.builtin.include_tasks:
+        file: "tasks/fail2ban.yaml"
+      tags:
+        - fail2ban
+
+    - name: Install Teleport client
+      ansible.builtin.include_tasks:
+        file: "../../../shared/teleport_client/main.yaml"
+      vars:
+        teleport_node_name: gitea
+        teleport_join_token: 7wdteXsNQdyzGyCgeqrn
+        teleport_node_label:
+          service: gitea
+          os: linux
+        teleport_app_service_enabled: "no"
+      tags:
+        - teleport
+
+    # The main task create the file but need to have custom DB options.
+    - name: Configure Teleport.
+      ansible.builtin.template:
+        src: templates/teleport.yaml.j2
+        dest: /etc/teleport.yaml
+        validate: "/usr/local/bin/teleport configure --test %s"
+        mode: "0644"
+      vars:
+        teleport_join_token: 7wdteXsNQdyzGyCgeqrn
+      tags:
+        - teleport
+
+    # https://goteleport.com/docs/enroll-resources/database-access/enrollment/self-hosted/postgres-self-hosted/
+    - name: Postgres Teleport access
+      ansible.builtin.include_tasks:
+        file: "tasks/postgres_teleport.yaml"
+      tags:
+        - postgres
+        - teleport
+
+    - name: Install EIC
+      ansible.builtin.include_tasks:
+        file: "../../../shared/ec2_instance_connect/main.yaml"
+      tags:
+        - eic
+
+    - name: Weaken SSH
+      ansible.builtin.include_tasks:
+        file: "../../../shared/weaken_ssh/main.yaml"
+      tags:
+        - ssh
+
+    - name: Install Falco
+      ansible.builtin.include_tasks:
+        file: "../../shared/falco_client/main.yaml"
+      tags:
+        - falco
+
+    - name: Setup Alloy
+      ansible.builtin.include_tasks:
+        file: "../../../shared/alloy/main.yaml"
+      vars:
+        mode: "pre"
+        include_docker: false
+        extra_config: |
+          prometheus.scrape "gitea" {
+            targets = [
+              {
+                __address__ = "127.0.0.1:3000",
+                instance    = constants.hostname,
+                job         = "gitea",
+              },
+            ]
+            forward_to      = [prometheus.remote_write.remote.receiver]
+            scrape_interval = "30s"
+          }
+
+          prometheus.scrape "falco" {
+            targets = [
+              {
+                __address__ = "127.0.0.1:8765",
+                instance    = constants.hostname,
+                job         = "falco",
+              },
+            ]
+            forward_to      = [prometheus.remote_write.remote.receiver]
+            scrape_interval = "10m"
+          }
+
+          loki.source.file "falco_alerts" {
+            targets = [
+              {
+                __path__ = "/var/log/falco_alerts.log",
+                job      = "falco-alerts",
+                instance = constants.hostname,
+              },
+            ]
+            forward_to = [loki.process.falco_alerts.receiver]
+          }
+
+          loki.process "falco_alerts" {
+            forward_to = [loki.write.remote.receiver]
+
+            stage.json {
+              expressions = {
+                priority  = "priority",
+                rule      = "rule",
+                source    = "source",
+                hostname  = "hostname",
+                output    = "output",
+              }
+            }
+
+            stage.labels {
+              values = {
+                priority = "",
+                rule     = "",
+                source   = "",
+              }
+            }
+          }
+      tags:
+        - alloy
+
+
+    - name: Create linux users
+      ansible.builtin.include_tasks:
+        file: "tasks/linux_users.yaml"
+      tags:
+        - users
+
+    - name: Random tasks
+      ansible.builtin.include_tasks:
+        file: "tasks/random.yaml"
+      tags:
+        - random
+
+    - name: Red Team larry
+      ansible.builtin.include_tasks:
+        file: "../../shared/red_team/larry.yaml"
+      tags:
+        - larry
+        - red-team
+
+  handlers:
+    - name: Restart postgresql
+      ansible.builtin.service:
+        name: postgresql-18
+        state: restarted
+      tags:
+        - postgres
+        - teleport
+
+    - name: Restart fail2ban
+      ansible.builtin.service:
+        name: fail2ban
+        state: restarted
+      tags:
+        - fail2ban
+
+    - name: Restart sshd
+      ansible.builtin.service:
+        name: sshd
+        state: restarted
+      tags:
+        - gitea
+
+    - name: Restart gitea
+      ansible.builtin.service:
+        name: gitea
+        state: restarted
+      tags:
+        - gitea

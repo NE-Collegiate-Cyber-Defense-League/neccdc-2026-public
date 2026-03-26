@@ -1,0 +1,106 @@
+---
+- name: Set fact for AD users and groups
+  ansible.builtin.set_fact:
+    set_ous: "{{ config.orginization_units | default({}) }}"
+    set_users: "{{ config.users | default({}) }}"
+    set_groups: "{{ config.groups | default({}) }}"
+
+- name: Create AD OUs
+  ansible.windows.win_powershell:
+    script: "{{ lookup('file', 'Create-OUs.ps1') }}"
+    parameters:
+      OUsJson: "{{ set_ous | default({}) | to_json }}"
+    error_action: stop
+  when: set_ous is defined and set_ous | length > 0
+  register: create_ous_result
+
+- debug:
+    var: create_ous_result
+  when: debug | default(false)
+
+- name: Create AD groups
+  ansible.windows.win_powershell:
+    script: "{{ lookup('file', 'Create-ADGroups.ps1') }}"
+    parameters:
+      GroupsJson: "{{ set_groups | default({}) | to_json }}"
+    error_action: stop
+  when: set_groups is defined and set_groups | length > 0
+  register: create_groups_result
+
+- debug:
+    var: create_groups_result
+  when: debug | default(false)
+
+- name: Create AD users
+  ansible.windows.win_powershell:
+    script: "{{ lookup('file', 'Create-ADUsers.ps1') }}"
+    parameters:
+      UsersJson: "{{ set_users | default({}) | to_json }}"
+    error_action: stop
+  when: set_users is defined and set_users | length > 0
+  register: create_users_result
+
+- debug:
+    var: create_users_result
+  when: debug | default(false)
+
+- name: Set AD user manager attributes
+  ansible.windows.win_powershell:
+    script: "{{ lookup('file', 'Set-ADUserManager.ps1') }}"
+    parameters:
+      UsersJson: "{{ set_users | default({}) | to_json }}"
+    error_action: stop
+  when: set_users is defined and set_users | length > 0
+  register: set_manager_result
+
+- debug:
+    var: set_manager_result
+  when: debug | default(false)
+
+- name: Set AD group manager attributes
+  ansible.windows.win_powershell:
+    script: "{{ lookup('file', 'Set-ADGroupManager.ps1') }}"
+    parameters:
+      GroupsJson: "{{ set_groups | default({}) | to_json }}"
+    error_action: stop
+  when: set_groups is defined and set_groups | length > 0
+  register: set_group_manager_result
+
+- debug:
+    var: set_group_manager_result
+  when: debug | default(false)
+
+# - name: Create AD groups
+#   microsoft.ad.group:
+#     name: "{{ item.key }}"
+#     scope: global
+#     description: "{{ item.value.description | default(omit) }}"
+#     state: present
+#   loop: "{{ data.groups | default({}) | dict2items }}"
+
+# TODO: Future handle the mixing of role vars and lab keyed vars
+# Note: This will always show as changed
+# - name: Create AD users
+#   microsoft.ad.user:
+#     name: "{{ item.key }}"
+#     firstname: "{{ item.value.firstname }}"
+#     surname: "{{ item.value.surname }}"
+#     display_name: "{{ item.value.firstname }} {{ item.value.surname }}"
+#     password: "{{ item.value.password }}"
+#     upn: "{{ item.key }}@{{ item.value.upn | default(domain) }}"
+#     enabled: yes
+#     groups:
+#       add: "{{ item.value.groups }}"
+#     path: "{{ item.value.path | default(omit) }}"
+#     attributes:
+#       set:
+#         company: "{{ lab[domain].netbios_name }}"
+#         department: "{{ item.value.department }}"
+#         title: "{{ item.value.position }}"
+#         description: "{{ item.value.department }} - {{ item.value.position }}"
+#         mail: "{{ item.value.email }}"
+#         manager: "{{ item.value.manager_dn | default(omit) }}"
+#         employeeID: "{{ item.value.employee_id }}"
+#     state: present
+#   loop: "{{ data.users | default({}) | dict2items }}"
+

@@ -1,0 +1,67 @@
+---
+- name: Unmask MariaDB service
+  ansible.builtin.systemd_service:
+    name: mariadb
+    masked: no
+  become: true
+
+- name: Start and enable MariaDB service
+  ansible.builtin.service:
+    name: mariadb
+    state: started
+    enabled: yes
+  become: true
+
+- name: Check MySQL root login with configured password
+  ansible.builtin.command:
+    cmd: mysql -u root -p{{ mysql_root_password }} -e "SELECT 1;"
+  register: mysql_root_login_with_password
+  failed_when: false
+  changed_when: false
+  become: true
+
+- name: Check MySQL root login without password
+  ansible.builtin.command:
+    cmd: mysql -u root -e "SELECT 1;"
+  register: mysql_root_login_without_password
+  failed_when: false
+  changed_when: false
+  become: true
+  when: mysql_root_login_with_password.rc != 0
+
+- name: Set MySQL root password (only when root is passwordless)
+  ansible.builtin.command:
+    cmd: mysql -u root -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '{{ mysql_root_password }}'; FLUSH PRIVILEGES;"
+  become: true
+  when:
+    - mysql_root_login_with_password.rc != 0
+    - mysql_root_login_without_password.rc == 0
+
+- name: Fail if unable to authenticate as MySQL root
+  ansible.builtin.fail:
+    msg: >-
+      Unable to authenticate to MariaDB as root either with the configured password
+      (mysql_root_password) or with no password. Set mysql_root_password to the
+      current root password (or adjust the role to support a separate current password)
+      and re-run.
+  when:
+    - mysql_root_login_with_password.rc != 0
+    - mysql_root_login_without_password is defined
+    - mysql_root_login_without_password.rc != 0
+
+- name: Drop MySQL database if exists
+  ansible.builtin.command:
+    cmd: mysql -u root -p{{ mysql_root_password }} -e "DROP DATABASE IF EXISTS {{ mysql_database }};"
+  become: true
+  ignore_errors: true
+  when: reinstall | default(false)
+
+- name: Create MySQL database
+  ansible.builtin.command:
+    cmd: mysql -u root -p{{ mysql_root_password }} -e "CREATE DATABASE IF NOT EXISTS {{ mysql_database }};"
+  become: true
+
+- name: Create MySQL user
+  ansible.builtin.command:
+    cmd: mysql -u root -p{{ mysql_root_password }} -e "CREATE USER IF NOT EXISTS '{{ mysql_user }}'@'localhost' IDENTIFIED BY '{{ mysql_password }}'; GRANT ALL PRIVILEGES ON {{ mysql_database }}.* TO '{{ mysql_user }}'@'localhost'; FLUSH PRIVILEGES;"
+  become: true

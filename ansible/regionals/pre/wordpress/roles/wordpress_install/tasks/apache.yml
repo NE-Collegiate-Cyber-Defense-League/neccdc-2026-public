@@ -1,0 +1,104 @@
+---
+- name: Enable Apache mod_rewrite
+  community.general.apache2_module:
+    name: rewrite
+    state: present
+  notify: restart apache2
+
+- name: Create Apache VirtualHost configuration
+  ansible.builtin.copy:
+    dest: /etc/apache2/sites-available/wordpress.conf
+    content: |
+      <VirtualHost *:80>
+          ServerAdmin {{ wp_admin_email }}
+          DocumentRoot {{ wordpress_path }}
+
+          <Directory {{ wordpress_path }}>
+              Options Indexes FollowSymLinks
+              AllowOverride All
+              Require all granted
+          </Directory>
+
+          ErrorLog ${APACHE_LOG_DIR}/wordpress_error.log
+          CustomLog ${APACHE_LOG_DIR}/wordpress_access.log combined
+      </VirtualHost>
+    owner: root
+    group: root
+    mode: '0644'
+  notify: restart apache2
+
+- name: Disable default Apache site
+  ansible.builtin.command:
+    cmd: a2dissite 000-default.conf
+  args:
+    removes: /etc/apache2/sites-enabled/000-default.conf
+  register: default_site_disabled
+
+- name: Enable WordPress site
+  ansible.builtin.command:
+    cmd: a2ensite wordpress.conf
+  args:
+    creates: /etc/apache2/sites-enabled/wordpress.conf
+  register: wordpress_site_enabled
+
+- name: Restart Apache to apply site changes
+  ansible.builtin.service:
+    name: apache2
+    state: restarted
+  when: default_site_disabled.changed or wordpress_site_enabled.changed
+
+- name: Ensure Apache is started and enabled
+  ansible.builtin.service:
+    name: apache2
+    state: started
+    enabled: true
+
+- name: Configure PHP to suppress deprecation warnings
+  block:
+    - name: Find apache2 php.ini
+      ansible.builtin.find:
+        paths: /etc/php
+        recurse: true
+        file_type: file
+        patterns: php.ini
+      register: php_ini_files
+
+    - name: Select apache2 SAPI php.ini
+      set_fact:
+        php_ini_path: "{{ (php_ini_files.files | map(attribute='path') | select('search', '/apache2/php.ini') | list | first) | default('') }}"
+
+    - name: Configure PHP to suppress deprecation warnings (apache2 SAPI)
+      ansible.builtin.lineinfile:
+        path: "{{ php_ini_path }}"
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+        backup: true
+      loop:
+        - { regexp: '^display_errors =', line: 'display_errors = Off' }
+        - { regexp: '^display_startup_errors =', line: 'display_startup_errors = Off' }
+        - { regexp: '^error_reporting =', line: 'error_reporting = E_ALL & ~E_DEPRECATED & ~E_STRICT & ~E_NOTICE' }
+      when: php_ini_path != ''
+      notify: restart apache2
+
+    - name: Warn if apache2 php.ini not found
+      ansible.builtin.debug:
+        msg: "apache2 php.ini not found under /etc/php; skipping PHP warning suppression"
+      when: php_ini_path == ''
+
+- name: Restart Apache to apply PHP changes
+  ansible.builtin.service:
+    name: apache2
+    state: restarted
+
+- name: Remove default index.html if it exists
+  ansible.builtin.file:
+    path: "{{ wordpress_path }}/index.html"
+    state: absent
+
+- name: Set correct permissions on WordPress directory
+  ansible.builtin.file:
+    path: "{{ wordpress_path }}"
+    state: directory
+    owner: www-data
+    group: www-data
+    recurse: true

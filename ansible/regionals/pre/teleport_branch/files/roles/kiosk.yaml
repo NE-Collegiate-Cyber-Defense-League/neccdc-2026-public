@@ -1,0 +1,11 @@
+kind: role
+version: v7
+metadata:
+  name: kiosk
+  description: Manage kiosk system contents
+spec:
+  allow:
+    logins:
+      - support
+    node_labels:
+      system: kiosk

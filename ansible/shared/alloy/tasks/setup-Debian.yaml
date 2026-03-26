@@ -1,0 +1,21 @@
+---
+- name: Add Grafana APT repo
+  ansible.builtin.deb822_repository:
+    name: grafana
+    types: [deb]
+    uris: "https://apt.grafana.com"
+    signed_by: "https://packages.grafana.com/gpg.key"
+    suites: [stable]
+    components: [main]
+    state: present
+    enabled: true
+  tags:
+    - alloy
+
+- name: Install Alloy
+  ansible.builtin.apt:
+    name: alloy
+    state: present
+    update_cache: true
+  tags:
+    - alloy
