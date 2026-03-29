@@ -80,12 +80,12 @@ resource "aws_network_acl_association" "private_nat" {
 resource "aws_nat_gateway" "private" {
   connectivity_type = "private"
   subnet_id         = aws_subnet.private_nat.id
-  private_ip        = cidrhost(local.nat_ipv4_cidr_range, 10) # 10.0.255.10
+  private_ip        = cidrhost(local.nat_ipv4_cidr_range, 10) # 10.255.255.10
 
   secondary_private_ip_addresses = [
-    cidrhost(local.nat_ipv4_cidr_range, 20), # 10.0.255.20
-    cidrhost(local.nat_ipv4_cidr_range, 30), # 10.0.255.30
-    cidrhost(local.nat_ipv4_cidr_range, 40)  # 10.0.255.40
+    cidrhost(local.nat_ipv4_cidr_range, 20), # 10.255.255.20
+    cidrhost(local.nat_ipv4_cidr_range, 30), # 10.255.255.30
+    cidrhost(local.nat_ipv4_cidr_range, 40)  # 10.255.255.40
   ]
 
   tags = {

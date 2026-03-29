@@ -37,6 +37,10 @@
 - [Alex Sheehan](https://github.com/011000100110111101101111)
   - Initial Semaphore playbook setup
 
+# Infrastucture
+Have question on how this works?
+Join the NECCDL Discord and we would be happy to answer
+
 ## Ansible
 This directory contains a majority of the code base for shaping the individual hosts and services within the environment.
 
