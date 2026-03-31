@@ -5,7 +5,7 @@
 >
 > We're building the premier cyber defense competition and could use your help
 > - [Sponsor](https://neccdl.org/sponsor/)
-> - [Volunteer](https://neccdl.org/docs/black-team/)
+> - [Volunteer](https://neccdl.org/volunteer/black-team/)
 
 
 ## The 2026 Team
